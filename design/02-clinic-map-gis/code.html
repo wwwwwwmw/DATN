@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+
+<html lang="vi"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"primary-fixed-dim":"#b0c6ff","on-tertiary":"#ffffff","on-error":"#ffffff","on-tertiary-fixed-variant":"#8f1100","on-secondary-fixed-variant":"#005049","secondary-container":"#86f2e4","secondary-fixed-dim":"#6bd8cb","tertiary":"#840f00","primary-container":"#0f52ba","surface-container-lowest":"#ffffff","surface-dim":"#cfdaf2","on-primary":"#ffffff","outline-variant":"#c3c6d5","tertiary-fixed":"#ffdad3","inverse-on-surface":"#ecf1ff","inverse-surface":"#263143","tertiary-container":"#af1700","on-primary-fixed-variant":"#00419c","secondary":"#006a61","surface-variant":"#d8e3fb","primary-fixed":"#d9e2ff","on-primary-fixed":"#001945","background":"#f9f9ff","surface-container-low":"#f0f3ff","on-surface":"#111c2d","on-secondary":"#ffffff","surface-container-high":"#dee8ff","on-secondary-container":"#006f66","on-background":"#111c2d","secondary-fixed":"#89f5e7","surface":"#f9f9ff","inverse-primary":"#b0c6ff","primary":"#003c90","on-tertiary-container":"#ffc0b3","on-secondary-fixed":"#00201d","on-surface-variant":"#434653","on-tertiary-fixed":"#3f0300","surface-container-highest":"#d8e3fb","on-error-container":"#93000a","surface-container":"#e7eeff","surface-bright":"#f9f9ff","error":"#ba1a1a","error-container":"#ffdad6","tertiary-fixed-dim":"#ffb4a6","outline":"#737784","surface-tint":"#1d59c1","on-primary-container":"#bcceff"},"borderRadius":{"DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5rem","full":"0.75rem"},"spacing":{"margin-desktop":"1.5rem","space-sm":"0.5rem","space-md":"0.75rem","gutter":"1rem","gutter-desktop":"1.25rem","space-lg":"1rem","space-xl":"1.5rem","margin":"1rem","space-xs":"0.25rem"},"fontFamily":{"headline-sm":["Inter"],"label-lg":["Inter"],"label-md":["Inter"],"headline-md":["Inter"],"headline-lg":["Inter"],"label-sm":["Inter"],"body-sm":["Inter"],"body-md":["Inter"],"headline-xl":["Inter"],"code-md":["JetBrains Mono"],"body-lg":["Inter"],"headline-xl-mobile":["Inter"]},"fontSize":{"headline-sm":["16px",{"lineHeight":"24px","letterSpacing":"0em","fontWeight":"600"}],"label-lg":["14px",{"lineHeight":"20px","letterSpacing":"0.01em","fontWeight":"600"}],"label-md":["12px",{"lineHeight":"16px","letterSpacing":"0.02em","fontWeight":"600"}],"headline-md":["20px",{"lineHeight":"28px","letterSpacing":"-0.01em","fontWeight":"600"}],"headline-lg":["24px",{"lineHeight":"32px","letterSpacing":"-0.015em","fontWeight":"600"}],"label-sm":["11px",{"lineHeight":"14px","letterSpacing":"0.04em","fontWeight":"700"}],"body-sm":["12px",{"lineHeight":"16px","letterSpacing":"0em","fontWeight":"400"}],"body-md":["14px",{"lineHeight":"20px","letterSpacing":"0em","fontWeight":"400"}],"headline-xl":["32px",{"lineHeight":"40px","letterSpacing":"-0.02em","fontWeight":"700"}],"code-md":["12px",{"lineHeight":"18px","letterSpacing":"0em","fontWeight":"500"}],"body-lg":["16px",{"lineHeight":"24px","letterSpacing":"0em","fontWeight":"400"}],"headline-xl-mobile":["24px",{"lineHeight":"32px","letterSpacing":"-0.01em","fontWeight":"700"}]}}}};</script></head><body class="bg-background font-body-md text-on-surface antialiased"><aside class="fixed left-0 top-0 h-full w-72 bg-surface-container-lowest border-r border-outline-variant z-50 flex flex-col justify-between shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="flex flex-col"><div class="h-16 px-space-lg flex items-center gap-space-md border-b border-outline-variant"><div class="w-9 h-9 rounded bg-primary-container flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-on-primary text-[22px]">local_hospital</span></div><div class="flex flex-col min-w-0"><span class="font-headline-sm text-headline-sm text-primary tracking-tight truncate leading-tight">MedTech AI</span><span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">HỆ THỐNG LÂM SÀNG</span></div></div><div class="px-space-md pt-space-md"><span class="px-space-sm font-label-sm text-label-sm uppercase tracking-wider text-outline">Nghiệp vụ lâm sàng</span></div><nav class="flex flex-col gap-1 px-space-md py-space-xs mt-space-xs" data-active-classes="bg-surface-container text-primary font-semibold border-l-4 border-primary pl-[12px]"><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="ai-chat" href="#"><span class="material-symbols-outlined text-[20px]">smart_toy</span><span class="font-label-lg text-label-lg">Chat Tư vấn AI</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="smart-booking" href="#"><span class="material-symbols-outlined text-[20px]">event_available</span><span class="font-label-lg text-label-lg">Đặt lịch khám thông minh</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="telehealth" href="#"><span class="material-symbols-outlined text-[20px]">video_call</span><span class="font-label-lg text-label-lg">Khám bệnh từ xa WebRTC</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="xray-analysis" href="#"><span class="material-symbols-outlined text-[20px]">radiology</span><span class="font-label-lg text-label-lg">Phân tích X-quang AI</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="medical-records" href="#"><span class="material-symbols-outlined text-[20px]">clinical_notes</span><span class="font-label-lg text-label-lg">Hồ sơ Bệnh án &amp; ICD-10</span></a><a aria-current="page" class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg transition-colors bg-surface-container text-primary font-semibold border-l-4 border-primary pl-[12px]" data-path="clinics-map" href="#"><span class="material-symbols-outlined text-[20px]">distance</span><span class="font-label-lg text-label-lg">Bản đồ Phòng khám GIS</span></a></nav><div class="px-space-md pt-space-lg"><span class="px-space-sm font-label-sm text-label-sm uppercase tracking-wider text-outline">Hệ thống quản trị</span></div><nav class="flex flex-col gap-1 px-space-md py-space-xs mt-space-xs" data-active-classes="bg-surface-container text-primary font-semibold border-l-4 border-primary pl-[12px]"><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="settings" href="#"><span class="material-symbols-outlined text-[20px]">settings</span><span class="font-label-lg text-label-lg">Cài đặt</span></a></nav></div><div class="p-space-md border-t border-outline-variant bg-surface-container-low"><div class="flex items-center gap-space-sm"><span class="w-2.5 h-2.5 rounded-full bg-secondary shrink-0 animate-pulse"></span><span class="font-label-sm text-label-sm text-secondary font-bold tracking-tight">Hệ thống Sẵn sàng • v2.4-MED</span></div><span class="font-body-sm text-body-sm text-on-surface-variant block mt-1">Bệnh viện Đa khoa Quốc tế</span></div></aside><div class="pl-72"><header class="fixed top-0 left-72 right-0 h-16 bg-surface-container-lowest/95 backdrop-blur-md border-b border-outline-variant z-40 flex items-center justify-between px-gutter-desktop shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="flex items-center flex-1 max-w-xl"><div class="relative w-full"><span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span><input class="w-full h-9 pl-10 pr-space-md bg-surface border border-outline-variant rounded text-body-md font-body-md text-on-surface placeholder-on-surface-variant focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all" placeholder="Tìm kiếm bệnh nhân, mã hồ sơ, lịch hẹn..." type="text"/></div></div><div class="flex items-center gap-space-lg"><button aria-label="Thông báo" class="relative p-space-xs rounded hover:bg-surface-container-high text-on-surface-variant transition-colors"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-1 right-1 w-2.5 h-2.5 bg-error rounded-full ring-2 ring-surface-container-lowest"></span></button><div class="h-7 w-[1px] bg-outline-variant"></div><div class="flex items-center gap-space-md pl-space-xs"><div class="flex flex-col text-right"><span class="font-label-md text-label-md text-on-surface leading-tight">BS. Sarah Jenkins</span><span class="font-body-sm text-body-sm text-on-surface-variant leading-tight">Trưởng khoa Tim mạch</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="relative pt-16 bg-background min-h-screen"><div class="flex flex-col w-full">
+<div class="flex flex-col lg:flex-row h-[calc(100vh-4rem)] w-full overflow-hidden bg-background">
+<!-- CỘT TRÁI (30% CHIỀU RỘNG): BẢNG ĐIỀU KHIỂN & DANH SÁCH CƠ SỞ Y TẾ -->
+<div class="w-full lg:w-[32%] xl:w-[30%] h-full flex flex-col bg-surface-container-lowest shadow-sm z-20 shrink-0">
+<!-- PHẦN ĐẦU CỘT TRÁI: TÌM KIẾM VÀ BỘ LỌC NHANH -->
+<div class="p-space-lg flex flex-col gap-space-md bg-surface-container-lowest shadow-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<span class="w-2.5 h-2.5 rounded-full bg-secondary-container"></span>
+<span class="font-headline-sm text-headline-sm text-on-surface">Mạng lưới Lâm sàng GIS</span>
+</div>
+<span class="font-code-md text-code-md text-secondary font-medium px-2 py-0.5 rounded bg-surface-container">VỆ TINH TRỰC TUYẾN</span>
+</div>
+<!-- Ô Tìm Kiếm -->
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
+<input class="w-full h-10 pl-10 pr-10 bg-surface-container-low rounded font-body-md text-body-md text-on-surface placeholder-on-surface-variant focus:outline-none focus:bg-surface focus:shadow-sm transition-all" placeholder="Tìm theo tên phòng khám, chuyên khoa, quận/huyện..." type="text" value="Quận Hoàn Kiếm, Hà Nội"/>
+<button class="absolute right-2.5 top-1/2 -translate-y-1/2 text-outline hover:text-primary p-0.5 rounded transition-colors" title="Xóa tìm kiếm">
+<span class="material-symbols-outlined text-[18px]">cancel</span>
+</button>
+</div>
+<!-- Nút Lọc Nhanh -->
+<div class="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-nowrap">
+<button class="px-3 py-1.5 rounded-full font-label-md text-label-md bg-primary text-on-primary shadow-sm hover:opacity-95 transition-all">
+            Tất cả (6)
+          </button>
+<button class="px-3 py-1.5 rounded-full font-label-md text-label-md bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-all">
+            Mở cửa 24/7
+          </button>
+<button class="px-3 py-1.5 rounded-full font-label-md text-label-md bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-all flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+            Cấp cứu can thiệp
+          </button>
+<button class="px-3 py-1.5 rounded-full font-label-md text-label-md bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-all">
+            Có BHYT
+          </button>
+</div>
+<!-- Thống kê kết quả -->
+<div class="flex items-center justify-between pt-1">
+<div class="flex items-center gap-1.5 font-label-md text-label-md text-on-surface-variant">
+<span class="material-symbols-outlined text-primary text-[18px]">near_me</span>
+<span>Tìm thấy <strong class="text-on-surface font-semibold">6 cơ sở y tế</strong> trong bán kính <strong class="text-primary font-semibold">5 km</strong></span>
+</div>
+<button class="font-label-sm text-label-sm text-primary hover:underline flex items-center gap-0.5">
+            Sắp xếp <span class="material-symbols-outlined text-[14px]">expand_more</span>
+</button>
+</div>
+</div>
+<!-- DANH SÁCH CUỘN THẺ PHÒNG KHÁM -->
+<div class="flex-1 overflow-y-auto p-space-md flex flex-col gap-space-md bg-surface">
+<!-- Cơ sở #1: Được chọn (Khớp với Pin #1) -->
+<div class="relative bg-surface-container-lowest rounded-xl p-space-md shadow-md transition-all">
+<div class="absolute left-0 top-3 bottom-3 w-1.5 bg-primary-container rounded-r"></div>
+<div class="flex items-start justify-between gap-space-sm pl-2">
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5 mb-1">
+<span class="w-5 h-5 rounded-full bg-primary-container text-on-primary font-label-sm text-label-sm flex items-center justify-center shrink-0">1</span>
+<span class="font-label-sm text-label-sm text-primary font-bold uppercase tracking-wide truncate">Tuyến Trung Ương</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold leading-tight">
+                Bệnh viện Đa khoa Quốc tế MedTech
+              </h3>
+</div>
+<div class="text-right shrink-0">
+<span class="font-label-lg text-label-lg text-primary font-bold">1.2 km</span>
+<span class="block font-code-md text-code-md text-on-surface-variant">4 phút</span>
+</div>
+</div>
+<div class="pl-2 mt-2 flex items-center gap-3 font-body-sm text-body-sm text-on-surface-variant">
+<div class="flex items-center text-amber-500 font-semibold gap-1">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span>4.9</span>
+<span class="text-on-surface-variant font-normal">(420 đánh giá)</span>
+</div>
+<span>•</span>
+<span class="truncate">Số 10 Tràng Thi, Hoàn Kiếm</span>
+</div>
+<!-- Huy hiệu đỏ -->
+<div class="pl-2 mt-2.5 flex flex-wrap gap-1.5">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-label-sm text-label-sm bg-tertiary-fixed text-on-tertiary-fixed-variant font-semibold">
+<span class="w-2 h-2 rounded-full bg-tertiary animate-ping"></span>
+              Cấp cứu 24/7 • Can thiệp Tim mạch
+            </span>
+</div>
+<!-- Trạng thái Tiếp đón Khẩn cấp -->
+<div class="ml-2 mt-3 p-2 bg-surface-container-low rounded-lg flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[18px]">timer</span>
+<span class="font-body-sm text-body-sm text-on-surface">Chờ phân loại <strong class="text-secondary">~3 phút</strong></span>
+</div>
+<span class="font-label-sm text-label-sm px-2 py-0.5 rounded bg-secondary-container text-on-secondary-container font-semibold">
+              Tiếp nhận ngay
+            </span>
+</div>
+<!-- Nút hành động -->
+<div class="pl-2 mt-3.5 pt-2.5 flex items-center gap-2">
+<button class="flex-1 h-9 rounded-lg font-label-md text-label-md text-primary bg-surface-container hover:bg-surface-container-high transition-colors flex items-center justify-center gap-1.5">
+<span class="material-symbols-outlined text-[18px]">turn_sharp_right</span>
+              Chỉ đường (4 phút)
+            </button>
+<button class="flex-1 h-9 rounded-lg font-label-md text-label-md text-on-primary bg-primary hover:bg-primary-container transition-colors flex items-center justify-center gap-1.5 shadow-sm">
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+              Đặt khám
+            </button>
+</div>
+</div>
+<!-- Cơ sở #2 -->
+<div class="relative bg-surface-container-lowest rounded-xl p-space-md shadow-sm hover:shadow-md transition-all">
+<div class="flex items-start justify-between gap-space-sm">
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5 mb-1">
+<span class="w-5 h-5 rounded-full bg-surface-container-highest text-on-surface font-label-sm text-label-sm flex items-center justify-center shrink-0">2</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-bold uppercase tracking-wide truncate">Chuyên khoa Tim mạch</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold leading-tight">
+                Viện Tim mạch &amp; Đa khoa Kỹ thuật cao St. Jude
+              </h3>
+</div>
+<div class="text-right shrink-0">
+<span class="font-label-lg text-label-lg text-on-surface font-bold">2.8 km</span>
+<span class="block font-code-md text-code-md text-on-surface-variant">9 phút</span>
+</div>
+</div>
+<div class="mt-2 flex items-center gap-3 font-body-sm text-body-sm text-on-surface-variant">
+<div class="flex items-center text-amber-500 font-semibold gap-1">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span>4.8</span>
+<span class="text-on-surface-variant font-normal">(286 đánh giá)</span>
+</div>
+<span>•</span>
+<span class="text-secondary font-medium">Mở cửa đến 20:00</span>
+</div>
+<div class="mt-2 flex items-center gap-1.5 text-on-surface-variant font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[16px] text-outline">location_on</span>
+<span class="truncate">Số 45 Quang Trung, Hai Bà Trưng</span>
+</div>
+<div class="mt-3 pt-2.5 flex items-center gap-2">
+<button class="flex-1 h-9 rounded-lg font-label-md text-label-md text-primary bg-surface-container hover:bg-surface-container-high transition-colors flex items-center justify-center gap-1.5">
+<span class="material-symbols-outlined text-[18px]">turn_sharp_right</span>
+              Chỉ đường
+            </button>
+<button class="flex-1 h-9 rounded-lg font-label-md text-label-md text-on-primary bg-primary hover:bg-primary-container transition-colors flex items-center justify-center gap-1.5">
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+              Đặt khám
+            </button>
+</div>
+</div>
+<!-- Cơ sở #3 -->
+<div class="relative bg-surface-container-lowest rounded-xl p-space-md shadow-sm hover:shadow-md transition-all">
+<div class="flex items-start justify-between gap-space-sm">
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5 mb-1">
+<span class="w-5 h-5 rounded-full bg-surface-container-highest text-on-surface font-label-sm text-label-sm flex items-center justify-center shrink-0">3</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-bold uppercase tracking-wide truncate">Tuyến Cơ Sở • BHYT</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold leading-tight">
+                Trung tâm Y tế Cộng đồng Quận Hoàn Kiếm
+              </h3>
+</div>
+<div class="text-right shrink-0">
+<span class="font-label-lg text-label-lg text-on-surface font-bold">4.1 km</span>
+<span class="block font-code-md text-code-md text-on-surface-variant">14 phút</span>
+</div>
+</div>
+<div class="mt-2 flex items-center gap-3 font-body-sm text-body-sm text-on-surface-variant">
+<div class="flex items-center text-amber-500 font-semibold gap-1">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span>4.6</span>
+<span class="text-on-surface-variant font-normal">(140 đánh giá)</span>
+</div>
+<span>•</span>
+<span class="text-secondary font-medium">Mở cửa đến 18:00</span>
+</div>
+<div class="mt-2 flex items-center gap-1.5 text-on-surface-variant font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[16px] text-outline">location_on</span>
+<span class="truncate">Số 26 Lương Văn Can, Hoàn Kiếm</span>
+</div>
+<div class="mt-3 pt-2.5 flex items-center gap-2">
+<button class="flex-1 h-9 rounded-lg font-label-md text-label-md text-primary bg-surface-container hover:bg-surface-container-high transition-colors flex items-center justify-center gap-1.5">
+<span class="material-symbols-outlined text-[18px]">turn_sharp_right</span>
+              Chỉ đường
+            </button>
+<button class="flex-1 h-9 rounded-lg font-label-md text-label-md text-on-primary bg-primary hover:bg-primary-container transition-colors flex items-center justify-center gap-1.5">
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+              Đặt khám
+            </button>
+</div>
+</div>
+</div>
+<!-- Chân trang thống kê GPS / Trạng thái kết nối trạm y tế -->
+<div class="p-space-sm px-space-md bg-surface-container-low flex items-center justify-between text-on-surface-variant">
+<div class="flex items-center gap-2 font-code-md text-code-md">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span>Định vị GIS: WGS84 • 21.0285° B, 105.8542° Đ</span>
+</div>
+<span class="font-label-sm text-label-sm text-primary font-semibold">Đồng bộ tức thời</span>
+</div>
+</div>
+<!-- CỘT PHẢI (70% CHIỀU RỘNG): BẢN ĐỒ TƯƠNG TÁC GIS KHỔ LỚN -->
+<div class="w-full lg:w-[68%] xl:w-[70%] h-full relative overflow-hidden bg-surface-container">
+<!-- Lớp nền bản đồ GIS với Google Maps Static API pipeline -->
+<div class="absolute inset-0 w-full h-full bg-cover bg-center" data-location="Hoan Kiem Lake, Hanoi, Vietnam" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDDtk6QWUl5nU2mF_KwzpSgO87ZckxWVtxXkLmhXkqY4awENwyzrictHs0E1Q2q2nHbY4xWR3z8Wa8IcPm8tLEF_uueW57C-QcwtvlAvQjbtVU6akLCTZ7SCJUusJ2r_2hOc6ldz4bGt-xa6RL4A7rqMjKqQ16Iw9CDImyOnbu90sqcZThDLYZg52JR8ZEGu-ib_vm7OaE8qqIQp7RFG4jyI7U6c6Zo2VYXDDMmF0c')">
+</div>
+<!-- Lớp Lưới Tọa Độ Lâm Sàng & Vùng Phủ Bán Kính Tương Tác SVG -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<radialgradient cx="50%" cy="50%" id="radiusGradient" r="50%">
+<stop offset="0%" stop-color="#0f52ba" stop-opacity="0.12"></stop>
+<stop offset="70%" stop-color="#0f52ba" stop-opacity="0.04"></stop>
+<stop offset="100%" stop-color="#0f52ba" stop-opacity="0.25"></stop>
+</radialgradient>
+</defs>
+<!-- Vòng bán kính cứu hộ 5.0 km quanh bệnh nhân (Tâm: 52% X, 60% Y) -->
+<circle cx="52%" cy="60%" fill="url(#radiusGradient)" r="280" stroke="#0f52ba" stroke-dasharray="6,4" stroke-width="1.5"></circle>
+<circle cx="52%" cy="60%" fill="none" r="140" stroke="#0f52ba" stroke-dasharray="3,3" stroke-opacity="0.3" stroke-width="1"></circle>
+<!-- Tuyến đường cứu thương tối ưu từ Vị trí người dùng tới Pin #1 (MedTech Hospital) -->
+<path d="M 52% 60% Q 44% 48%, 38% 34%" fill="none" opacity="0.9" stroke="#ba1a1a" stroke-dasharray="8,6" stroke-linecap="round" stroke-width="3.5"></path>
+</svg>
+<!-- THANH TRẠNG THÁI GIS PHÍA TRÊN BẢN ĐỒ -->
+<div class="absolute top-4 left-4 z-10 flex flex-wrap items-center gap-2">
+<div class="bg-surface-container-lowest/95 backdrop-blur-md px-3.5 py-2 rounded-xl shadow-md flex items-center gap-3">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-full bg-secondary animate-pulse"></span>
+<span class="font-label-md text-label-md text-on-surface font-bold">Lưới Điều Phối Cấp Cứu</span>
+</div>
+<span class="h-4 w-px bg-outline-variant"></span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Bán kính quét: <strong class="text-primary font-semibold">5.0 km</strong></span>
+<span class="h-4 w-px bg-outline-variant"></span>
+<div class="flex items-center gap-1 font-body-sm text-body-sm text-secondary">
+<span class="material-symbols-outlined text-[16px]">traffic</span>
+<span>Mật độ thông thoáng: 88%</span>
+</div>
+</div>
+<div class="hidden sm:flex bg-surface-container-lowest/95 backdrop-blur-md px-3 py-2 rounded-xl shadow-md items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-tertiary">emergency</span>
+<span class="font-label-md text-label-md text-tertiary font-bold">3 Đội Cứu Thương Sẵn Sàng</span>
+</div>
+</div>
+<!-- ĐIỂM ĐÁNH DẤU: VỊ TRÍ CỦA BỆNH NHÂN NGUYỄN VĂN AN -->
+<div class="absolute left-[52%] top-[60%] -translate-x-1/2 -translate-y-1/2 z-20 group cursor-pointer">
+<!-- Vòng radar đập nhịp -->
+<span class="absolute -inset-4 rounded-full bg-primary/25 animate-ping"></span>
+<div class="relative w-9 h-9 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-lg ring-4 ring-surface-container-lowest">
+<span class="material-symbols-outlined text-[20px]">person_pin_circle</span>
+</div>
+<!-- Nhãn đính kèm vị trí bệnh nhân -->
+<div class="absolute left-1/2 -translate-x-1/2 top-11 whitespace-nowrap bg-surface-container-lowest/95 backdrop-blur-md px-3 py-1.5 rounded-lg shadow-md flex flex-col items-center pointer-events-none">
+<span class="font-label-sm text-label-sm text-primary font-bold">Vị trí của bạn (Bệnh nhân Nguyễn Văn An)</span>
+<span class="font-code-md text-code-md text-on-surface-variant text-[10px]">Bán kính tìm kiếm: 5.0 km</span>
+</div>
+</div>
+<!-- PIN #2: VIỆN TIM MẠCH ST. JUDE -->
+<div class="absolute left-[64%] top-[38%] -translate-x-1/2 -translate-y-1/2 z-20 group cursor-pointer">
+<div class="relative flex items-center gap-2 bg-surface-container-lowest px-3 py-1.5 rounded-full shadow-md hover:shadow-lg transition-transform hover:scale-105">
+<div class="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-on-primary font-bold text-label-sm">2</div>
+<div class="flex flex-col text-left">
+<span class="font-label-md text-label-md text-on-surface font-bold leading-none">Viện Tim mạch St. Jude</span>
+<span class="font-code-md text-code-md text-on-surface-variant text-[11px] mt-0.5">2.8 km • Mở cửa</span>
+</div>
+</div>
+</div>
+<!-- PIN #3: TRUNG TÂM Y TẾ QUẬN HOÀN KIẾM -->
+<div class="absolute left-[70%] top-[72%] -translate-x-1/2 -translate-y-1/2 z-20 group cursor-pointer">
+<div class="relative flex items-center gap-2 bg-surface-container-lowest px-3 py-1.5 rounded-full shadow-md hover:shadow-lg transition-transform hover:scale-105">
+<div class="w-6 h-6 rounded-full bg-surface-container-highest flex items-center justify-center text-on-surface font-bold text-label-sm">3</div>
+<div class="flex flex-col text-left">
+<span class="font-label-md text-label-md text-on-surface font-bold leading-none">Trung tâm Y tế Quận</span>
+<span class="font-code-md text-code-md text-on-surface-variant text-[11px] mt-0.5">4.1 km • BHYT</span>
+</div>
+</div>
+</div>
+<!-- PIN #1 VÀ CỬA SỔ THÔNG TIN NỔI (POPUP TOOLTIP) NỔI BẬT -->
+<div class="absolute left-[38%] top-[34%] -translate-x-1/2 -translate-y-1/2 z-30">
+<!-- Ghim đỏ nổi bật trên bản đồ -->
+<div class="relative flex items-center justify-center cursor-pointer group">
+<span class="absolute w-12 h-12 rounded-full bg-tertiary/20 animate-pulse"></span>
+<div class="relative w-10 h-10 rounded-full bg-tertiary text-on-tertiary flex items-center justify-center shadow-xl ring-4 ring-surface-container-lowest">
+<span class="material-symbols-outlined text-[24px]">local_hospital</span>
+</div>
+<span class="absolute -top-2 -right-1 w-5 h-5 rounded-full bg-surface-container-lowest text-tertiary font-bold font-label-sm text-label-sm flex items-center justify-center shadow-md">1</span>
+</div>
+<!-- CỬA SỔ THÔNG TIN NỔI GHIM VÀO PIN #1 -->
+<div class="absolute left-1/2 -translate-x-1/2 bottom-14 w-80 bg-surface-container-lowest rounded-xl shadow-xl overflow-hidden transition-all duration-300">
+<!-- Ảnh bệnh viện thu nhỏ -->
+<div class="relative w-full h-28 bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="A modern international hospital exterior with illuminated emergency bay, medical helicopters, and clean glass architecture in Hanoi, Vietnam, night clinical lighting, photorealistic corporate style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCGUbvO-e2ZHblObTTQsiZO7SL2zrp_fbSLAI_d2GJbcD5EGd7kGnM_ddEla2PTbgxMMshXn3acopMU09_7V72z47Tepuo0WQ6q3qaFVPerwowgrXL3ms5JU6wZxY_FFGyRM0yVNmkhhL-O8GAAm9BI0tECQLfa0N8-6nkJ_CvGH0QesHIiC_7zWvA0j6hBUEGf7rGojFyxusHzGM4AghnCEfW0Qo07IJB4wkBwJUc"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+<span class="absolute top-2.5 left-2.5 px-2 py-0.5 rounded font-label-sm text-label-sm bg-tertiary text-on-tertiary font-bold tracking-wide">
+              CẤP CỨU CAN THIỆP 24/7
+            </span>
+<span class="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full font-code-md text-code-md bg-surface-container-lowest/90 text-on-surface font-semibold">
+              Mã: HN-MED01
+            </span>
+<div class="absolute bottom-2 left-3 right-3 text-white">
+<h4 class="font-headline-sm text-headline-sm text-white font-bold leading-tight drop-shadow-sm truncate">
+                BV Quốc tế MedTech
+              </h4>
+</div>
+</div>
+<!-- Nội dung chi tiết trong popup -->
+<div class="p-space-md flex flex-col gap-2.5">
+<div class="flex items-center justify-between font-body-sm text-body-sm">
+<div class="flex items-center gap-1.5 text-on-surface font-semibold">
+<span class="material-symbols-outlined text-primary text-[18px]">directions_car</span>
+<span>Thời gian lái xe: <strong class="text-primary font-bold">4 phút</strong></span>
+</div>
+<span class="font-code-md text-code-md text-secondary font-bold bg-surface-container-high px-2 py-0.5 rounded">1.2 km</span>
+</div>
+<div class="flex items-center justify-between text-body-sm text-on-surface-variant pt-1">
+<span>Hàng đợi tiếp đón:</span>
+<span class="text-secondary font-semibold flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-secondary"></span> 0 bệnh nhân chờ
+              </span>
+</div>
+<div class="flex items-center gap-2 pt-2">
+<button class="flex-1 h-9 bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md rounded-lg flex items-center justify-center gap-1.5 shadow-sm transition-colors">
+<span class="material-symbols-outlined text-[16px]">touch_app</span>
+                Đặt lịch ngay
+              </button>
+<button class="h-9 px-3 bg-surface-container hover:bg-surface-container-high text-primary font-label-md text-label-md rounded-lg flex items-center justify-center transition-colors" title="Xem chi tiết hồ sơ">
+<span class="material-symbols-outlined text-[18px]">info</span>
+</button>
+</div>
+</div>
+<!-- Mũi nhọn tooltip hướng xuống Pin -->
+<div class="w-3 h-3 bg-surface-container-lowest transform rotate-45 mx-auto -mt-1.5 mb-1 shadow-sm"></div>
+</div>
+</div>
+<!-- BỘ CÔNG CỤ BẢN ĐỒ GÓC PHẢI DƯỚI -->
+<div class="absolute right-4 bottom-5 z-20 flex flex-col items-end gap-3">
+<!-- Nút Tác vụ Nổi: Lớp giao thông & Vệ tinh -->
+<div class="flex items-center gap-2 bg-surface-container-lowest/95 backdrop-blur-md p-1.5 rounded-xl shadow-md">
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-primary bg-surface-container font-label-md text-label-md hover:bg-surface-container-high transition-colors" title="Lớp bản đồ giao thông">
+<span class="material-symbols-outlined text-[18px]">traffic</span>
+<span>Giao thông thực tế</span>
+</button>
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container transition-colors" title="Bản đồ phòng cấp cứu">
+<span class="material-symbols-outlined text-[18px]">layers</span>
+<span>Trạm cấp cứu</span>
+</button>
+</div>
+<div class="flex items-end gap-3">
+<!-- Tỉ lệ xích bản đồ 1:1000m chuẩn GIS y tế -->
+<div class="bg-surface-container-lowest/90 backdrop-blur-md px-3 py-1.5 rounded-lg shadow-sm flex flex-col items-center">
+<div class="w-20 h-1 bg-outline flex justify-between">
+<span class="w-0.5 h-2 -mt-0.5 bg-outline"></span>
+<span class="w-0.5 h-2 -mt-0.5 bg-outline"></span>
+</div>
+<span class="font-code-md text-code-md text-on-surface-variant text-[11px] mt-1">1:1000m</span>
+</div>
+<!-- Cụm Phím Phóng To / Thu Nhỏ / Định Vị -->
+<div class="flex flex-col bg-surface-container-lowest rounded-xl shadow-md overflow-hidden">
+<button class="w-10 h-10 flex items-center justify-center text-on-surface hover:bg-surface-container transition-colors" id="btn-zoom-in" title="Phóng to">
+<span class="material-symbols-outlined text-[20px]">add</span>
+</button>
+<div class="h-px bg-outline-variant w-full"></div>
+<button class="w-10 h-10 flex items-center justify-center text-on-surface hover:bg-surface-container transition-colors" id="btn-zoom-out" title="Thu nhỏ">
+<span class="material-symbols-outlined text-[20px]">remove</span>
+</button>
+<div class="h-px bg-outline-variant w-full"></div>
+<button class="w-10 h-10 flex items-center justify-center text-primary hover:bg-surface-container transition-colors" title="Về vị trí của tôi">
+<span class="material-symbols-outlined text-[20px]">my_location</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Thẻ Chỉ Số Cứu Hộ Nhanh ở Góc Phải Trên -->
+<div class="absolute right-4 top-4 z-10 hidden xl:flex flex-col gap-2">
+<div class="bg-surface-container-lowest/95 backdrop-blur-md p-3 rounded-xl shadow-md flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[22px]">ambulance</span>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold leading-tight">3 phút 40 giây</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant leading-tight">Thời gian xe cứu thương tiếp cận</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>
+  // Vi tương tác điều khiển phóng to thu nhỏ bản đồ demo
+  const zoomIn = document.getElementById('btn-zoom-in');
+  const zoomOut = document.getElementById('btn-zoom-out');
+  if (zoomIn && zoomOut) {
+    zoomIn.addEventListener('click', () => {
+      console.log('Phóng to bản đồ GIS lâm sàng');
+    });
+    zoomOut.addEventListener('click', () => {
+      console.log('Thu nhỏ bản đồ GIS lâm sàng');
+    });
+  }
+</script></main></div></body></html>

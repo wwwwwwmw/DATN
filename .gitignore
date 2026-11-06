@@ -1,0 +1,108 @@
+# ====================================
+# .gitignore — MedTech AI Platform
+# ====================================
+
+# ─── Python ──────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+*.whl
+
+# ─── Virtual Environments ────────────
+venv/
+env/
+.venv/
+ENV/
+
+# ─── IDE ─────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.settings/
+
+# ─── Environment Variables ───────────
+.env
+.env.local
+.env.production
+.env.staging
+# Keep the example
+!.env.example
+
+# ─── Node.js / Frontend ─────────────
+node_modules/
+frontend-web/dist/
+frontend-web/build/
+.cache/
+*.tsbuildinfo
+
+# ─── PyTorch Model Weights ──────────
+# (Very large files - use Git LFS or cloud storage)
+ai-vision/weights/*.pth
+ai-vision/weights/*.pt
+ai-vision/weights/*.onnx
+ai-vision/weights/*.h5
+!ai-vision/weights/.gitkeep
+
+# ─── Training Outputs ───────────────
+ai-vision/runs/
+ai-vision/logs/
+ai-vision/checkpoints/
+*.tfevents*
+tensorboard_logs/
+
+# ─── Datasets ────────────────────────
+# (Very large - should be downloaded separately)
+CheXpert/train/
+CheXpert/valid/
+NIH_Chest_X_rays/images_*/
+# Keep CSV metadata
+!CheXpert/train.csv
+!CheXpert/valid.csv
+!NIH_Chest_X_rays/Data_Entry_2017.csv
+!NIH_Chest_X_rays/BBox_List_2017.csv
+!NIH_Chest_X_rays/train_val_list.txt
+!NIH_Chest_X_rays/test_list.txt
+
+# ─── Raw Medical Documents ──────────
+# (Copyrighted, should not be in git)
+llm-rag/data/raw/
+
+# ─── Database ────────────────────────
+database/backups/*.dump
+database/backups/*.sql.gz
+*.sqlite3
+
+# ─── Media / Uploads ────────────────
+media/
+uploads/
+staticfiles/
+
+# ─── Jupyter Notebooks ──────────────
+.ipynb_checkpoints/
+
+# ─── Docker ──────────────────────────
+docker-compose.override.yml
+
+# ─── OS Files ────────────────────────
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ─── Archives / Large Files ─────────
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# ─── Logs ────────────────────────────
+*.log
+logs/

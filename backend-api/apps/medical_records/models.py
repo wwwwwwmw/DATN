@@ -1,0 +1,87 @@
+"""
+Medical Records Models — MedicalRecord, XrayAnalysisResult, ChatSession, ChatMessage.
+"""
+from django.db import models
+from apps.accounts.models import CustomUser, DoctorProfile
+from apps.appointments.models import Appointment
+
+
+class MedicalRecord(models.Model):
+    """Hồ sơ y tế sau mỗi lần khám."""
+    patient = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='medical_records')
+    doctor = models.ForeignKey(DoctorProfile, on_delete=models.CASCADE, related_name='medical_records')
+    appointment = models.OneToOneField(Appointment, on_delete=models.SET_NULL, null=True, blank=True, related_name='medical_record')
+    diagnosis = models.TextField(blank=True, default='')
+    symptoms = models.TextField(blank=True, default='')
+    prescription = models.TextField(blank=True, default='')
+    notes = models.TextField(blank=True, default='')
+    follow_up_date = models.DateField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'medical_records_medicalrecord'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Hồ sơ #{self.id}: {self.patient} - {self.diagnosis[:50]}"
+
+
+class XrayAnalysisResult(models.Model):
+    """Kết quả phân tích ảnh X-quang từ AI Vision service."""
+    patient = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='xray_results')
+    original_image = models.ImageField(upload_to='xrays/originals/')
+    heatmap_image = models.ImageField(upload_to='xrays/heatmaps/', blank=True, default='')
+    predictions = models.JSONField(default=dict)  # {"Pneumonia": 0.89, ...}
+    doctor_review = models.TextField(blank=True, default='')
+    doctor_agrees_with_ai = models.BooleanField(null=True, blank=True)
+    reviewed_by = models.ForeignKey(DoctorProfile, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewed_xrays')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'medical_records_xrayanalysisresult'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"X-ray #{self.id}: {self.patient}"
+
+    @property
+    def top_findings(self):
+        """Top 3 predictions by probability."""
+        sorted_preds = sorted(self.predictions.items(), key=lambda x: x[1], reverse=True)
+        return [{'name': k, 'probability': round(v, 4)} for k, v in sorted_preds[:3]]
+
+
+class ChatSession(models.Model):
+    """Phiên chat sơ vấn y tế (RAG)."""
+    patient = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='chat_sessions')
+    title = models.CharField(max_length=200, default='Phiên tư vấn mới')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'medical_records_chatsession'
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return f"Chat #{self.id}: {self.patient} - {self.title}"
+
+
+class ChatMessage(models.Model):
+    """Tin nhắn trong phiên chat."""
+
+    class Role(models.TextChoices):
+        USER = 'user', 'Người dùng'
+        ASSISTANT = 'assistant', 'Trợ lý AI'
+        SYSTEM = 'system', 'Hệ thống'
+
+    session = models.ForeignKey(ChatSession, on_delete=models.CASCADE, related_name='messages')
+    role = models.CharField(max_length=10, choices=Role.choices, default=Role.USER)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'medical_records_chatmessage'
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"[{self.role}] {self.content[:50]}..."

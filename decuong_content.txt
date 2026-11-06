@@ -1,0 +1,191 @@
+TRƯỜNG ĐẠI HỌC TÀI NGUYÊN VÀ MÔI TRƯỜNG TP.HCM
+KHOA: CÔNG NGHỆ THÔNG TIN
+VÕ ANH KIỆT
+ĐỀ CƯƠNG ĐỒ ÁN TỐT NGHIỆP
+          
+TP. Hồ Chí Minh, tháng 9 năm 2026
+TRƯỜNG ĐẠI HỌC TÀI NGUYÊN VÀ MÔI TRƯỜNG TP.HCM
+KHOA: CÔNG NGHỆ THÔNG TIN
+ 
+XÂY DỰNG HỆ THỐNG QUẢN LÝ TÀI SẢN ỨNG DỤNG HỌC SÂU VÀ TỐI ƯU PHÂN CÔNG
+          
+Giảng viên hướng dẫn : Ths. Nguyễn Duy Tuấn 
+Sinh viên thực hiện:    Võ Anh Kiệt
+Mã số sinh viên:   1150080143
+Lớp       :    11_ĐH_CNPM2
+Khoá     :    2022-2026
+TP. Hồ Chí Minh, tháng 9 năm 2026
+Mở đầu
+Cơ sở khoa học và tính thực tiễn của đề tài
+Trong hoạt động sản xuất kinh doanh hiện nay, máy móc và trang thiết bị kỹ thuật đóng vai trò là tư liệu sản xuất cốt lõi, ảnh hưởng trực tiếp đến năng suất làm việc, chất lượng sản phẩm và chi phí vận hành chung của mọi doanh nghiệp. Trong quá trình chuyển đổi số và phát triển công nghiệp hiện đại, sự cố dừng máy ngoài kế hoạch là nguyên nhân chính gây ra thiệt hại kinh tế lớn, làm lãng phí nhiều chi phí cho các đơn vị vận hành. Do đó, việc số hóa quy trình theo dõi, quản lý vòng đời tài sản và nâng cao hiệu quả bảo trì thiết bị trở thành yêu cầu cấp thiết nhằm giúp máy móc luôn hoạt động ổn định và bền bỉ.
+Mặc dù việc ứng dụng công nghệ thông tin trong quản lý thiết bị đã được quan tâm, nhưng thực tế triển khai hiện nay vẫn còn một số hạn chế và khó khăn rõ rệt:
+Hạn chế về cách thức bảo trì: Các hệ thống quản lý truyền thống chủ yếu theo dõi danh mục tài sản ở dạng tĩnh và chỉ sửa chữa sau khi máy đã hỏng hoặc bảo trì định kỳ theo lịch cố định, chưa thể phân tích dữ liệu cảm biến theo thời gian thực để dự đoán trước nguy cơ sự cố.
+Hạn chế trong việc ứng dụng Trí tuệ nhân tạo vào thực tế: Các nghiên cứu về học sâu trong dự đoán bảo trì phần lớn mới chỉ thử nghiệm trên các bộ dữ liệu mô phỏng độc lập, chưa được tích hợp vào một phần mềm quản lý doanh nghiệp hoàn chỉnh.
+Hạn chế trong điều phối và phân công công việc: Việc phân công kỹ thuật viên đi bảo trì vẫn làm thủ công và phụ thuộc nhiều vào cảm tính của người quản lý, thiếu các thuật toán hỗ trợ tự động ghép việc theo đúng năng lực và tìm đường đi ngắn nhất giữa các vị trí làm việc.
+Khó khăn khi thao tác tại hiện trường: Các ứng dụng quản lý hiện nay phụ thuộc hoàn toàn vào mạng Internet, nên kỹ thuật viên rất dễ bị gián đoạn công việc khi phải vào các khu vực nhà xưởng kín, tầng hầm hoặc nơi mất sóng do thiếu giải pháp lưu và đồng bộ dữ liệu ngoại tuyến.
+Để giải quyết triệt để các khó khăn và hạn chế thực tế nêu trên, đề tài xây dựng hệ thống quản lý tài sản doanh nghiệp ứng dụng học sâu và tối ưu phân công được đề xuất như một giải pháp toàn diện. Đề tài tập trung xây dựng một hệ sinh thái phần mềm đa nền tảng theo mô hình dịch vụ đa tiền thuê, cho phép nhiều doanh nghiệp cùng vận hành độc lập nhưng vẫn đảm bảo tính an toàn và cô lập dữ liệu giữa các đơn vị.
+Về mặt khoa học, hệ thống kế thừa các nghiệp vụ chuẩn mực về quản lý vòng đời tài sản và kho phụ tùng, đồng thời tạo ra bước đột phá thông qua việc tích hợp mô hình học sâu chuỗi thời gian LSTM để dự đoán tuổi thọ hữu ích còn lại của thiết bị từ dữ liệu cảm biến suy thoái. Bên cạnh đó, đề tài kết hợp thuật toán tối ưu phân công Hungary và giải thuật người giao hàng TSP nhằm tối ưu hóa việc phân bổ công việc và rút ngắn tối đa quãng đường di chuyển cho đội ngũ kỹ thuật viên hiện trường.
+Mục đích nghiên cứu
+Phát triển ứng dụng quản trị web với cơ chế hiển thị Django Templates kết hợp với mã HTML và thư viện CSS, cung cấp bảng điều khiển trực quan để quản lý vòng đời tài sản, theo dõi hiệu suất thiết bị, sinh và in ấn tem nhãn mã QR theo tiêu chuẩn.
+Xây dựng ứng dụng di động cho kỹ thuật viên bằng Flutter và Dart theo kiến trúc hướng ngoại tuyến với SQLite Drift, hỗ trợ quét mã QR bằng camera để nhận diện thiết bị, nhận lệnh làm việc, thực hiện danh mục kiểm tra và báo cáo tiến độ ngay tại hiện trường.
+Xây dựng máy chủ trung tâm bằng ngôn ngữ Python và nền tảng Django, cung cấp hệ thống RESTful API thông qua nền tảng Django REST Framework để xử lý dữ liệu tập trung, phân quyền dữ liệu theo kiến trúc đa tiền thuê và xác thực an toàn bằng JSON Web Token.
+Xây dựng phân hệ quản lý kho vật tư phụ tùng thay thế, hỗ trợ theo dõi xuất nhập tồn, tự động xác định ngưỡng an toàn và tối ưu hóa lượng đặt hàng lại, đồng thời tích hợp nền tảng MinIO để lưu trữ tệp đính kèm và hình ảnh nghiệm thu thực tế.
+Phát triển chức năng lập kế hoạch bảo trì phòng ngừa định kỳ tự động chạy ngầm với Celery và Redis, hỗ trợ cơ chế lịch nổi, thời gian chuẩn bị và triệt tiêu lệnh trùng lặp dựa trên chu kỳ thời gian hoặc chỉ số đo lường của thiết bị.
+Thiết kế và ứng dụng các giải thuật thông minh bao gồm thuật toán phân công Hungary, giải thuật người giao hàng TSP, giải thuật kiểm định Z-score phát hiện bất thường và mô hình học sâu LSTM dự đoán tuổi thọ máy móc phục vụ bảo trì đón đầu.
+Đối tượng và phạm vi nghiên cứu:
+3.1. Đối tượng nghiên cứu
+3.1.1. Loại phần mềm và hệ sinh thái phát triển
+Đề tài tập trung nghiên cứu và phát triển hệ thống phần mềm Quản lý Tài sản Doanh nghiệp đa nền tảng, vận hành theo mô hình dịch vụ đa tiền thuê. Hệ sinh thái phần mềm bao gồm hai thành phần ứng dụng chính:
+Cổng thông tin web quản trị: Xây dựng trên nền tảng Django phục vụ cho cấp quản lý, hỗ trợ theo dõi tập trung danh mục tài sản, kiểm soát kho phụ tùng, lập lịch bảo dưỡng và giám sát các báo cáo vận hành.
+Ứng dụng di động hiện trường: Xây dựng trên nền tảng Flutter theo cơ chế hoạt động ngoại tuyến, cho phép nhân viên kỹ thuật thực hiện công việc liên tục ngay cả khi mất sóng viễn thông và tự động đồng bộ dữ liệu hai chiều về máy chủ khi có mạng trở lại.
+3.1.2. Các quy trình nghiệp vụ cốt lõi trong hệ thống
+Hệ thống tập trung số hóa và giải quyết các luồng nghiệp vụ quản lý tài sản thực tế trong doanh nghiệp, bao gồm:
+Nghiệp vụ quản lý vòng đời tài sản: Quản lý cây phân cấp vị trí và thiết bị, theo dõi chuỗi chỉ số đo lường hoạt động, lưu trữ tài liệu kỹ thuật và quy trình tạo, in ấn, quét mã QR để nhận diện tài sản tức thì tại hiện trường.
+Nghiệp vụ quản lý kho vật tư và phụ tùng thay thế: Theo dõi biến động xuất nhập tồn, thiết lập ngưỡng tồn kho an toàn tối thiểu và tự động khấu trừ phụ tùng khi hoàn thành nghiệm thu công việc.
+Nghiệp vụ quản lý lệnh làm việc và danh mục kiểm tra: Quản lý vòng đời phiếu sửa chữa theo các trạng thái cụ thể, gắn kèm danh mục kiểm tra bắt buộc từng bước và lưu vết hình ảnh nghiệm thu thực tế của kỹ thuật viên.
+Nghiệp vụ lập kế hoạch bảo trì phòng ngừa định kỳ: Tự động khởi tạo lịch bảo trì định kỳ dựa trên thời gian hoặc chỉ số đo lường của thiết bị, hỗ trợ cơ chế lịch nổi và triệt tiêu các lệnh làm việc trùng lặp.
+3.1.3. Các mô hình trí tuệ nhân tạo và giải thuật tối ưu
+Bên cạnh các chức năng phần mềm quản lý, đề tài tập trung nghiên cứu và ứng dụng các mô hình học sâu và giải thuật toán học nhằm nâng cao hiệu quả vận hành:
+Mô hình học sâu chuỗi thời gian: Nghiên cứu và huấn luyện mạng nơ-ron hồi quy LSTM để phân tích dữ liệu cảm biến suy thoái của thiết bị, từ đó dự đoán tuổi thọ hoạt động còn lại phục vụ cho công tác bảo trì dự đoán đón đầu sự cố.
+Giải thuật tối ưu hóa phân công công việc: Nghiên cứu và áp dụng thuật toán Hungary để giải quyết bài toán ghép cặp tối ưu giữa danh sách lệnh làm việc phát sinh với các kỹ thuật viên hiện trường, dựa trên năng lực chuyên môn và tính sẵn sàng của nhân sự.
+Giải thuật tối ưu hóa lộ trình di chuyển: Ứng dụng giải thuật giải bài toán người giao hàng TSP để tìm kiếm thứ tự kiểm tra và lộ trình di chuyển ngắn nhất cho kỹ thuật viên giữa các khu vực máy móc trong nhà xưởng.
+Giải thuật phát hiện bất thường từ chuỗi chỉ số đo lường cảm biến: Ứng dụng giải thuật kiểm định thống kê theo cửa sổ trượt động Z-score kết hợp thuật toán cây cô lập để phân tích chuỗi thời gian các chỉ số đo lường như độ rung chấn, nhiệt độ vận hành và áp suất dầu của thiết bị, từ đó tự động phát hiện các điểm dữ liệu bất thường và kích hoạt cảnh báo nguy cơ hỏng hóc sớm ngay khi phát sinh dị thường.
+3.1.4. Nhóm người sử dụng hệ thống
+Quản trị viên và người điều phối: Sử dụng cổng web để quản lý danh mục tài sản, kiểm soát kho phụ tùng, theo dõi các chỉ số hiệu suất và phê duyệt lịch bảo trì.
+Quản lý kho vật tư: Theo dõi xuất nhập tồn phụ tùng, quản lý ngưỡng an toàn và đối soát vật tư tiêu hao sau mỗi đợt bảo dưỡng.
+Kỹ thuật viên hiện trường: Sử dụng ứng dụng di động quét mã QR nhận diện máy móc, tiếp nhận lệnh làm việc, thực hiện danh mục kiểm tra và báo cáo tiến độ trực tiếp tại hiện trường.
+3.2. Phạm vi nghiên cứu
+Để đảm bảo tính khả thi và hoàn thành đề tài đúng kế hoạch, phạm vi nghiên cứu được xác định rõ ràng qua các khía cạnh sau:
+Phạm vi về giải thuật và mô hình nghiên cứu: Đề tài tập trung nghiên cứu mô hình học sâu chuỗi thời gian mạng nơ-ron hồi quy LSTM để giải bài toán dự đoán tuổi thọ hoạt động còn lại của thiết bị từ chuỗi dữ liệu cảm biến suy thoái. Về khía cạnh giám sát tình trạng máy móc thời gian thực, đề tài áp dụng giải thuật thống kê Z-score theo cửa sổ trượt động kết hợp mô hình cây cô lập để nhận diện sớm các chỉ số cảm biến bất thường. Đối với bài toán tối ưu hóa nguồn lực vận hành, đề tài áp dụng thuật toán Hungary để giải quyết bài toán ghép cặp phân công lệnh làm việc cho kỹ thuật viên theo năng lực chuyên môn, kết hợp giải thuật bài toán người giao hàng TSP nhằm tìm kiếm lộ trình di chuyển ngắn nhất qua các khu vực máy móc cần bảo dưỡng.
+Phạm vi về phần mềm và các chức năng chính: Đề tài xây dựng hệ thống phần mềm quản lý tài sản doanh nghiệp đa nền tảng gồm giao diện web quản trị và ứng dụng di động hiện trường theo kiến trúc dịch vụ đa tiền thuê. Các chức năng chính được phát triển bao gồm quản lý cây phân cấp tài sản qua mã QR, quản lý kho vật tư phụ tùng thay thế, quản lý vòng đời lệnh làm việc gắn liền danh mục kiểm tra bắt buộc và lập kế hoạch bảo trì định kỳ tự động. Hệ thống cũng hiện thực hóa cơ chế lưu trữ nội bộ và đồng bộ dữ liệu hai chiều khi làm việc ngoại tuyến mất mạng tại hiện trường. Đề tài không đi sâu vào các nghiệp vụ kế toán tài chính về khấu hao tài sản cố định phức tạp hay quy trình đấu thầu mua sắm của doanh nghiệp.
+Phạm vi về dữ liệu và thực nghiệm: Về bài toán học sâu, đề tài thu thập và sử dụng tập dữ liệu chuỗi thời gian cảm biến suy thoái của thiết bị công nghiệp để huấn luyện và đánh giá mô hình học sâu LSTM trong việc dự đoán tuổi thọ máy móc. Về bài toán tối ưu phân công và định tuyến, đề tài xây dựng bộ dữ liệu thực nghiệm mô phỏng gồm tọa độ không gian các máy móc trong phân xưởng, danh sách kỹ năng của kỹ thuật viên và các phiếu công việc bảo trì để kiểm thử hiệu năng của giải thuật Hungary và giải thuật TSP.
+Phạm vi về không gian và quy mô áp dụng: Hệ thống hướng tới áp dụng cho mô hình các nhà máy sản xuất, xí nghiệp gia công hoặc phân xưởng công nghiệp có quy mô vừa và nhỏ, nơi có mật độ máy móc thiết bị tập trung và cần đội ngũ kỹ thuật viên theo dõi bảo trì thường xuyên ngay tại hiện trường nhà xưởng.
+Phương pháp nghiên cứu
+4.1. Các phương pháp nghiên cứu lý thuyết áp dụng
+Để xây dựng cơ sở khoa học vững chắc cho đề tài, các phương pháp nghiên cứu lý thuyết được phân tích và áp dụng bao gồm:
+Phương pháp nghiên cứu kiến trúc phần mềm và dịch vụ web: Tìm hiểu lý thuyết về mô hình dịch vụ đa tiền thuê nhằm cho phép nhiều doanh nghiệp vận hành độc lập trên cùng hạ tầng; nghiên cứu lý thuyết thiết kế kiến trúc phân tầng và chuẩn giao tiếp RESTful API dựa trên nền tảng Django và Django REST Framework; tìm hiểu nguyên lý thiết kế cơ sở dữ liệu quan hệ với PostgreSQL và giải pháp lưu trữ đối tượng MinIO phục vụ quản lý tệp kỹ thuật và hình ảnh nghiệm thu.
+Phương pháp nghiên cứu công nghệ di động hướng ngoại tuyến: Nghiên cứu lý thuyết về ứng dụng di động đa nền tảng với Flutter và ngôn ngữ Dart; nghiên cứu cơ chế lưu trữ cơ sở dữ liệu cục bộ với SQLite Drift và nguyên lý hàng đợi đồng bộ dữ liệu hai chiều khi chuyển đổi giữa trạng thái mất mạng và có mạng.
+Phương pháp nghiên cứu mô hình Trí tuệ nhân tạo chuỗi thời gian: Nghiên cứu cấu trúc và nguyên lý hoạt động của mạng nơ-ron hồi quy LSTM trong việc tiếp nhận và xử lý dữ liệu cảm biến biến thiên theo thời gian; tìm hiểu các kỹ thuật tiền xử lý dữ liệu như lọc nhiễu, chuẩn hóa thang đo và trích xuất đặc trưng phục vụ bài toán hồi quy dự đoán tuổi thọ hoạt động còn lại của thiết bị.
+Phương pháp nghiên cứu các giải thuật tối ưu hóa và dữ liệu không gian: Nghiên cứu lý thuyết đồ thị và thuật toán Hungary giải quyết bài toán ghép cặp phân công công việc tối ưu; tìm hiểu các giải thuật giải bài toán người giao hàng TSP nhằm tối ưu hóa thứ tự di chuyển dựa trên ma trận khoảng cách tọa độ không gian giữa các vị trí máy móc; nghiên cứu lý thuyết kiểm định thống kê ngưỡng động Z-score và mô hình cây cô lập để phát hiện dị thường dữ liệu cảm biến.
+Phương pháp đánh giá mô hình và giải thuật: Nghiên cứu các chỉ số định lượng đánh giá độ chính xác của mô hình học sâu như căn bậc hai sai số bình phương trung bình RMSE và sai số tuyệt đối trung bình MAE; tìm hiểu các tiêu chí đánh giá giải thuật tối ưu thông qua thời gian tính toán và tổng quãng đường di chuyển được rút ngắn.
+4.2. Các phương pháp thực nghiệm áp dụng
+Phương pháp thực nghiệm được triển khai nhằm kiểm chứng tính đúng đắn của lý thuyết và đánh giá khả năng vận hành thực tế của hệ thống qua các nội dung sau:
+Phương pháp thực nghiệm mô hình học sâu: Tiến hành tiền xử lý bộ dữ liệu chuỗi thời gian cảm biến suy thoái thiết bị; chia tách dữ liệu độc lập thành tập huấn luyện và tập kiểm thử; thực hiện huấn luyện mô hình LSTM, tinh chỉnh các siêu tham số mạng nơ-ron và tiến hành đo đạc các chỉ số sai số dự đoán để đánh giá khả năng phát hiện sớm nguy cơ hỏng hóc của máy móc.
+Phương pháp thực nghiệm các giải thuật tối ưu và phân tích dữ liệu: Xây dựng kịch bản mô phỏng không gian nhà xưởng với ma trận tọa độ các trạm máy móc; tạo lập các tập dữ liệu thử nghiệm về danh sách lệnh làm việc và kỹ năng kỹ thuật viên để chạy thực nghiệm thuật toán Hungary đo thời gian ghép việc; áp dụng giải thuật TSP trên dữ liệu tọa độ không gian để so sánh quãng đường di chuyển của kỹ thuật viên giữa phương án thủ công và phương án có tối ưu hóa; thực nghiệm giải thuật Z-score trượt trên chuỗi chỉ số rung chấn và nhiệt độ để đánh giá tỷ lệ phát hiện cảnh báo sớm.
+Phương pháp thực nghiệm và kiểm thử hệ thống phần mềm: Áp dụng phương pháp phát triển phần mềm lặp từng bước cho các phân hệ nghiệp vụ; thực hiện kiểm thử đơn vị cho các hàm xử lý logic, kiểm thử tích hợp luồng giao tiếp giữa ứng dụng di động và máy chủ qua API; tiến hành thử nghiệm mô phỏng tình huống ngắt kết nối mạng đột ngột tại hiện trường để kiểm tra khả năng lưu trữ nội bộ và tự động đồng bộ dữ liệu khi có mạng trở lại; kiểm thử hiệu năng và độ ổn định của toàn bộ máy chủ dịch vụ khi đóng gói vận hành trên môi trường Docker.
+Thời gian thực hiện
+Từ 24/8/2026 đến 04/12/2026
+Kết quả dự kiến đạt được
+Thiết kế và phát triển thành công hệ sinh thái phần mềm quản lý tài sản doanh nghiệp hoàn chỉnh hoạt động đa nền tảng, bao gồm cổng thông tin web quản trị trên trình duyệt và ứng dụng di động hiện trường trên hệ điều hành Android theo kiến trúc hoạt động ngoại tuyến.
+Xây dựng thành công máy chủ trung tâm với nền tảng Django và Django REST Framework, cung cấp hệ thống API xử lý dữ liệu tập trung theo kiến trúc đa tiền thuê và xác thực người dùng an toàn bằng JSON Web Token.
+Đóng gói và triển khai thành công cơ sở dữ liệu quan hệ PostgreSQL, nền tảng lưu trữ đối tượng MinIO và toàn bộ hệ thống máy chủ dịch vụ lên môi trường vùng chứa Docker, đảm bảo tính đồng bộ và ổn định cao.
+Chức năng quản lý danh mục tài sản theo cây phân cấp vị trí kết hợp quy trình tạo và quét mã QR để nhận diện thiết bị tức thì tại hiện trường.
+Chức năng quản lý kho vật tư phụ tùng thay thế, hỗ trợ theo dõi biến động xuất nhập tồn, thiết lập cảnh báo ngưỡng tồn kho an toàn tối thiểu và tự động khấu trừ phụ tùng khi nghiệm thu hoàn thành lệnh làm việc.
+Chức năng quản lý vòng đời lệnh làm việc theo máy trạng thái, kiểm soát việc thực thi danh mục kiểm tra bắt buộc từng bước và lưu vết hình ảnh nghiệm thu thực tế của kỹ thuật viên.
+Chức năng lập kế hoạch bảo trì phòng ngừa định kỳ tự động dựa trên chu kỳ thời gian hoặc chỉ số đo lường, hỗ trợ cơ chế lịch nổi và triệt tiêu các lệnh làm việc trùng lặp.
+Chức năng dự đoán tuổi thọ hoạt động còn lại của thiết bị từ dữ liệu chuỗi thời gian cảm biến suy thoái, được xây dựng từ mô hình học sâu mạng nơ-ron hồi quy LSTM phục vụ công tác bảo trì đón đầu sự cố.
+Chức năng tự động điều phối và phân công lệnh làm việc tối ưu cho kỹ thuật viên, được xây dựng từ thuật toán tối ưu hóa Hungary áp dụng trên ma trận chi phí đa nhân tố về năng lực chuyên môn và khoảng cách di chuyển.
+Chức năng gợi ý lộ trình di chuyển tối ưu giữa các trạm máy móc cho kỹ thuật viên, được xây dựng từ giải thuật giải bài toán người giao hàng TSP kết hợp thuật toán cải tiến cục bộ 2-Opt nhằm tìm kiếm thứ tự kiểm tra có tổng quãng đường ngắn nhất.
+Chức năng phát hiện bất thường từ chuỗi chỉ số đo lường cảm biến theo thời gian thực, được xây dựng từ giải thuật kiểm định thống kê ngưỡng động Z-score trượt kết hợp mô hình cây cô lập để nhận diện sớm các biến động dị thường về nhiệt độ, độ rung và áp suất.
+Viết được khóa luận theo yêu cầu của Khoa Công nghệ thông tin, Trường Đại Học Tài nguyên Và Môi trường TP. Hồ Chí Minh.
+Nội dung
+LỜI MỞ ĐẦU
+Chương 1. TỔNG QUAN TÀI LIỆU
+1.1. Khảo sát các hệ thống quản lý tài sản doanh nghiệp hiện nay
+1.2. Tổng quan về quy trình quản lý vòng đời tài sản và bảo trì thiết bị
+1.3. Tổng quan về các công cụ và công nghệ phát triển phần mềm
+1.4. Cơ sở lý thuyết về mô hình học sâu và các giải thuật tối ưu hóa
+Chương 2. PHƯƠNG PHÁP THỰC HIỆN
+2.1. Xác định yêu cầu nghiệp vụ và đặc tả chức năng hệ thống
+2.2. Phương pháp thiết kế kiến trúc hệ thống và mô hình đa tiền thuê
+2.3. Phương pháp thiết kế cơ sở dữ liệu quan hệ và lưu trữ đối tượng
+2.4. Phương pháp thiết kế các phân hệ quản trị tài sản và lịch bảo trì
+2.5. Phương pháp thiết kế ứng dụng di động theo cơ chế ngoại tuyến
+2.6. Phương pháp áp dụng thuật toán tối ưu phân công và định tuyến di chuyển
+2.7. Phương pháp xây dựng mô hình học sâu dự đoán tuổi thọ thiết bị
+Chương 3. CÀI ĐẶT THỰC NGHIỆM
+3.1. Thiết lập môi trường cài đặt và triển khai hệ thống trên Docker
+3.2. Cài đặt và thực nghiệm các chức năng trên cổng web và ứng dụng di động
+3.3. Thực nghiệm và đánh giá độ chính xác của mô hình học sâu LSTM
+3.4. Thực nghiệm và đánh giá hiệu quả giải thuật Hungary và giải thuật TSP
+3.5. Đánh giá hiệu năng và kiểm thử độ ổn định của toàn hệ thống
+ 
+KẾT LUẬN
+DỰ KIẾN KẾ HOẠCH THỰC HIỆN
+Thời gian
+Nội dung
+Địa điểm thực hiện
+Tuần 1
+Từ ngày 24/08/2026 đến ngày 30/08/2026
+Đăng ký giáo viên hướng dẫn và đề tài nghiên cứu, thống nhất mục tiêu, đối tượng và phạm vi nghiên cứu của đề tài
+Trường ĐH Tài Nguyên Và Môi Trường TP Hồ Chí Minh
+Tuần 2
+Từ ngày 31/08/2026 đến ngày 06/09/2026
+Khảo sát quy trình quản lý tài sản doanh nghiệp, nghiên cứu tài liệu về kiến trúc đa tiền thuê, mô hình bảo trì phòng ngừa và thu thập tài liệu tham khảo học thuật
+Trường ĐH Tài Nguyên Và Môi Trường TP Hồ Chí Minh
+Tuần 3
+Từ ngày 07/09/2026 đến ngày 13/09/2026
+Xác định yêu cầu bài toán, phân tích quy trình nghiệp vụ hoàn thiện và sinh viên nộp quyển đề cương đồ án tốt nghiệp
+Trường ĐH Tài Nguyên Và Môi Trường TP Hồ Chí Minh
+Tuần 4
+Từ ngày 14/09/2026 đến ngày 20/09/2026
+Phân tích thiết kế hệ thống, mô hình hóa cơ sở dữ liệu quan hệ PostgreSQL và thiết kế kiến trúc cô lập dữ liệu đa người thuê kết hợp lưu trữ đối tượng MinIO
+Trường ĐH Tài Nguyên Và Môi Trường TP Hồ Chí Minh
+Tuần 5
+Từ ngày 21/09/2026 đến ngày 27/09/2026
+Khởi tạo dự án máy chủ trung tâm với ngôn ngữ Python và nền tảng Django REST Framework trên Docker, xây dựng phân hệ quản lý người dùng, xác thực JSON Web Token và ma trận phân quyền chi tiết
+Trường ĐH Tài Nguyên Và Môi Trường TP Hồ Chí Minh
+Tuần 6
+Từ ngày 28/09/2026 đến ngày 04/10/2026
+Xây dựng phân hệ quản lý tài sản với cây phân cấp vị trí thiết bị, chuỗi chỉ số đo lường và xây dựng phân hệ quản lý kho phụ tùng thay thế
+Trường ĐH Tài Nguyên Và Môi Trường TP Hồ Chí Minh
+Tuần 7
+Từ ngày 05/10/2026 đến ngày 11/10/2026
+ Xây dựng luồng tạo lệnh làm việc theo máy trạng thái, kiểm soát danh mục kiểm tra bắt buộc và tích hợp cơ chế sinh mã tem nhãn QR cho thiết bị
+Trường ĐH Tài Nguyên Và Môi Trường TP Hồ Chí Minh
+Tuần 8
+Từ ngày 12/10/2026 đến ngày 18/10/2026
+Phát triển giao diện quản trị với cơ chế Django Templates, bảng điều khiển chỉ số hiệu suất, cây tài sản tương tác và lịch bảo trì tổng hợp
+Trường ĐH Tài Nguyên Và Môi Trường TP Hồ Chí Minh
+Tuần 9
+Từ ngày 19/10/2026 đến ngày 25/10/2026
+Khởi tạo ứng dụng di động với Flutter theo kiến trúc hướng ngoại tuyến với SQLite Drift, tích hợp camera quét mã QR nhận diện tài sản tại hiện trường
+Trường ĐH Tài Nguyên Và Môi Trường TP Hồ Chí Minh
+Tuần 10
+Từ ngày 26/10/2026 đến ngày 01/11/2026
+Xây dựng cơ chế đồng bộ dữ liệu hàng đợi hai chiều cho ứng dụng di động, kết nối API đồng bộ dữ liệu và lưu trữ ảnh nghiệm thu lên MinIO
+Trường ĐH Tài Nguyên Và Môi Trường TP Hồ Chí Minh
+Tuần 11
+Từ ngày 02/11/2026 đến ngày 08/11/2026
+Xây dựng động cơ lập lịch bảo trì phòng ngừa định kỳ tự động chạy ngầm với Celery dựa trên điều kiện thời gian hoặc chỉ số đo lường, xử lý lịch nổi và triệt tiêu lệnh trùng
+Trường ĐH Tài Nguyên Và Môi Trường TP Hồ Chí Minh
+Tuần 12
+Từ ngày 09/11/2026 đến ngày 15/11/2026
+Nghiên cứu, cài đặt và tích hợp thuật toán phân công tối ưu Hungary để ghép cặp kỹ thuật viên với lệnh làm việc và giải thuật TSP tối ưu lộ trình di chuyển
+Trường ĐH Tài Nguyên Và Môi Trường TP Hồ Chí Minh
+Tuần 13
+Từ ngày 16/11/2026 đến ngày 22/11/2026
+Thu thập dữ liệu cảm biến suy thoái thiết bị, xây dựng và huấn luyện mô hình học sâu chuỗi thời gian LSTM để dự đoán tuổi thọ hữu ích còn lại của tài sản
+Trường ĐH Tài Nguyên Và Môi Trường TP Hồ Chí Minh
+Tuần 14
+Từ ngày 23/11/2026 đến ngày 29/11/2026
+Tiến hành kiểm thử toàn diện hệ thống, kiểm thử các chức năng của website và ứng dụng di động, đánh giá hiệu năng và kiểm tra độ ổn định của các dịch vụ API
+Trường ĐH Tài Nguyên Và Môi Trường TP Hồ Chí Minh
+Tuần 15
+Từ ngày 30/11/2026 đến ngày 04/12/2026
+Hoàn thiện khóa luận tốt nghiệp theo đúng quy định và biểu mẫu của khoa, chuẩn bị hồ sơ nộp đồ án và xây dựng bài báo cáo bảo vệ tốt nghiệp
+Trường ĐH Tài Nguyên Và Môi Trường TP Hồ Chí Minh
+TÀI LIỆU THAM KHẢO
+[1] J. Dalzochio, R. Kunst, E. Pignaton, A. Binotto, S. Sanyal, J. Favilla, and J. Barbosa, "Machine learning and reasoning for predictive maintenance in Industry 4.0: Current status and challenges," Computers in Industry, Vol. 123, p. 103298, 2020.
+[2] R. K. Mobley, An Introduction to Predictive Maintenance, 2nd ed. Boston, MA, USA: Butterworth-Heinemann, 2002.
+[3] A. Saxena, K. Goebel, D. Simon, and N. Eklund, "Damage propagation modeling for aircraft engine run-to-failure simulation," in Proc. 2008 International Conference on Prognostics and Health Management, Denver, CO, USA, pp. 1-9, 2008.
+[4] S. Zheng, K. Ristovski, A. Farahat, and C. Gupta, "Long Short-Term Memory Network for Remaining Useful Life estimation," in Proc. 2017 IEEE International Conference on Prognostics and Health Management (ICPHM), Dallas, TX, USA, pp. 88-95, 2017.
+[5] H. W. Kuhn, "The Hungarian method for the assignment problem," Naval Research Logistics Quarterly, Vol. 2, No. 1-2, pp. 83-97, 1955.
+[6] D. L. Applegate, R. E. Bixby, V. Chvatal, and W. J. Cook, The Traveling Salesman Problem: A Computational Study. Princeton, NJ, USA: Princeton University Press, 2006.
+[7] N. Singh and M. Hasan, "Efficient Method for Data Synchronization in Mobile Database," in Proc. 2019 IEEE Conference on Information and Communication Technology (CICT), Allahabad, India, pp. 1-6, 2019.
+[8] C. P. Bezemer and A. Zaidman, "Enabling multi-tenancy: An industrial experience report," in Proc. 2010 IEEE International Conference on Software Maintenance (ICSM), Timisoara, Romania, pp. 1-8, 2010.
+CÁC CƠ QUAN, ĐƠN VỊ CẦN LIÊN HỆ
+Khoa Công nghệ thông tin – Trường Đại Học Tài Nguyên Và Môi Trường TP Hồ Chí Minh, 236 Lê Văn Sỹ, Phường Tân Sơn Hòa, Tp. Hồ Chí Minh.
+GIẢNG VIÊN HƯỚNG DẪNNGƯỜI LẬP ĐỀ CƯƠNG
+(ký và ghi rõ họ tên)
+TRƯỞNG BỘ MÔN

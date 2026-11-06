@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+
+<html lang="vi"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"primary-fixed-dim":"#b0c6ff","on-tertiary":"#ffffff","on-error":"#ffffff","on-tertiary-fixed-variant":"#8f1100","on-secondary-fixed-variant":"#005049","secondary-container":"#86f2e4","secondary-fixed-dim":"#6bd8cb","tertiary":"#840f00","primary-container":"#0f52ba","surface-container-lowest":"#ffffff","surface-dim":"#cfdaf2","on-primary":"#ffffff","outline-variant":"#c3c6d5","tertiary-fixed":"#ffdad3","inverse-on-surface":"#ecf1ff","inverse-surface":"#263143","tertiary-container":"#af1700","on-primary-fixed-variant":"#00419c","secondary":"#006a61","surface-variant":"#d8e3fb","primary-fixed":"#d9e2ff","on-primary-fixed":"#001945","background":"#f9f9ff","surface-container-low":"#f0f3ff","on-surface":"#111c2d","on-secondary":"#ffffff","surface-container-high":"#dee8ff","on-secondary-container":"#006f66","on-background":"#111c2d","secondary-fixed":"#89f5e7","surface":"#f9f9ff","inverse-primary":"#b0c6ff","primary":"#003c90","on-tertiary-container":"#ffc0b3","on-secondary-fixed":"#00201d","on-surface-variant":"#434653","on-tertiary-fixed":"#3f0300","surface-container-highest":"#d8e3fb","on-error-container":"#93000a","surface-container":"#e7eeff","surface-bright":"#f9f9ff","error":"#ba1a1a","error-container":"#ffdad6","tertiary-fixed-dim":"#ffb4a6","outline":"#737784","surface-tint":"#1d59c1","on-primary-container":"#bcceff"},"borderRadius":{"DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5rem","full":"0.75rem"},"spacing":{"margin-desktop":"1.5rem","space-sm":"0.5rem","space-md":"0.75rem","gutter":"1rem","gutter-desktop":"1.25rem","space-lg":"1rem","space-xl":"1.5rem","margin":"1rem","space-xs":"0.25rem"},"fontFamily":{"headline-sm":["Inter"],"label-lg":["Inter"],"label-md":["Inter"],"headline-md":["Inter"],"headline-lg":["Inter"],"label-sm":["Inter"],"body-sm":["Inter"],"body-md":["Inter"],"headline-xl":["Inter"],"code-md":["JetBrains Mono"],"body-lg":["Inter"],"headline-xl-mobile":["Inter"]},"fontSize":{"headline-sm":["16px",{"lineHeight":"24px","letterSpacing":"0em","fontWeight":"600"}],"label-lg":["14px",{"lineHeight":"20px","letterSpacing":"0.01em","fontWeight":"600"}],"label-md":["12px",{"lineHeight":"16px","letterSpacing":"0.02em","fontWeight":"600"}],"headline-md":["20px",{"lineHeight":"28px","letterSpacing":"-0.01em","fontWeight":"600"}],"headline-lg":["24px",{"lineHeight":"32px","letterSpacing":"-0.015em","fontWeight":"600"}],"label-sm":["11px",{"lineHeight":"14px","letterSpacing":"0.04em","fontWeight":"700"}],"body-sm":["12px",{"lineHeight":"16px","letterSpacing":"0em","fontWeight":"400"}],"body-md":["14px",{"lineHeight":"20px","letterSpacing":"0em","fontWeight":"400"}],"headline-xl":["32px",{"lineHeight":"40px","letterSpacing":"-0.02em","fontWeight":"700"}],"code-md":["12px",{"lineHeight":"18px","letterSpacing":"0em","fontWeight":"500"}],"body-lg":["16px",{"lineHeight":"24px","letterSpacing":"0em","fontWeight":"400"}],"headline-xl-mobile":["24px",{"lineHeight":"32px","letterSpacing":"-0.01em","fontWeight":"700"}]}}}};</script></head><body class="bg-background font-body-md text-on-surface antialiased"><aside class="fixed left-0 top-0 h-full w-72 bg-surface-container-lowest border-r border-outline-variant z-50 flex flex-col justify-between shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="flex flex-col"><div class="h-16 px-space-lg flex items-center gap-space-md border-b border-outline-variant"><div class="w-9 h-9 rounded bg-primary-container flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-on-primary text-[22px]">local_hospital</span></div><div class="flex flex-col min-w-0"><span class="font-headline-sm text-headline-sm text-primary tracking-tight truncate leading-tight">MedTech AI</span><span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">HỆ THỐNG LÂM SÀNG</span></div></div><div class="px-space-md pt-space-md"><span class="px-space-sm font-label-sm text-label-sm uppercase tracking-wider text-outline">Nghiệp vụ lâm sàng</span></div><nav class="flex flex-col gap-1 px-space-md py-space-xs mt-space-xs" data-active-classes="bg-surface-container text-primary font-semibold border-l-4 border-primary pl-[12px]"><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="ai-chat" href="#"><span class="material-symbols-outlined text-[20px]">smart_toy</span><span class="font-label-lg text-label-lg">Chat Tư vấn AI</span></a><a aria-current="page" class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg transition-colors bg-surface-container text-primary font-semibold border-l-4 border-primary pl-[12px]" data-path="smart-booking" href="#"><span class="material-symbols-outlined text-[20px]">event_available</span><span class="font-label-lg text-label-lg">Đặt lịch khám thông minh</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="telehealth" href="#"><span class="material-symbols-outlined text-[20px]">video_call</span><span class="font-label-lg text-label-lg">Khám bệnh từ xa WebRTC</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="xray-analysis" href="#"><span class="material-symbols-outlined text-[20px]">radiology</span><span class="font-label-lg text-label-lg">Phân tích X-quang AI</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="medical-records" href="#"><span class="material-symbols-outlined text-[20px]">clinical_notes</span><span class="font-label-lg text-label-lg">Hồ sơ Bệnh án &amp; ICD-10</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="clinics-map" href="#"><span class="material-symbols-outlined text-[20px]">distance</span><span class="font-label-lg text-label-lg">Bản đồ Phòng khám GIS</span></a></nav><div class="px-space-md pt-space-lg"><span class="px-space-sm font-label-sm text-label-sm uppercase tracking-wider text-outline">Hệ thống quản trị</span></div><nav class="flex flex-col gap-1 px-space-md py-space-xs mt-space-xs" data-active-classes="bg-surface-container text-primary font-semibold border-l-4 border-primary pl-[12px]"><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="settings" href="#"><span class="material-symbols-outlined text-[20px]">settings</span><span class="font-label-lg text-label-lg">Cài đặt</span></a></nav></div><div class="p-space-md border-t border-outline-variant bg-surface-container-low"><div class="flex items-center gap-space-sm"><span class="w-2.5 h-2.5 rounded-full bg-secondary shrink-0 animate-pulse"></span><span class="font-label-sm text-label-sm text-secondary font-bold tracking-tight">Hệ thống Sẵn sàng • v2.4-MED</span></div><span class="font-body-sm text-body-sm text-on-surface-variant block mt-1">Bệnh viện Đa khoa Quốc tế</span></div></aside><div class="pl-72"><header class="fixed top-0 left-72 right-0 h-16 bg-surface-container-lowest/95 backdrop-blur-md border-b border-outline-variant z-40 flex items-center justify-between px-gutter-desktop shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="flex items-center flex-1 max-w-xl"><div class="relative w-full"><span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span><input class="w-full h-9 pl-10 pr-space-md bg-surface border border-outline-variant rounded text-body-md font-body-md text-on-surface placeholder-on-surface-variant focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all" placeholder="Tìm kiếm bệnh nhân, mã hồ sơ, lịch hẹn..." type="text"/></div></div><div class="flex items-center gap-space-lg"><button aria-label="Thông báo" class="relative p-space-xs rounded hover:bg-surface-container-high text-on-surface-variant transition-colors"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-1 right-1 w-2.5 h-2.5 bg-error rounded-full ring-2 ring-surface-container-lowest"></span></button><div class="h-7 w-[1px] bg-outline-variant"></div><div class="flex items-center gap-space-md pl-space-xs"><div class="flex flex-col text-right"><span class="font-label-md text-label-md text-on-surface leading-tight">BS. Sarah Jenkins</span><span class="font-body-sm text-body-sm text-on-surface-variant leading-tight">Trưởng khoa Tim mạch</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="relative pt-16 bg-background min-h-screen"><div class="flex flex-col w-full">
+<div class="px-gutter-desktop py-space-lg flex flex-col gap-space-lg">
+<!-- PHẦN 1: BỘ ĐIỀU HỢP THUẬT TOÁN TỐI ƯU HÓA ĐA MỤC TIÊU NẰM NGANG -->
+<section class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm">
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-md pb-space-md border-b-0">
+<div class="flex items-center gap-space-md">
+<div class="w-10 h-10 rounded-lg bg-primary-container text-on-primary flex items-center justify-center shrink-0 shadow-sm">
+<span class="material-symbols-outlined text-[24px]">tune</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-space-sm">
+<span class="font-headline-sm text-headline-sm text-on-surface">Mô hình Tối ưu Đa mục tiêu Lịch khám</span>
+<span class="px-space-sm py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm tracking-wide">Thuật toán tôi luyện thép mô phỏng v3.4</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Hệ thống tự động cân bằng thời gian chờ, lộ trình giao thông nội đô và chuyên môn lâm sàng</span>
+</div>
+</div>
+<div class="flex items-center gap-space-md px-space-md py-space-xs rounded-lg bg-surface-container-low text-on-surface">
+<span class="material-symbols-outlined text-primary text-[18px]">balance</span>
+<span class="font-code-md text-code-md text-on-surface-variant">
+            Trọng số: <strong class="text-primary font-semibold">Thời gian chờ (40%)</strong> • <strong class="text-secondary font-semibold">Quãng đường (35%)</strong> • <strong class="text-on-surface font-semibold">Thâm niên Bác sĩ (25%)</strong>
+</span>
+</div>
+</div>
+<!-- FORM ĐIỀU KHIỂN ĐA MỤC TIÊU -->
+<form class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-space-md items-end pt-space-md" id="optimization-form">
+<!-- Triệu chứng lâm sàng -->
+<div class="lg:col-span-4 flex flex-col gap-space-xs">
+<label class="font-label-md text-label-md text-on-surface flex items-center justify-between">
+<span>Triệu chứng lâm sàng ghi nhận</span>
+<span class="font-label-sm text-label-sm text-primary">Phân loại tự động</span>
+</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">ecg_heart</span>
+<input class="w-full h-10 pl-9 pr-space-md bg-surface border-0 rounded text-body-md font-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary-container shadow-inner" placeholder="Nhập dấu hiệu cảnh báo..." type="text" value="Đau thắt ngực gắng sức, hồi hộp khó thở"/>
+</div>
+</div>
+<!-- Chuyên khoa mục tiêu -->
+<div class="lg:col-span-3 flex flex-col gap-space-xs">
+<label class="font-label-md text-label-md text-on-surface">Chuyên khoa mục tiêu</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">medical_services</span>
+<select class="w-full h-10 pl-9 pr-8 bg-surface border-0 rounded text-body-md font-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary-container appearance-none cursor-pointer">
+<option selected="">Nội Tim mạch &amp; Thần kinh tim</option>
+<option>Chẩn đoán Hình ảnh Tim Mạch Can thiệp</option>
+<option>Ngoại Lồng ngực &amp; Mạch máu</option>
+<option>Thăm dò Chức năng Tuần hoàn</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[20px]">expand_more</span>
+</div>
+</div>
+<!-- Khoảng cách tối đa -->
+<div class="lg:col-span-2 flex flex-col gap-space-xs">
+<div class="flex justify-between items-center">
+<label class="font-label-md text-label-md text-on-surface">Khoảng cách tối đa</label>
+<span class="font-label-sm text-label-sm text-secondary font-bold" id="radius-val">5.0 km</span>
+</div>
+<div class="h-10 px-space-sm bg-surface rounded flex items-center">
+<input class="w-full accent-primary-container cursor-pointer" max="20" min="1" oninput="document.getElementById('radius-val').innerText = parseFloat(this.value).toFixed(1) + ' km (Bán kính nội thành)';" step="0.5" type="range" value="5"/>
+</div>
+</div>
+<!-- Nút Tối ưu hóa -->
+<div class="lg:col-span-3">
+<button class="w-full h-10 px-space-md rounded bg-primary-container text-on-primary font-label-lg text-label-lg flex items-center justify-center gap-space-sm hover:opacity-95 active:scale-[0.99] transition-all shadow-md shadow-primary-container/20" id="btn-recalculate" type="button">
+<span class="material-symbols-outlined text-[20px] animate-spin-once" id="calc-icon">hub</span>
+<span>Tối ưu hóa lịch hẹn (Thuật toán SA v3.4)</span>
+</button>
+</div>
+</form>
+</section>
+<!-- NỬA DƯỚI: KHÔNG GIAN LÀM VIỆC LÂM SÀNG HAI CỘT (50% / 50%) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg items-start">
+<!-- NỬA DƯỚI TRÁI (6 CỘT / 50% CHIỀU RỘNG): GỢI Ý TỐI ƯU CỦA THUẬT TOÁN (TOP 3 BÁC SĨ) -->
+<section class="lg:col-span-6 flex flex-col gap-space-md">
+<div class="flex items-center justify-between px-space-xs">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-secondary text-[22px]">auto_awesome</span>
+<h2 class="font-headline-md text-headline-md text-on-surface">Gợi ý Tối ưu (Thuật toán tôi luyện thép mô phỏng)</h2>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Bộ hội tụ nghiệm cao nhất</span>
+</div>
+<!-- THẺ SỐ 1: TỐI ƯU TOÀN CỤC 96% (ĐƯỢC CHỌN MẶC ĐỊNH) -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-md transition-all cursor-pointer relative overflow-hidden group hover:shadow-lg bg-gradient-to-r from-surface-container-high/40 via-surface-container-lowest to-surface-container-lowest" data-doctor-card="1">
+<div class="flex items-start justify-between gap-space-md">
+<div class="flex items-start gap-space-md">
+<img class="w-14 h-14 rounded-xl object-cover shrink-0 shadow-sm" data-alt="Chân dung bác sĩ chuyên khoa tim mạch nam mặc áo blu trắng thắt cà vạt xanh, ánh sáng phòng khám hiện đại phong cách công nghệ cao sắc nét." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAzWw-YSUrPrVP8fEs1ZL6U3pI3hDcnfdUhX7hIFiEXdNN65jcOEL0NIyf4-9bPKPMfk8-6YlG5hasJ53wfJ8My9tpIJXTwu-nPubdOQdtDp5Y2k_0UR0Js7dUvfSUWBrWMFMxgnsvrea_qYhmsBc9Anaa4yArkv9blFEv69rLqqBd3n6AkmcARDO3FEjawET0aQKvD63woRXUeieshrBH6HZ7SbZaVNG3xqVsnoT0"/>
+<div class="flex flex-col min-w-0">
+<div class="flex flex-wrap items-center gap-space-xs">
+<h3 class="font-headline-sm text-headline-sm text-on-surface truncate">BS. CKI Marcus Vance</h3>
+<span class="px-space-sm py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm flex items-center gap-1 font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span>
+                    Điểm phù hợp: 96% (Tối ưu nhất)
+                  </span>
+</div>
+<span class="font-body-sm text-body-sm text-primary font-medium">Viện Tim mạch Trung ương</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Khoa Cấp cứu Can thiệp Mạch vành • 16 năm kinh nghiệm</span>
+</div>
+</div>
+<!-- Tỷ số hội tụ Pareto -->
+<div class="hidden sm:flex flex-col items-end shrink-0 text-right">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Hàm phạt SA</span>
+<span class="font-code-md text-code-md text-secondary font-bold text-headline-sm">f(x) = 0.042</span>
+</div>
+</div>
+<!-- Thông số bổ trợ: Khoảng cách, Giờ khám, Chi phí BHYT -->
+<div class="grid grid-cols-3 gap-space-sm mt-space-md pt-space-md bg-surface-container-low rounded-lg p-space-sm">
+<div class="flex items-center gap-space-xs min-w-0">
+<span class="material-symbols-outlined text-secondary text-[18px] shrink-0">near_me</span>
+<div class="flex flex-col min-w-0">
+<span class="font-label-sm text-label-sm text-outline">Khoảng cách</span>
+<span class="font-label-md text-label-md text-on-surface truncate font-semibold">1.8 km (6 phút)</span>
+</div>
+</div>
+<div class="flex items-center gap-space-xs min-w-0">
+<span class="material-symbols-outlined text-primary text-[18px] shrink-0">schedule</span>
+<div class="flex flex-col min-w-0">
+<span class="font-label-sm text-label-sm text-outline">Giờ sớm nhất</span>
+<span class="font-label-md text-label-md text-primary truncate font-bold">Hôm nay, 14:15</span>
+</div>
+</div>
+<div class="flex items-center gap-space-xs min-w-0">
+<span class="material-symbols-outlined text-on-surface-variant text-[18px] shrink-0">health_and_safety</span>
+<div class="flex flex-col min-w-0">
+<span class="font-label-sm text-label-sm text-outline">Bảo hiểm Y tế</span>
+<span class="font-label-md text-label-md text-on-surface truncate">Đồng chi trả 45.000 đ</span>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between mt-space-md pt-space-xs">
+<div class="flex items-center gap-space-sm">
+<span class="px-space-sm py-0.5 rounded bg-surface-container text-primary font-code-md text-code-md">Phòng khám A204</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Lưu lượng: 3 lượt chờ</span>
+</div>
+<button class="px-space-lg h-9 rounded bg-primary-container text-on-primary font-label-lg text-label-lg flex items-center gap-space-xs shadow-sm hover:opacity-90 active:scale-95 transition-all" onclick="selectDoctor(1, 'BS. CKI Marcus Vance', '14:15')" type="button">
+<span>Chọn giờ này</span>
+<span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- THẺ SỐ 2: PHÙ HỢP 91% -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm transition-all cursor-pointer relative overflow-hidden group hover:shadow-md" data-doctor-card="2">
+<div class="flex items-start justify-between gap-space-md">
+<div class="flex items-start gap-space-md">
+<img class="w-14 h-14 rounded-xl object-cover shrink-0 shadow-sm" data-alt="Chân dung nữ bác sĩ tim mạch mỉm cười thân thiện trong đồng phục y tế màu xanh sẫm tại bệnh viện hiện đại MedTech." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAZYL9L48V87Zw522WUiHNmWQHHPtj3sUqRYUEIHBcmPIh8LQEwycuWtb-JkfLgwMVCHLEpu-1H09wk8OsmoSV7Yfh_bIy6Yr2Z4g19PYNwKDday8i57LbJsjbIxGQ-4fHnyCMNpEolM3mEaad4mIQHDdtRA9TQ7wHea6xjfZbTZyzVYZWoUji3GVkJdxJj4skKxNhPm_2tDlnANqFXK_dsZVT_M986hLKUwF-1B4A"/>
+<div class="flex flex-col min-w-0">
+<div class="flex flex-wrap items-center gap-space-xs">
+<h3 class="font-headline-sm text-headline-sm text-on-surface truncate">BS. CKI Sarah Jenkins</h3>
+<span class="px-space-sm py-0.5 rounded-full bg-surface-container text-primary font-label-sm text-label-sm font-semibold">
+                    Điểm phù hợp: 91%
+                  </span>
+</div>
+<span class="font-body-sm text-body-sm text-primary font-medium">Bệnh viện Đa khoa MedTech</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Khoa Nội Tim mạch • 12 năm kinh nghiệm</span>
+</div>
+</div>
+<div class="hidden sm:flex flex-col items-end shrink-0 text-right">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Hàm phạt SA</span>
+<span class="font-code-md text-code-md text-on-surface-variant">f(x) = 0.089</span>
+</div>
+</div>
+<div class="grid grid-cols-3 gap-space-sm mt-space-md pt-space-md bg-surface-container-low rounded-lg p-space-sm">
+<div class="flex items-center gap-space-xs min-w-0">
+<span class="material-symbols-outlined text-outline text-[18px] shrink-0">near_me</span>
+<div class="flex flex-col min-w-0">
+<span class="font-label-sm text-label-sm text-outline">Khoảng cách</span>
+<span class="font-label-md text-label-md text-on-surface truncate">3.2 km (11 phút)</span>
+</div>
+</div>
+<div class="flex items-center gap-space-xs min-w-0">
+<span class="material-symbols-outlined text-outline text-[18px] shrink-0">schedule</span>
+<div class="flex flex-col min-w-0">
+<span class="font-label-sm text-label-sm text-outline">Giờ sớm nhất</span>
+<span class="font-label-md text-label-md text-on-surface truncate font-semibold">Hôm nay, 15:00</span>
+</div>
+</div>
+<div class="flex items-center gap-space-xs min-w-0">
+<span class="material-symbols-outlined text-outline text-[18px] shrink-0">health_and_safety</span>
+<div class="flex flex-col min-w-0">
+<span class="font-label-sm text-label-sm text-outline">Bảo hiểm Y tế</span>
+<span class="font-label-md text-label-md text-on-surface truncate">Đồng chi trả 50.000 đ</span>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between mt-space-md pt-space-xs">
+<div class="flex items-center gap-space-sm">
+<span class="px-space-sm py-0.5 rounded bg-surface-container text-on-surface font-code-md text-code-md">Phòng khám B102</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Lưu lượng: 5 lượt chờ</span>
+</div>
+<button class="px-space-lg h-9 rounded bg-surface-container-high text-primary font-label-lg text-label-lg flex items-center gap-space-xs hover:bg-primary-container hover:text-on-primary transition-colors" onclick="selectDoctor(2, 'BS. CKI Sarah Jenkins', '15:00')" type="button">
+<span>Chọn giờ này</span>
+<span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- THẺ SỐ 3: PHÙ HỢP 87% -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm transition-all cursor-pointer relative overflow-hidden group hover:shadow-md" data-doctor-card="3">
+<div class="flex items-start justify-between gap-space-md">
+<div class="flex items-start gap-space-md">
+<img class="w-14 h-14 rounded-xl object-cover shrink-0 shadow-sm" data-alt="Bác sĩ nam trung niên châu Á chuyên khoa tim mạch đeo kính cận nghiêm túc uy tín, phòng chẩn đoán hình ảnh lâm sàng hiện đại." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB9unKJFCAWbFscgwNWmaSCuYvEaGLF92fT9ZPXCtd-aVIUnOONWw-4x5EjSeAs22T0xZmJb4bn0RO2fXbfvZVrY4nC4H88Ay9agke-isQk6yyCq7w3fHHGOkrPjBfvw6y_-LtQhYFoSodfoM7rtMo2WTtfW9b2T0Q0I8ubibqNB_HYvTxpE-iC2J_ko_xe2esSd0conPvf7VrxGiK-ZSTEOKxHDUmky1zLWyko72I"/>
+<div class="flex flex-col min-w-0">
+<div class="flex flex-wrap items-center gap-space-xs">
+<h3 class="font-headline-sm text-headline-sm text-on-surface truncate">ThS. BS Trần Quốc Toàn</h3>
+<span class="px-space-sm py-0.5 rounded-full bg-surface-container text-primary font-label-sm text-label-sm font-semibold">
+                    Điểm phù hợp: 87%
+                  </span>
+</div>
+<span class="font-body-sm text-body-sm text-primary font-medium">Phòng khám Chuyên gia MedTech</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Chẩn đoán Siêu âm Tim mạch • 19 năm kinh nghiệm</span>
+</div>
+</div>
+<div class="hidden sm:flex flex-col items-end shrink-0 text-right">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Hàm phạt SA</span>
+<span class="font-code-md text-code-md text-on-surface-variant">f(x) = 0.134</span>
+</div>
+</div>
+<div class="grid grid-cols-3 gap-space-sm mt-space-md pt-space-md bg-surface-container-low rounded-lg p-space-sm">
+<div class="flex items-center gap-space-xs min-w-0">
+<span class="material-symbols-outlined text-outline text-[18px] shrink-0">near_me</span>
+<div class="flex flex-col min-w-0">
+<span class="font-label-sm text-label-sm text-outline">Khoảng cách</span>
+<span class="font-label-md text-label-md text-on-surface truncate">2.1 km (8 phút)</span>
+</div>
+</div>
+<div class="flex items-center gap-space-xs min-w-0">
+<span class="material-symbols-outlined text-outline text-[18px] shrink-0">schedule</span>
+<div class="flex flex-col min-w-0">
+<span class="font-label-sm text-label-sm text-outline">Giờ sớm nhất</span>
+<span class="font-label-md text-label-md text-on-surface truncate font-semibold">Hôm nay, 16:30</span>
+</div>
+</div>
+<div class="flex items-center gap-space-xs min-w-0">
+<span class="material-symbols-outlined text-outline text-[18px] shrink-0">health_and_safety</span>
+<div class="flex flex-col min-w-0">
+<span class="font-label-sm text-label-sm text-outline">Bảo hiểm Y tế</span>
+<span class="font-label-md text-label-md text-on-surface truncate">Đồng chi trả 60.000 đ</span>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between mt-space-md pt-space-xs">
+<div class="flex items-center gap-space-sm">
+<span class="px-space-sm py-0.5 rounded bg-surface-container text-on-surface font-code-md text-code-md">Phòng khám CG-01</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Lưu lượng: 1 lượt chờ</span>
+</div>
+<button class="px-space-lg h-9 rounded bg-surface-container-high text-primary font-label-lg text-label-lg flex items-center gap-space-xs hover:bg-primary-container hover:text-on-primary transition-colors" onclick="selectDoctor(3, 'ThS. BS Trần Quốc Toàn', '16:30')" type="button">
+<span>Chọn giờ này</span>
+<span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</section>
+<!-- NỬA DƯỚI PHẢI (6 CỘT / 50% CHIỀU RỘNG): LỊCH TRỐNG TOÀN BỘ (BẢNG TUẦN CHI TIẾT & CHỌN THỦ CÔNG) -->
+<section class="lg:col-span-6 bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col justify-between">
+<div class="flex flex-col gap-space-md">
+<!-- TIÊU ĐỀ LỊCH TOÀN BỘ -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm pb-space-sm">
+<div>
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[20px]">calendar_month</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface" id="calendar-doctor-name">Lưới khung giờ khả dụng trong tuần - Bác sĩ Marcus Vance</h2>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Tuần khám lâm sàng 42 (14/10 - 20/10) • Cập nhật trực tiếp theo thời gian thực</span>
+</div>
+<!-- Nút chuyển tuần thu nhỏ -->
+<div class="flex items-center gap-1 bg-surface-container-low rounded-lg p-1 self-start sm:self-auto">
+<button class="w-7 h-7 flex items-center justify-center rounded text-on-surface-variant hover:bg-surface hover:text-on-surface transition-colors" title="Tuần trước">
+<span class="material-symbols-outlined text-[18px]">chevron_left</span>
+</button>
+<span class="font-label-sm text-label-sm px-2 text-primary font-semibold">Tuần hiện tại</span>
+<button class="w-7 h-7 flex items-center justify-center rounded text-on-surface-variant hover:bg-surface hover:text-on-surface transition-colors" title="Tuần kế tiếp">
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- BẢNG LƯỚI KHUNG GIỜ THEO CỘT NGÀY -->
+<div class="overflow-x-auto">
+<div class="min-w-[500px] flex flex-col gap-space-sm">
+<!-- HÀNG TIÊU ĐỀ CÁC NGÀY TRONG TUẦN -->
+<div class="grid grid-cols-4 gap-space-sm">
+<div class="p-space-sm rounded-lg bg-surface-container-low text-center">
+<span class="font-label-sm text-label-sm text-outline block">Thứ Hai</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">14/10</span>
+</div>
+<div class="p-space-sm rounded-lg bg-primary-container text-on-primary text-center shadow-sm">
+<span class="font-label-sm text-label-sm text-on-primary-fixed-variant block">Hôm nay</span>
+<span class="font-headline-sm text-headline-sm text-on-primary">Thứ Ba 15/10</span>
+</div>
+<div class="p-space-sm rounded-lg bg-surface-container-low text-center">
+<span class="font-label-sm text-label-sm text-outline block">Thứ Tư</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">16/10</span>
+</div>
+<div class="p-space-sm rounded-lg bg-surface-container-low text-center">
+<span class="font-label-sm text-label-sm text-outline block">Thứ Năm</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">17/10</span>
+</div>
+</div>
+<!-- KHỐI CA SÁNG -->
+<div class="mt-space-xs">
+<div class="flex items-center gap-space-xs py-1">
+<span class="material-symbols-outlined text-secondary text-[16px]">wb_sunny</span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-secondary font-bold">Phân ca sáng (08:00 - 11:30)</span>
+</div>
+<div class="grid grid-cols-4 gap-space-sm mt-1">
+<!-- Cột 1: Thứ Hai -->
+<div class="flex flex-col gap-1.5">
+<button class="slot-btn h-9 rounded bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md transition-all" onclick="pickSlot(this, 'Thứ Hai 14/10', '08:30')" type="button">08:30</button>
+<div class="h-9 rounded bg-surface-container-highest/60 text-outline font-label-md text-label-md flex items-center justify-center cursor-not-allowed line-through" title="Đã có bệnh nhân đặt">09:30</div>
+<button class="slot-btn h-9 rounded bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md transition-all" onclick="pickSlot(this, 'Thứ Hai 14/10', '10:30')" type="button">10:30</button>
+</div>
+<!-- Cột 2: Thứ Ba (Hôm nay) -->
+<div class="flex flex-col gap-1.5 bg-primary-fixed/20 p-1 rounded-lg">
+<button class="slot-btn h-9 rounded bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md transition-all" onclick="pickSlot(this, 'Thứ Ba 15/10 (Hôm nay)', '08:30')" type="button">08:30</button>
+<div class="h-9 rounded bg-surface-container-highest/60 text-outline font-label-md text-label-md flex items-center justify-center cursor-not-allowed line-through" title="Đã có bệnh nhân đặt">09:30</div>
+<button class="slot-btn h-9 rounded bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md transition-all" onclick="pickSlot(this, 'Thứ Ba 15/10 (Hôm nay)', '10:30')" type="button">10:30</button>
+</div>
+<!-- Cột 3: Thứ Tư -->
+<div class="flex flex-col gap-1.5">
+<button class="slot-btn h-9 rounded bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md transition-all" onclick="pickSlot(this, 'Thứ Tư 16/10', '08:30')" type="button">08:30</button>
+<button class="slot-btn h-9 rounded bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md transition-all" onclick="pickSlot(this, 'Thứ Tư 16/10', '09:30')" type="button">09:30</button>
+<div class="h-9 rounded bg-surface-container-highest/60 text-outline font-label-md text-label-md flex items-center justify-center cursor-not-allowed line-through" title="Đã có bệnh nhân đặt">10:30</div>
+</div>
+<!-- Cột 4: Thứ Năm -->
+<div class="flex flex-col gap-1.5">
+<div class="h-9 rounded bg-surface-container-highest/60 text-outline font-label-md text-label-md flex items-center justify-center cursor-not-allowed line-through" title="Đã có bệnh nhân đặt">08:30</div>
+<button class="slot-btn h-9 rounded bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md transition-all" onclick="pickSlot(this, 'Thứ Năm 17/10', '09:30')" type="button">09:30</button>
+<button class="slot-btn h-9 rounded bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md transition-all" onclick="pickSlot(this, 'Thứ Năm 17/10', '10:30')" type="button">10:30</button>
+</div>
+</div>
+</div>
+<!-- KHỐI CA CHIỀU -->
+<div class="mt-space-sm">
+<div class="flex items-center gap-space-xs py-1">
+<span class="material-symbols-outlined text-primary text-[16px]">wb_twilight</span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-primary font-bold">Phân ca chiều (13:30 - 17:30)</span>
+</div>
+<div class="grid grid-cols-4 gap-space-sm mt-1">
+<!-- Cột 1: Thứ Hai -->
+<div class="flex flex-col gap-1.5">
+<button class="slot-btn h-9 rounded bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md transition-all" onclick="pickSlot(this, 'Thứ Hai 14/10', '14:15')" type="button">14:15</button>
+<button class="slot-btn h-9 rounded bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md transition-all" onclick="pickSlot(this, 'Thứ Hai 14/10', '15:00')" type="button">15:00</button>
+<div class="h-9 rounded bg-surface-container-highest/60 text-outline font-label-md text-label-md flex items-center justify-center cursor-not-allowed line-through" title="Đã có bệnh nhân đặt">16:00</div>
+</div>
+<!-- Cột 2: Thứ Ba (Hôm nay - Có khung giờ tối ưu SA) -->
+<div class="flex flex-col gap-1.5 bg-primary-fixed/20 p-1 rounded-lg">
+<!-- Khung giờ tối ưu thuật toán SA - Đang chọn màu xanh đậm -->
+<button class="slot-btn h-9 rounded bg-primary text-on-primary font-label-md text-label-md flex items-center justify-center gap-1 shadow-md ring-2 ring-primary-container relative group" id="sa-optimal-slot" onclick="pickSlot(this, 'Thứ Ba 15/10 (Hôm nay)', '14:15')" type="button">
+<span class="material-symbols-outlined text-[14px] text-secondary-fixed">auto_awesome</span>
+<span class="font-bold">14:15</span>
+<span class="absolute -top-2 right-1 px-1 bg-secondary text-on-secondary rounded text-[9px] font-bold tracking-tight">SA</span>
+</button>
+<button class="slot-btn h-9 rounded bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md transition-all" onclick="pickSlot(this, 'Thứ Ba 15/10 (Hôm nay)', '15:00')" type="button">15:00</button>
+<div class="h-9 rounded bg-surface-container-highest/60 text-outline font-label-md text-label-md flex items-center justify-center cursor-not-allowed line-through" title="Đã có bệnh nhân đặt">16:00</div>
+</div>
+<!-- Cột 3: Thứ Tư -->
+<div class="flex flex-col gap-1.5">
+<button class="slot-btn h-9 rounded bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md transition-all" onclick="pickSlot(this, 'Thứ Tư 16/10', '14:15')" type="button">14:15</button>
+<button class="slot-btn h-9 rounded bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md transition-all" onclick="pickSlot(this, 'Thứ Tư 16/10', '15:00')" type="button">15:00</button>
+<button class="slot-btn h-9 rounded bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md transition-all" onclick="pickSlot(this, 'Thứ Tư 16/10', '16:00')" type="button">16:00</button>
+</div>
+<!-- Cột 4: Thứ Năm -->
+<div class="flex flex-col gap-1.5">
+<button class="slot-btn h-9 rounded bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md transition-all" onclick="pickSlot(this, 'Thứ Năm 17/10', '14:15')" type="button">14:15</button>
+<div class="h-9 rounded bg-surface-container-highest/60 text-outline font-label-md text-label-md flex items-center justify-center cursor-not-allowed line-through" title="Đã có bệnh nhân đặt">15:00</div>
+<button class="slot-btn h-9 rounded bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md transition-all" onclick="pickSlot(this, 'Thứ Năm 17/10', '16:00')" type="button">16:00</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- CHÚ THÍCH MÀU SẮC -->
+<div class="flex flex-wrap items-center justify-between gap-space-sm p-space-sm rounded-lg bg-surface-container-low text-body-sm font-body-sm mt-space-xs">
+<div class="flex items-center gap-space-md flex-wrap">
+<div class="flex items-center gap-1.5">
+<span class="w-3.5 h-3.5 rounded bg-primary"></span>
+<span class="text-on-surface font-medium">Xanh đậm: Đang chọn</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-3.5 h-3.5 rounded bg-surface-container"></span>
+<span class="text-on-surface-variant">Xanh nhạt: Còn chỗ</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-3.5 h-3.5 rounded bg-surface-container-highest/80"></span>
+<span class="text-outline">Xám mờ: Đã kín lịch</span>
+</div>
+</div>
+<div class="flex items-center gap-1 text-secondary font-label-sm text-label-sm font-semibold">
+<span class="material-symbols-outlined text-[16px]">verified</span>
+<span>Đồng bộ máy chủ bệnh viện</span>
+</div>
+</div>
+</div>
+<!-- THẺ TỔNG KẾT & NÚT CHỐT LỊCH HẸN Ở ĐÁY -->
+<div class="mt-space-lg pt-space-md border-t-0 bg-surface-container-low rounded-xl p-space-md flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Thông tin lịch khám được xác nhận</span>
+<div class="flex items-center gap-space-xs mt-0.5">
+<span class="font-headline-sm text-headline-sm text-primary" id="summary-doctor">BS. CKI Marcus Vance</span>
+<span class="text-outline">•</span>
+<span class="font-body-md text-body-md text-on-surface font-bold" id="summary-time">14:15 Hôm nay (15/10)</span>
+</div>
+</div>
+<div class="text-right">
+<span class="font-label-sm text-label-sm text-outline">Bảo hiểm tạm tính</span>
+<span class="font-headline-sm text-headline-sm text-secondary block font-bold">45.000 đ</span>
+</div>
+</div>
+<button class="w-full h-11 rounded-lg bg-primary text-on-primary font-headline-sm text-headline-sm flex items-center justify-center gap-space-sm shadow-md hover:bg-primary-container active:scale-[0.99] transition-all" id="confirm-button" onclick="confirmAppointment()" type="button">
+<span class="material-symbols-outlined text-[20px]">check_circle</span>
+<span id="confirm-btn-text">Xác nhận lịch hẹn khám đã chọn (14:15 Hôm nay)</span>
+</button>
+</div>
+</section>
+</div>
+</div>
+</div>
+<script>
+  // Quản lý trạng thái tương tác trên Desktop
+  let currentDoctor = 'BS. CKI Marcus Vance';
+  let currentTime = '14:15 Hôm nay';
+
+  function pickSlot(btnElement, day, time) {
+    // Bỏ chọn nút cũ
+    document.querySelectorAll('.slot-btn').forEach(b => {
+      b.classList.remove('bg-primary', 'text-on-primary', 'font-bold', 'ring-2', 'ring-primary-container');
+      b.classList.add('bg-surface-container', 'text-on-surface');
+    });
+
+    // Kích hoạt nút mới
+    btnElement.classList.remove('bg-surface-container', 'text-on-surface');
+    btnElement.classList.add('bg-primary', 'text-on-primary', 'font-bold', 'ring-2', 'ring-primary-container');
+
+    currentTime = time + ' (' + day + ')';
+    document.getElementById('summary-time').innerText = currentTime;
+    document.getElementById('confirm-btn-text').innerText = 'Xác nhận lịch hẹn khám đã chọn (' + time + ' ' + day + ')';
+  }
+
+  function selectDoctor(id, doctorName, timeSlot) {
+    currentDoctor = doctorName;
+    document.getElementById('calendar-doctor-name').innerText = 'Lưới khung giờ khả dụng trong tuần - ' + doctorName;
+    document.getElementById('summary-doctor').innerText = doctorName;
+    
+    // Đổi hiển thị nút chốt
+    document.getElementById('confirm-btn-text').innerText = 'Xác nhận lịch hẹn khám đã chọn (' + timeSlot + ' Hôm nay)';
+    document.getElementById('summary-time').innerText = timeSlot + ' Hôm nay (15/10)';
+
+    // Đổi hiệu ứng thẻ chọn
+    document.querySelectorAll('[data-doctor-card]').forEach(card => {
+      card.classList.remove('ring-2', 'ring-primary-container', 'bg-surface-container-high/40');
+    });
+    const activeCard = document.querySelector('[data-doctor-card="' + id + '"]');
+    if (activeCard) {
+      activeCard.classList.add('ring-2', 'ring-primary-container');
+    }
+  }
+
+  function confirmAppointment() {
+    const btn = document.getElementById('confirm-button');
+    const originalText = document.getElementById('confirm-btn-text').innerText;
+    
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-symbols-outlined text-[20px] animate-spin">progress_activity</span><span>Đang khởi tạo mã tiếp nhận và hồ sơ điện tử...</span>';
+    
+    setTimeout(() => {
+      btn.innerHTML = '<span class="material-symbols-outlined text-[20px]">task_alt</span><span>Đã đặt lịch hẹn khám thành công!</span>';
+      btn.classList.remove('bg-primary');
+      btn.classList.add('bg-secondary');
+      
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.classList.remove('bg-secondary');
+        btn.classList.add('bg-primary');
+        btn.innerHTML = '<span class="material-symbols-outlined text-[20px]">check_circle</span><span id="confirm-btn-text">' + originalText + '</span>';
+      }, 3000);
+    }, 1200);
+  }
+
+  // Nút chạy lại thuật toán Simulated Annealing
+  document.getElementById('btn-recalculate').addEventListener('click', function() {
+    const icon = document.getElementById('calc-icon');
+    icon.classList.add('animate-spin');
+    this.disabled = true;
+    
+    setTimeout(() => {
+      icon.classList.remove('animate-spin');
+      this.disabled = false;
+    }, 800);
+  });
+</script></main></div></body></html>

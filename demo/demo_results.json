@@ -1,0 +1,128 @@
+[
+  {
+    "step": 1,
+    "status": "PASS",
+    "detail": "Đã lưu ảnh chụp: 01_login_page_vietnamese.png",
+    "time": "13:46:24"
+  },
+  {
+    "step": 2,
+    "status": "PASS",
+    "detail": "Đã lưu ảnh chụp: 02_login_filled.png",
+    "time": "13:46:26"
+  },
+  {
+    "step": 3,
+    "status": "PASS",
+    "detail": "Đã nhấn nút Đăng nhập",
+    "time": "13:46:26"
+  },
+  {
+    "step": 4,
+    "status": "PASS",
+    "detail": "Đăng nhập thành công, URL: http://localhost:5174/",
+    "time": "13:46:26"
+  },
+  {
+    "step": 5,
+    "status": "PASS",
+    "detail": "Đã lưu ảnh chụp: 03_patient_dashboard.png",
+    "time": "13:46:29"
+  },
+  {
+    "step": 6,
+    "status": "PASS",
+    "detail": "Đã lưu ảnh chụp: 04_chat_empty.png",
+    "time": "13:46:33"
+  },
+  {
+    "step": 7,
+    "status": "PASS",
+    "detail": "Đã gửi câu hỏi triệu chứng lâm sàng tới AI RAG",
+    "time": "13:46:33"
+  },
+  {
+    "step": 8,
+    "status": "PASS",
+    "detail": "Đã lưu ảnh chụp: 05_chat_with_response.png",
+    "time": "13:46:39"
+  },
+  {
+    "step": 9,
+    "status": "PASS",
+    "detail": "Đã lưu ảnh chụp: 06_smart_booking.png",
+    "time": "13:46:43"
+  },
+  {
+    "step": 10,
+    "status": "PASS",
+    "detail": "Đã lưu ảnh chụp: 07_xray_upload.png",
+    "time": "13:46:46"
+  },
+  {
+    "step": 11,
+    "status": "PASS",
+    "detail": "Đã lưu ảnh chụp: 08_medical_records_icd10.png",
+    "time": "13:46:49"
+  },
+  {
+    "step": 12,
+    "status": "PASS",
+    "detail": "Đã lưu ảnh chụp: 09_clinic_map.png",
+    "time": "13:46:55"
+  },
+  {
+    "step": 13,
+    "status": "PASS",
+    "detail": "Đã lưu ảnh chụp: 10_telehealth_precall.png",
+    "time": "13:46:58"
+  },
+  {
+    "step": 14,
+    "status": "PASS",
+    "detail": "Đã bấm nút Bắt đầu khám",
+    "time": "13:46:58"
+  },
+  {
+    "step": 15,
+    "status": "PASS",
+    "detail": "Đã lưu ảnh chụp: 11_telehealth_call_timer.png",
+    "time": "13:47:02"
+  },
+  {
+    "step": 16,
+    "status": "PASS",
+    "detail": "Đã lưu ảnh chụp: 12_settings.png",
+    "time": "13:47:05"
+  },
+  {
+    "step": 17,
+    "status": "PASS",
+    "detail": "Đã bấm nút chuyển đổi ngôn ngữ sang Tiếng Anh",
+    "time": "13:47:05"
+  },
+  {
+    "step": 18,
+    "status": "PASS",
+    "detail": "Đã lưu ảnh chụp: 13_english_interface.png",
+    "time": "13:47:08"
+  },
+  {
+    "step": 19,
+    "status": "PASS",
+    "detail": "Đã chuyển lại Tiếng Việt chuẩn mặc định",
+    "time": "13:47:10"
+  },
+  {
+    "step": 20,
+    "status": "PASS",
+    "detail": "Đã bấm nút Đăng xuất",
+    "time": "13:47:10"
+  },
+  {
+    "step": 21,
+    "status": "PASS",
+    "detail": "Đã lưu ảnh chụp: 14_logout_login_page.png",
+    "time": "13:47:12"
+  }
+]

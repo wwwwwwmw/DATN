@@ -1,0 +1,664 @@
+{
+  "status": "done",
+  "current_epoch": 20,
+  "total_epochs": 20,
+  "train_loss": 0.31579542346566186,
+  "val_loss": 0.33869937356627944,
+  "val_auc": 0.7931517693911972,
+  "best_auc": 0.7968649854890473,
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 0.377864,
+      "val_loss": 0.362568,
+      "val_auc": 0.756924,
+      "lr": 0.0001,
+      "time_seconds": 829.92
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.359189,
+      "val_loss": 0.351198,
+      "val_auc": 0.768732,
+      "lr": 0.0001,
+      "time_seconds": 1079.09
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.353063,
+      "val_loss": 0.349936,
+      "val_auc": 0.775424,
+      "lr": 0.0001,
+      "time_seconds": 1079.94
+    },
+    {
+      "epoch": 4,
+      "train_loss": 0.34961,
+      "val_loss": 0.348007,
+      "val_auc": 0.777927,
+      "lr": 0.0001,
+      "time_seconds": 1080.55
+    },
+    {
+      "epoch": 5,
+      "train_loss": 0.346717,
+      "val_loss": 0.342343,
+      "val_auc": 0.785086,
+      "lr": 0.0001,
+      "time_seconds": 1081.71
+    },
+    {
+      "epoch": 6,
+      "train_loss": 0.34463,
+      "val_loss": 0.342931,
+      "val_auc": 0.785064,
+      "lr": 0.0001,
+      "time_seconds": 1079.68
+    },
+    {
+      "epoch": 7,
+      "train_loss": 0.342734,
+      "val_loss": 0.341089,
+      "val_auc": 0.787964,
+      "lr": 0.0001,
+      "time_seconds": 1080.7
+    },
+    {
+      "epoch": 8,
+      "train_loss": 0.341057,
+      "val_loss": 0.340252,
+      "val_auc": 0.78981,
+      "lr": 0.0001,
+      "time_seconds": 1082.89
+    },
+    {
+      "epoch": 9,
+      "train_loss": 0.339622,
+      "val_loss": 0.341472,
+      "val_auc": 0.788556,
+      "lr": 0.0001,
+      "time_seconds": 1082.36
+    },
+    {
+      "epoch": 10,
+      "train_loss": 0.338014,
+      "val_loss": 0.364681,
+      "val_auc": 0.777029,
+      "lr": 0.0001,
+      "time_seconds": 1080.08
+    },
+    {
+      "epoch": 11,
+      "train_loss": 0.336815,
+      "val_loss": 0.339926,
+      "val_auc": 0.790238,
+      "lr": 0.0001,
+      "time_seconds": 1080.61
+    },
+    {
+      "epoch": 12,
+      "train_loss": 0.335421,
+      "val_loss": 0.339178,
+      "val_auc": 0.791842,
+      "lr": 0.0001,
+      "time_seconds": 1080.36
+    },
+    {
+      "epoch": 13,
+      "train_loss": 0.334024,
+      "val_loss": 0.339514,
+      "val_auc": 0.790583,
+      "lr": 0.0001,
+      "time_seconds": 1078.49
+    },
+    {
+      "epoch": 14,
+      "train_loss": 0.332787,
+      "val_loss": 0.339829,
+      "val_auc": 0.790011,
+      "lr": 0.0001,
+      "time_seconds": 1081.98
+    },
+    {
+      "epoch": 15,
+      "train_loss": 0.331499,
+      "val_loss": 0.339817,
+      "val_auc": 0.791485,
+      "lr": 0.0001,
+      "time_seconds": 1082.69
+    },
+    {
+      "epoch": 16,
+      "train_loss": 0.330582,
+      "val_loss": 0.341205,
+      "val_auc": 0.790814,
+      "lr": 5e-05,
+      "time_seconds": 1083.51
+    },
+    {
+      "epoch": 17,
+      "train_loss": 0.323086,
+      "val_loss": 0.336053,
+      "val_auc": 0.796865,
+      "lr": 5e-05,
+      "time_seconds": 1077.43
+    },
+    {
+      "epoch": 18,
+      "train_loss": 0.31981,
+      "val_loss": 0.337047,
+      "val_auc": 0.796425,
+      "lr": 5e-05,
+      "time_seconds": 1077.63
+    },
+    {
+      "epoch": 19,
+      "train_loss": 0.317487,
+      "val_loss": 0.338829,
+      "val_auc": 0.794707,
+      "lr": 5e-05,
+      "time_seconds": 1081.65
+    },
+    {
+      "epoch": 20,
+      "train_loss": 0.315795,
+      "val_loss": 0.338699,
+      "val_auc": 0.793152,
+      "lr": 5e-05,
+      "time_seconds": 1080.5
+    }
+  ],
+  "dataset_info": {
+    "chexpert_total": 191027,
+    "train_chexpert": 133718,
+    "train_nih": 0,
+    "train_total": 133718,
+    "validation": 28654,
+    "test": 28655,
+    "num_classes": 14,
+    "class_names": [
+      "No Finding",
+      "Enlarged Cardiomediastinum",
+      "Cardiomegaly",
+      "Lung Opacity",
+      "Lung Lesion",
+      "Edema",
+      "Consolidation",
+      "Pneumonia",
+      "Atelectasis",
+      "Pneumothorax",
+      "Pleural Effusion",
+      "Pleural Other",
+      "Fracture",
+      "Support Devices"
+    ],
+    "class_distribution": {
+      "No Finding": 16974,
+      "Enlarged Cardiomediastinum": 19473,
+      "Cardiomegaly": 30092,
+      "Lung Opacity": 98642,
+      "Lung Lesion": 8148,
+      "Edema": 61493,
+      "Consolidation": 37364,
+      "Pneumonia": 20656,
+      "Atelectasis": 59583,
+      "Pneumothorax": 20401,
+      "Pleural Effusion": 86477,
+      "Pleural Other": 4317,
+      "Fracture": 7935,
+      "Support Devices": 108085
+    },
+    "policy": "ones"
+  },
+  "eval_results": {
+    "eval_time_seconds": 84.32,
+    "num_samples": 28655,
+    "default_threshold_0.5": {
+      "per_class": {
+        "No Finding": {
+          "auc": 0.8768,
+          "sensitivity": 0.299,
+          "specificity": 0.9777,
+          "precision": 0.5671,
+          "f1_score": 0.3916,
+          "confusion_matrix": {
+            "tp": 761,
+            "fp": 581,
+            "tn": 25529,
+            "fn": 1784
+          },
+          "support": 2545
+        },
+        "Enlarged Cardiomediastinum": {
+          "auc": 0.662,
+          "sensitivity": 0.0173,
+          "specificity": 0.9987,
+          "precision": 0.5952,
+          "f1_score": 0.0337,
+          "confusion_matrix": {
+            "tp": 50,
+            "fp": 34,
+            "tn": 25739,
+            "fn": 2832
+          },
+          "support": 2882
+        },
+        "Cardiomegaly": {
+          "auc": 0.8515,
+          "sensitivity": 0.3936,
+          "specificity": 0.96,
+          "precision": 0.6496,
+          "f1_score": 0.4902,
+          "confusion_matrix": {
+            "tp": 1789,
+            "fp": 965,
+            "tn": 23145,
+            "fn": 2756
+          },
+          "support": 4545
+        },
+        "Lung Opacity": {
+          "auc": 0.7311,
+          "sensitivity": 0.7481,
+          "specificity": 0.5969,
+          "precision": 0.6664,
+          "f1_score": 0.7049,
+          "confusion_matrix": {
+            "tp": 11112,
+            "fp": 5563,
+            "tn": 8238,
+            "fn": 3742
+          },
+          "support": 14854
+        },
+        "Lung Lesion": {
+          "auc": 0.8063,
+          "sensitivity": 0.1171,
+          "specificity": 0.9957,
+          "precision": 0.5391,
+          "f1_score": 0.1925,
+          "confusion_matrix": {
+            "tp": 138,
+            "fp": 118,
+            "tn": 27359,
+            "fn": 1040
+          },
+          "support": 1178
+        },
+        "Edema": {
+          "auc": 0.8446,
+          "sensitivity": 0.6468,
+          "specificity": 0.8469,
+          "precision": 0.6652,
+          "f1_score": 0.6559,
+          "confusion_matrix": {
+            "tp": 5928,
+            "fp": 2984,
+            "tn": 16506,
+            "fn": 3237
+          },
+          "support": 9165
+        },
+        "Consolidation": {
+          "auc": 0.6925,
+          "sensitivity": 0.0373,
+          "specificity": 0.9862,
+          "precision": 0.3977,
+          "f1_score": 0.0682,
+          "confusion_matrix": {
+            "tp": 210,
+            "fp": 318,
+            "tn": 22711,
+            "fn": 5416
+          },
+          "support": 5626
+        },
+        "Pneumonia": {
+          "auc": 0.7506,
+          "sensitivity": 0.0843,
+          "specificity": 0.99,
+          "precision": 0.5058,
+          "f1_score": 0.1445,
+          "confusion_matrix": {
+            "tp": 262,
+            "fp": 256,
+            "tn": 25291,
+            "fn": 2846
+          },
+          "support": 3108
+        },
+        "Atelectasis": {
+          "auc": 0.7113,
+          "sensitivity": 0.2667,
+          "specificity": 0.9021,
+          "precision": 0.5521,
+          "f1_score": 0.3597,
+          "confusion_matrix": {
+            "tp": 2380,
+            "fp": 1931,
+            "tn": 17800,
+            "fn": 6544
+          },
+          "support": 8924
+        },
+        "Pneumothorax": {
+          "auc": 0.8496,
+          "sensitivity": 0.3566,
+          "specificity": 0.979,
+          "precision": 0.6706,
+          "f1_score": 0.4656,
+          "confusion_matrix": {
+            "tp": 1093,
+            "fp": 537,
+            "tn": 25053,
+            "fn": 1972
+          },
+          "support": 3065
+        },
+        "Pleural Effusion": {
+          "auc": 0.8702,
+          "sensitivity": 0.746,
+          "specificity": 0.8318,
+          "precision": 0.7847,
+          "f1_score": 0.7649,
+          "confusion_matrix": {
+            "tp": 9643,
+            "fp": 2645,
+            "tn": 13083,
+            "fn": 3284
+          },
+          "support": 12927
+        },
+        "Pleural Other": {
+          "auc": 0.8267,
+          "sensitivity": 0.0167,
+          "specificity": 0.9992,
+          "precision": 0.3333,
+          "f1_score": 0.0318,
+          "confusion_matrix": {
+            "tp": 11,
+            "fp": 22,
+            "tn": 27974,
+            "fn": 648
+          },
+          "support": 659
+        },
+        "Fracture": {
+          "auc": 0.8012,
+          "sensitivity": 0.0916,
+          "specificity": 0.996,
+          "precision": 0.4907,
+          "f1_score": 0.1544,
+          "confusion_matrix": {
+            "tp": 105,
+            "fp": 109,
+            "tn": 27400,
+            "fn": 1041
+          },
+          "support": 1146
+        },
+        "Support Devices": {
+          "auc": 0.8829,
+          "sensitivity": 0.8503,
+          "specificity": 0.7879,
+          "precision": 0.8386,
+          "f1_score": 0.8444,
+          "confusion_matrix": {
+            "tp": 13755,
+            "fp": 2647,
+            "tn": 9831,
+            "fn": 2422
+          },
+          "support": 16177
+        }
+      },
+      "macro_avg": {
+        "auc": 0.7969,
+        "sensitivity": 0.3337,
+        "specificity": 0.9177,
+        "precision": 0.5897,
+        "f1_score": 0.3787
+      },
+      "threshold": 0.5
+    },
+    "optimal_thresholds": {
+      "per_class": {
+        "No Finding": {
+          "auc": 0.8768,
+          "sensitivity": 0.7752,
+          "specificity": 0.8314,
+          "precision": 0.3095,
+          "f1_score": 0.4424,
+          "confusion_matrix": {
+            "tp": 1973,
+            "fp": 4402,
+            "tn": 21708,
+            "fn": 572
+          },
+          "support": 2545,
+          "optimal_threshold": 0.1
+        },
+        "Enlarged Cardiomediastinum": {
+          "auc": 0.662,
+          "sensitivity": 0.5732,
+          "specificity": 0.6515,
+          "precision": 0.1554,
+          "f1_score": 0.2445,
+          "confusion_matrix": {
+            "tp": 1652,
+            "fp": 8982,
+            "tn": 16791,
+            "fn": 1230
+          },
+          "support": 2882,
+          "optimal_threshold": 0.1
+        },
+        "Cardiomegaly": {
+          "auc": 0.8515,
+          "sensitivity": 0.7723,
+          "specificity": 0.7798,
+          "precision": 0.398,
+          "f1_score": 0.5253,
+          "confusion_matrix": {
+            "tp": 3510,
+            "fp": 5308,
+            "tn": 18802,
+            "fn": 1035
+          },
+          "support": 4545,
+          "optimal_threshold": 0.15
+        },
+        "Lung Opacity": {
+          "auc": 0.7311,
+          "sensitivity": 0.7481,
+          "specificity": 0.5969,
+          "precision": 0.6664,
+          "f1_score": 0.7049,
+          "confusion_matrix": {
+            "tp": 11112,
+            "fp": 5563,
+            "tn": 8238,
+            "fn": 3742
+          },
+          "support": 14854,
+          "optimal_threshold": 0.5
+        },
+        "Lung Lesion": {
+          "auc": 0.8063,
+          "sensitivity": 0.674,
+          "specificity": 0.7873,
+          "precision": 0.1196,
+          "f1_score": 0.2032,
+          "confusion_matrix": {
+            "tp": 794,
+            "fp": 5844,
+            "tn": 21633,
+            "fn": 384
+          },
+          "support": 1178,
+          "optimal_threshold": 0.05
+        },
+        "Edema": {
+          "auc": 0.8446,
+          "sensitivity": 0.7848,
+          "specificity": 0.7452,
+          "precision": 0.5916,
+          "f1_score": 0.6746,
+          "confusion_matrix": {
+            "tp": 7193,
+            "fp": 4966,
+            "tn": 14524,
+            "fn": 1972
+          },
+          "support": 9165,
+          "optimal_threshold": 0.35
+        },
+        "Consolidation": {
+          "auc": 0.6925,
+          "sensitivity": 0.6813,
+          "specificity": 0.5959,
+          "precision": 0.2917,
+          "f1_score": 0.4085,
+          "confusion_matrix": {
+            "tp": 3833,
+            "fp": 9305,
+            "tn": 13724,
+            "fn": 1793
+          },
+          "support": 5626,
+          "optimal_threshold": 0.2
+        },
+        "Pneumonia": {
+          "auc": 0.7506,
+          "sensitivity": 0.6763,
+          "specificity": 0.6943,
+          "precision": 0.2121,
+          "f1_score": 0.3229,
+          "confusion_matrix": {
+            "tp": 2102,
+            "fp": 7810,
+            "tn": 17737,
+            "fn": 1006
+          },
+          "support": 3108,
+          "optimal_threshold": 0.1
+        },
+        "Atelectasis": {
+          "auc": 0.7113,
+          "sensitivity": 0.7885,
+          "specificity": 0.5187,
+          "precision": 0.4256,
+          "f1_score": 0.5529,
+          "confusion_matrix": {
+            "tp": 7037,
+            "fp": 9496,
+            "tn": 10235,
+            "fn": 1887
+          },
+          "support": 8924,
+          "optimal_threshold": 0.25
+        },
+        "Pneumothorax": {
+          "auc": 0.8496,
+          "sensitivity": 0.7188,
+          "specificity": 0.8315,
+          "precision": 0.3381,
+          "f1_score": 0.4599,
+          "confusion_matrix": {
+            "tp": 2203,
+            "fp": 4312,
+            "tn": 21278,
+            "fn": 862
+          },
+          "support": 3065,
+          "optimal_threshold": 0.1
+        },
+        "Pleural Effusion": {
+          "auc": 0.8702,
+          "sensitivity": 0.8123,
+          "specificity": 0.7733,
+          "precision": 0.7465,
+          "f1_score": 0.778,
+          "confusion_matrix": {
+            "tp": 10500,
+            "fp": 3566,
+            "tn": 12162,
+            "fn": 2427
+          },
+          "support": 12927,
+          "optimal_threshold": 0.4
+        },
+        "Pleural Other": {
+          "auc": 0.8267,
+          "sensitivity": 0.4932,
+          "specificity": 0.9049,
+          "precision": 0.1088,
+          "f1_score": 0.1783,
+          "confusion_matrix": {
+            "tp": 325,
+            "fp": 2662,
+            "tn": 25334,
+            "fn": 334
+          },
+          "support": 659,
+          "optimal_threshold": 0.05
+        },
+        "Fracture": {
+          "auc": 0.8012,
+          "sensitivity": 0.6597,
+          "specificity": 0.7809,
+          "precision": 0.1114,
+          "f1_score": 0.1907,
+          "confusion_matrix": {
+            "tp": 756,
+            "fp": 6028,
+            "tn": 21481,
+            "fn": 390
+          },
+          "support": 1146,
+          "optimal_threshold": 0.05
+        },
+        "Support Devices": {
+          "auc": 0.8829,
+          "sensitivity": 0.8503,
+          "specificity": 0.7879,
+          "precision": 0.8386,
+          "f1_score": 0.8444,
+          "confusion_matrix": {
+            "tp": 13755,
+            "fp": 2647,
+            "tn": 9831,
+            "fn": 2422
+          },
+          "support": 16177,
+          "optimal_threshold": 0.5
+        }
+      },
+      "macro_avg": {
+        "auc": 0.7969,
+        "sensitivity": 0.3337,
+        "specificity": 0.9177,
+        "precision": 0.5897,
+        "f1_score": 0.3787
+      },
+      "threshold": 0.5
+    },
+    "thresholds_per_class": {
+      "No Finding": 0.1,
+      "Enlarged Cardiomediastinum": 0.1,
+      "Cardiomegaly": 0.15,
+      "Lung Opacity": 0.5,
+      "Lung Lesion": 0.05,
+      "Edema": 0.35,
+      "Consolidation": 0.2,
+      "Pneumonia": 0.1,
+      "Atelectasis": 0.25,
+      "Pneumothorax": 0.1,
+      "Pleural Effusion": 0.4,
+      "Pleural Other": 0.05,
+      "Fracture": 0.05,
+      "Support Devices": 0.5
+    }
+  },
+  "error": null
+}
