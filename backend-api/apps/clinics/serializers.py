@@ -9,7 +9,13 @@ class ClinicSerializer(serializers.ModelSerializer):
     """Serializer cho Clinic."""
     latitude = serializers.FloatField(read_only=True)
     longitude = serializers.FloatField(read_only=True)
-    distance_km = serializers.FloatField(read_only=True, required=False, default=None)
+    distance_km = serializers.SerializerMethodField()
+
+    def get_distance_km(self, obj):
+        dist = getattr(obj, 'distance', None)
+        if dist is not None and hasattr(dist, 'km'):
+            return round(dist.km, 2)
+        return None
 
     class Meta:
         model = Clinic

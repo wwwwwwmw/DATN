@@ -78,7 +78,7 @@ export const medicalRecordAPI = {
 
 // Clinics
 export const clinicAPI = {
-  list: () => api.get('/api/clinics/'),
+  list: (params?: { lat?: number; lng?: number }) => api.get('/api/clinics/', { params }),
   nearby: (lat: number, lng: number, radius: number = 5000) =>
     api.get(`/api/clinics/nearby/?lat=${lat}&lng=${lng}&radius=${radius}`),
   detail: (id: number) => api.get(`/api/clinics/${id}/`),

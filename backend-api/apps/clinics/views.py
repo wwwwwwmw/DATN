@@ -14,12 +14,24 @@ from apps.accounts.permissions import IsAdminUser
 
 
 class ClinicListView(generics.ListAPIView):
-    """GET /api/clinics/ — Danh sách phòng khám."""
+    """GET /api/clinics/ — Danh sách phòng khám (hỗ trợ tính khoảng cách PostGIS nếu truyền lat/lng)."""
     serializer_class = ClinicSerializer
     permission_classes = [permissions.AllowAny]
-    queryset = Clinic.objects.filter(is_active=True)
+    pagination_class = None
     search_fields = ['name', 'address']
     ordering_fields = ['rating', 'name', 'created_at']
+
+    def get_queryset(self):
+        qs = Clinic.objects.filter(is_active=True)
+        lat = self.request.query_params.get('lat')
+        lng = self.request.query_params.get('lng')
+        if lat and lng:
+            try:
+                user_pt = Point(float(lng), float(lat), srid=4326)
+                qs = qs.annotate(distance=Distance('location', user_pt)).order_by('distance')
+            except (ValueError, TypeError):
+                pass
+        return qs
 
 
 class ClinicDetailView(generics.RetrieveAPIView):
