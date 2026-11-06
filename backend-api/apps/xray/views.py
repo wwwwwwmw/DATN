@@ -114,37 +114,74 @@ class XrayAnalyzeView(APIView):
 
 
 class XrayResultListView(generics.ListAPIView):
-    """GET /api/xray/results/ — Lịch sử kết quả X-ray."""
+    """GET /api/xray/results/ — Lịch sử kết quả X-ray (phân quyền theo tài khoản)."""
     serializer_class = XrayAnalysisResultSerializer
 
     def get_queryset(self):
+        from django.db import models
         user = self.request.user
+        qs = XrayAnalysisResult.objects.select_related(
+            'patient', 'patient__patient_profile', 'reviewed_by__user'
+        )
         if user.role == 'PATIENT':
-            return XrayAnalysisResult.objects.filter(patient=user)
+            return qs.filter(patient=user)
         elif user.role == 'DOCTOR':
-            return XrayAnalysisResult.objects.all()
-        return XrayAnalysisResult.objects.all()
+            return qs.filter(
+                models.Q(patient__appointments__doctor__user=user) |
+                models.Q(patient__medical_records__doctor__user=user) |
+                models.Q(reviewed_by__user=user)
+            ).distinct()
+        return qs
 
 
 class XrayResultDetailView(generics.RetrieveAPIView):
-    """GET /api/xray/results/<id>/ — Chi tiết kết quả."""
+    """GET /api/xray/results/<id>/ — Chi tiết kết quả (phân quyền theo tài khoản)."""
     serializer_class = XrayAnalysisResultSerializer
-    queryset = XrayAnalysisResult.objects.all()
+
+    def get_queryset(self):
+        from django.db import models
+        user = self.request.user
+        qs = XrayAnalysisResult.objects.select_related(
+            'patient', 'patient__patient_profile', 'reviewed_by__user'
+        )
+        if user.role == 'PATIENT':
+            return qs.filter(patient=user)
+        elif user.role == 'DOCTOR':
+            return qs.filter(
+                models.Q(patient__appointments__doctor__user=user) |
+                models.Q(patient__medical_records__doctor__user=user) |
+                models.Q(reviewed_by__user=user)
+            ).distinct()
+        return qs
 
 
 class XrayReviewView(APIView):
-    """PATCH /api/xray/results/<id>/review/ — Bác sĩ review."""
+    """PATCH /api/xray/results/<id>/review/ — Bác sĩ hoặc Admin review."""
     permission_classes = [IsDoctor]
 
     def patch(self, request, pk):
+        from django.db import models
+        from apps.accounts.models import DoctorProfile
+        user = request.user
+        qs = XrayAnalysisResult.objects.all()
+        if user.role == 'DOCTOR':
+            qs = qs.filter(
+                models.Q(patient__appointments__doctor__user=user) |
+                models.Q(patient__medical_records__doctor__user=user) |
+                models.Q(reviewed_by__user=user)
+            ).distinct()
         try:
-            result = XrayAnalysisResult.objects.get(pk=pk)
+            result = qs.get(pk=pk)
         except XrayAnalysisResult.DoesNotExist:
-            return Response({'status': 'error', 'message': 'Không tìm thấy.'}, status=404)
+            return Response({'status': 'error', 'message': 'Không tìm thấy hoặc không thuộc phạm vi phụ trách.'}, status=404)
 
         result.doctor_review = request.data.get('doctor_review', '')
         result.doctor_agrees_with_ai = request.data.get('doctor_agrees_with_ai')
-        result.reviewed_by = request.user.doctor_profile
+        if hasattr(user, 'doctor_profile'):
+            result.reviewed_by = user.doctor_profile
+        elif not result.reviewed_by:
+            latest_app = result.patient.appointments.select_related('doctor').first()
+            result.reviewed_by = latest_app.doctor if latest_app else DoctorProfile.objects.first()
         result.save()
 
         return Response({

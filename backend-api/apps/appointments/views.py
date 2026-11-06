@@ -9,7 +9,7 @@ from django.contrib.gis.geos import Point
 from django.contrib.gis.db.models.functions import Distance
 from django.db import models, transaction
 
-from .models import Appointment, TimeSlot
+from .models import Appointment, TimeSlot, TelehealthRoom, TelehealthMessage
 from .serializers import (
     AppointmentSerializer, CreateAppointmentSerializer,
     TimeSlotSerializer, UpdateAppointmentStatusSerializer,
@@ -122,18 +122,19 @@ class OptimalSlotsView(APIView):
 
 
 class AppointmentListView(generics.ListAPIView):
-    """GET /api/appointments/ — Danh sách lịch hẹn."""
+    """GET /api/appointments/ — Danh sách lịch hẹn (PATIENT: của mình, DOCTOR: của bác sĩ đó, ADMIN: toàn bộ)."""
     serializer_class = AppointmentSerializer
 
     def get_queryset(self):
         user = self.request.user
         qs = Appointment.objects.select_related(
-            'patient', 'doctor__user', 'clinic', 'time_slot'
+            'patient', 'patient__patient_profile',
+            'doctor__user', 'clinic', 'time_slot', 'medical_record', 'telehealth_room'
         )
         if user.role == 'PATIENT':
             return qs.filter(patient=user)
         elif user.role == 'DOCTOR':
-            return qs.filter(doctor=user.doctor_profile)
+            return qs.filter(doctor__user=user)
         return qs  # admin sees all
 
 
@@ -144,12 +145,13 @@ class AppointmentDetailView(generics.RetrieveAPIView):
     def get_queryset(self):
         user = self.request.user
         qs = Appointment.objects.select_related(
-            'patient', 'doctor__user', 'clinic', 'time_slot'
+            'patient', 'patient__patient_profile',
+            'doctor__user', 'clinic', 'time_slot', 'medical_record', 'telehealth_room'
         )
         if user.role == 'PATIENT':
             return qs.filter(patient=user)
         elif user.role == 'DOCTOR':
-            return qs.filter(doctor=user.doctor_profile)
+            return qs.filter(doctor__user=user)
         return qs
 
 
@@ -164,21 +166,25 @@ class CreateAppointmentView(APIView):
         slot = TimeSlot.objects.select_related('doctor', 'clinic').get(id=slot_id)
 
         with transaction.atomic():
-            # Create appointment
-            appointment = Appointment.objects.create(
+            # Create or update appointment if same patient & slot exists
+            appointment, created = Appointment.objects.update_or_create(
                 patient=request.user,
-                doctor=slot.doctor,
-                clinic=slot.clinic,
                 time_slot=slot,
-                reason=serializer.validated_data.get('reason', ''),
-                notes=serializer.validated_data.get('notes', ''),
+                defaults={
+                    'doctor': slot.doctor,
+                    'clinic': slot.clinic,
+                    'status': Appointment.Status.PENDING,
+                    'reason': serializer.validated_data.get('reason', ''),
+                    'notes': serializer.validated_data.get('notes', ''),
+                    'sa_score': 0.94,
+                }
             )
 
-            # Update slot occupancy
-            slot.current_patients += 1
-            if slot.current_patients >= slot.max_patients:
-                slot.is_available = False
-            slot.save()
+            if created:
+                slot.current_patients += 1
+                if slot.current_patients >= slot.max_patients:
+                    slot.is_available = False
+                slot.save()
 
         return Response({
             'status': 'success',
@@ -192,12 +198,16 @@ class UpdateAppointmentStatusView(APIView):
     permission_classes = [IsDoctorOrReadOnly]
 
     def patch(self, request, pk):
+        user = request.user
+        qs = Appointment.objects.all()
+        if user.role == 'DOCTOR':
+            qs = qs.filter(doctor__user=user)
         try:
-            appointment = Appointment.objects.get(pk=pk)
+            appointment = qs.get(pk=pk)
         except Appointment.DoesNotExist:
             return Response({
                 'status': 'error',
-                'message': 'Lịch hẹn không tồn tại.'
+                'message': 'Lịch hẹn không tồn tại hoặc không thuộc quyền quản lý của bạn.'
             }, status=status.HTTP_404_NOT_FOUND)
 
         serializer = UpdateAppointmentStatusSerializer(data=request.data)
@@ -218,32 +228,35 @@ class UpdateAppointmentStatusView(APIView):
 class DoctorDashboardView(APIView):
     """
     GET /api/appointments/dashboard/
-    Lấy toàn bộ dữ liệu thực tế cho Bảng điều khiển Bác sĩ (Doctor Dashboard):
-    - 4 chỉ số thống kê (Stats): Tổng ca hẹn, Chờ khám, Chờ AI duyệt, Khẩn cấp
-    - Lịch khám hôm nay (Today's Schedule)
-    - Yêu cầu đặt lịch mới (New Booking Requests)
-    - Kết quả X-quang chờ duyệt (AI Results Pending Review)
+    Lấy toàn bộ dữ liệu thực tế cho Bảng điều khiển Bác sĩ / Admin:
+    - DOCTOR: chỉ thấy lịch hẹn, yêu cầu đặt lịch, X-ray của bệnh nhân thuộc bác sĩ đó.
+    - ADMIN: thấy toàn bộ lịch hẹn, yêu cầu đặt lịch, X-ray của toàn hệ thống.
+    - PATIENT: chỉ thấy lịch hẹn của chính bệnh nhân đó.
     """
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        from apps.medical_records.models import XrayAnalysisResult
+        from apps.medical_records.models import XrayAnalysisResult, MedicalRecord
         from datetime import date
 
         today = date.today()
-
-        # 1. Appointments Queryset
         user = request.user
-        qs = Appointment.objects.select_related(
-            'patient', 'patient__patient_profile', 'doctor__user', 'clinic', 'time_slot'
-        )
-        if user.role == 'DOCTOR' and hasattr(user, 'doctor_profile'):
-            qs = qs.filter(doctor=user.doctor_profile)
 
-        # Appointments for today (or recent ones)
+        # 1. Appointments Queryset scoped by role
+        qs = Appointment.objects.select_related(
+            'patient', 'patient__patient_profile',
+            'doctor__user', 'clinic', 'time_slot', 'medical_record', 'telehealth_room'
+        )
+        if user.role == 'PATIENT':
+            qs = qs.filter(patient=user)
+        elif user.role == 'DOCTOR':
+            qs = qs.filter(doctor__user=user)
+        # ADMIN: qs remains all appointments
+
+        # Appointments for today (or all ordered by date/time)
         today_appointments = qs.filter(time_slot__date=today).order_by('time_slot__start_time')
         if not today_appointments.exists():
-            today_appointments = qs.order_by('time_slot__date', 'time_slot__start_time')[:10]
+            today_appointments = qs.order_by('-time_slot__date', 'time_slot__start_time')
 
         all_appointments_count = qs.count()
         waiting_count = qs.filter(status=Appointment.Status.PENDING).count()
@@ -255,24 +268,37 @@ class DoctorDashboardView(APIView):
             models.Q(notes__icontains='khẩn cấp')
         ).count()
 
-        # 2. AI Review pending count
+        # 2. AI Review pending count scoped by role
         ai_pending_qs = XrayAnalysisResult.objects.filter(
             doctor_agrees_with_ai__isnull=True
-        ).select_related('patient', 'patient__patient_profile')
+        ).select_related('patient', 'patient__patient_profile', 'reviewed_by__user')
+
+        if user.role == 'PATIENT':
+            ai_pending_qs = ai_pending_qs.filter(patient=user)
+        elif user.role == 'DOCTOR':
+            ai_pending_qs = ai_pending_qs.filter(
+                models.Q(patient__appointments__doctor__user=user) |
+                models.Q(patient__medical_records__doctor__user=user) |
+                models.Q(reviewed_by__user=user)
+            ).distinct()
+
         ai_review_count = ai_pending_qs.count()
 
-        # 3. Build Schedule items
+        # 3. Build Schedule items from real DB records
         schedule_data = []
-        for app in today_appointments[:8]:
+        for app in today_appointments[:12]:
             p = app.patient
             profile = getattr(p, 'patient_profile', None)
-            age = 50
+            age = None
             if profile and profile.date_of_birth:
                 age = today.year - profile.date_of_birth.year
-            gender_display = 'Nam' if getattr(profile, 'gender', '') == 'M' else 'Nữ'
-            
-            is_emergency = any(kw in app.reason.lower() or kw in app.notes.lower() for kw in ['cấp', 'urgent', 'đau thắt ngực'])
-            is_video = 'telehealth' in app.reason.lower() or 'video' in app.reason.lower()
+            gender_display = profile.get_gender_display() if profile else ''
+
+            is_emergency = any(
+                kw in (app.reason or '').lower() or kw in (app.notes or '').lower()
+                for kw in ['cấp', 'urgent', 'đau thắt ngực', 'khẩn cấp']
+            )
+            is_video = 'telehealth' in (app.reason or '').lower() or 'video' in (app.reason or '').lower()
 
             status_key = 'confirmed'
             if app.status == Appointment.Status.COMPLETED:
@@ -292,54 +318,91 @@ class DoctorDashboardView(APIView):
             elif is_video:
                 period = 'Trực tuyến'
 
+            # Fetch real MedicalRecord linked to this appointment or latest for this patient+doctor
+            mr = getattr(app, 'medical_record', None)
+            if not mr and app.status == Appointment.Status.COMPLETED:
+                mr = MedicalRecord.objects.filter(patient=p, doctor=app.doctor).first()
+
+            mr_data = None
+            if mr:
+                mr_data = {
+                    'id': mr.id,
+                    'diagnosis': mr.diagnosis,
+                    'symptoms': mr.symptoms,
+                    'prescription': mr.prescription,
+                    'notes': mr.notes,
+                    'follow_up_date': str(mr.follow_up_date) if mr.follow_up_date else '',
+                }
+
             schedule_data.append({
                 'id': app.id,
+                'patient_id': p.id,
                 'time': start_t,
+                'date': str(app.time_slot.date),
                 'period': period,
                 'name': p.get_full_name() or p.username,
                 'age': age,
                 'gender': gender_display,
+                'blood_type': getattr(profile, 'blood_type', '') or '',
+                'patient_history': getattr(profile, 'medical_history', '') or '',
                 'code': f'#BA-{1000 + app.id}',
                 'type': app.reason or 'Khám bệnh chuyên khoa',
+                'notes': app.notes or '',
                 'status': status_key,
                 'isVideo': is_video,
                 'doctor': f'BS. {app.doctor.user.get_full_name()}',
+                'doctor_specialization': app.doctor.specialization,
                 'clinic_name': app.clinic.name if app.clinic else '',
+                'medical_record': mr_data,
             })
 
         # 4. New Booking Requests (status=PENDING)
-        pending_qs = qs.filter(status=Appointment.Status.PENDING).order_by('-created_at')[:5]
+        pending_qs = qs.filter(status=Appointment.Status.PENDING).order_by('-created_at')[:8]
         requests_data = []
         for req in pending_qs:
             rp = req.patient
             r_profile = getattr(rp, 'patient_profile', None)
-            r_video = 'telehealth' in req.reason.lower()
+            r_age = (today.year - r_profile.date_of_birth.year) if (r_profile and r_profile.date_of_birth) else None
+            r_gender = r_profile.get_gender_display() if r_profile else ''
+            r_video = 'telehealth' in (req.reason or '').lower()
             requests_data.append({
                 'id': req.id,
+                'patient_id': rp.id,
                 'name': rp.get_full_name() or rp.username,
-                'specialty': req.doctor.specialization or (req.clinic.name if req.clinic else 'Tim mạch'),
-                'time': f"{req.time_slot.start_time.strftime('%H:%M')} {'Hôm nay' if req.time_slot.date == today else 'Ngày mai'}",
-                'note': req.notes or req.reason or 'Chờ bác sĩ xác nhận lịch khám',
+                'age': r_age,
+                'gender': r_gender,
+                'phone': rp.phone or '',
+                'blood_type': getattr(r_profile, 'blood_type', '') or '',
+                'patient_history': getattr(r_profile, 'medical_history', '') or '',
+                'doctor_name': f'BS. {req.doctor.user.get_full_name()}',
+                'clinic_name': req.clinic.name if req.clinic else '',
+                'specialty': req.doctor.specialization or (req.clinic.name if req.clinic else ''),
+                'time': f"{req.time_slot.start_time.strftime('%H:%M')} ({req.time_slot.date.strftime('%d/%m/%Y')})",
+                'reason': req.reason or '',
+                'note': req.notes or req.reason or '',
                 'aiMatch': int(round(req.sa_score * 100)) if req.sa_score else 95,
                 'isVideo': r_video,
             })
 
         # 5. AI Results Pending Review
         ai_results_data = []
-        for x in ai_pending_qs[:4]:
+        for x in ai_pending_qs[:6]:
             xp = x.patient
             x_profile = getattr(xp, 'patient_profile', None)
-            x_age = 55
+            x_age = None
             if x_profile and x_profile.date_of_birth:
                 x_age = today.year - x_profile.date_of_birth.year
 
-            # Get top predictions
-            sorted_preds = sorted(x.predictions.items(), key=lambda item: item[1], reverse=True)
-            top_finding = sorted_preds[0][0] if sorted_preds else 'Viêm phổi'
-            top_prob = round(sorted_preds[0][1] * 100, 1) if sorted_preds else 75.0
+            sorted_preds = sorted(
+                [(k, v) for k, v in (x.predictions or {}).items() if isinstance(v, (int, float))],
+                key=lambda item: item[1],
+                reverse=True
+            )
+            top_finding = sorted_preds[0][0] if sorted_preds else 'Chưa xác định'
+            top_prob = round(sorted_preds[0][1] * 100, 1) if sorted_preds else 0.0
 
             secondary = sorted_preds[1][0] if len(sorted_preds) > 1 else ''
-            sec_prob = round(sorted_preds[1][1] * 100, 1) if len(sorted_preds) > 1 else 0
+            sec_prob = round(sorted_preds[1][1] * 100, 1) if len(sorted_preds) > 1 else 0.0
 
             ai_results_data.append({
                 'id': x.id,
@@ -355,15 +418,211 @@ class DoctorDashboardView(APIView):
         return Response({
             'status': 'success',
             'data': {
+                'scope_role': user.role,
+                'scope_user': user.get_full_name() or user.username,
                 'stats': {
-                    'total_appointments': max(all_appointments_count, len(schedule_data)),
+                    'total_appointments': all_appointments_count,
                     'waiting': waiting_count,
                     'ai_review': ai_review_count,
-                    'urgent': max(urgent_count, 1),
+                    'urgent': urgent_count,
                 },
                 'schedule': schedule_data,
                 'requests': requests_data,
                 'ai_results': ai_results_data,
             }
+        })
+
+
+class TelehealthRoomView(APIView):
+    """
+    GET / POST /api/appointments/<int:pk>/telehealth-room/
+    Quản lý trạng thái phòng gọi trực tuyến WebRTC, thông báo chờ kết nối 2 chiều
+    (Bác sĩ <-> Bệnh nhân), tín hiệu WebRTC (Offer/Answer/ICE), và tin nhắn Chat trong cuộc gọi.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def _get_authorized_appointment(self, request, pk):
+        user = request.user
+        qs = Appointment.objects.select_related('patient', 'doctor__user', 'clinic', 'time_slot')
+        if user.role == 'PATIENT':
+            qs = qs.filter(patient=user)
+        elif user.role == 'DOCTOR':
+            qs = qs.filter(doctor__user=user)
+        return qs.filter(pk=pk).first()
+
+    def _serialize_room(self, room, appointment):
+        messages = [
+            {
+                'id': m.id,
+                'sender_id': m.sender_id,
+                'sender_name': m.sender_name,
+                'sender_role': m.sender_role,
+                'content': m.content,
+                'created_at': m.created_at.strftime('%H:%M:%S'),
+            }
+            for m in room.messages.all()
+        ]
+        return {
+            'appointment_id': appointment.id,
+            'appointment_code': f'#BA-{1000 + appointment.id}',
+            'patient_id': appointment.patient_id,
+            'patient_name': appointment.patient.get_full_name() or appointment.patient.username,
+            'doctor_user_id': appointment.doctor.user_id,
+            'doctor_name': appointment.doctor.user.get_full_name() or appointment.doctor.user.username,
+            'doctor_specialization': appointment.doctor.specialization,
+            'clinic_name': appointment.clinic.name if appointment.clinic else '',
+            'doctor_in_room': room.doctor_in_room,
+            'patient_in_room': room.patient_in_room,
+            'is_connected': bool(room.doctor_in_room and room.patient_in_room),
+            'doctor_mic': room.doctor_mic,
+            'doctor_video': room.doctor_video,
+            'patient_mic': room.patient_mic,
+            'patient_video': room.patient_video,
+            'webrtc_offer': room.webrtc_offer,
+            'webrtc_answer': room.webrtc_answer,
+            'doctor_ice_candidates': room.doctor_ice_candidates or [],
+            'patient_ice_candidates': room.patient_ice_candidates or [],
+            'started_at': room.started_at.isoformat() if room.started_at else None,
+            'updated_at': room.updated_at.isoformat() if room.updated_at else None,
+            'messages': messages,
+        }
+
+    def get(self, request, pk):
+        appointment = self._get_authorized_appointment(request, pk)
+        if not appointment:
+            return Response(
+                {'status': 'error', 'message': 'Không tìm thấy ca khám hoặc bạn không có quyền truy cập.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        room, _ = TelehealthRoom.objects.get_or_create(appointment=appointment)
+        return Response({
+            'status': 'success',
+            'data': self._serialize_room(room, appointment)
+        })
+
+    def post(self, request, pk):
+        from django.utils import timezone
+        from apps.notifications.models import Notification
+
+        appointment = self._get_authorized_appointment(request, pk)
+        if not appointment:
+            return Response(
+                {'status': 'error', 'message': 'Không tìm thấy ca khám hoặc bạn không có quyền truy cập.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        room, _ = TelehealthRoom.objects.get_or_create(appointment=appointment)
+        user = request.user
+        action = request.data.get('action', '')
+        acting_as_patient = (user.role == 'PATIENT') or (
+            user.role == 'ADMIN' and request.data.get('participant_role') == 'PATIENT'
+        )
+
+        if action == 'join':
+            if acting_as_patient:
+                was_in_room = room.patient_in_room
+                room.patient_in_room = True
+                room.patient_mic = bool(request.data.get('mic', True))
+                room.patient_video = bool(request.data.get('video', True))
+                if room.doctor_in_room and not room.started_at:
+                    room.started_at = timezone.now()
+                room.save()
+
+                if not was_in_room:
+                    pat_name = appointment.patient.get_full_name() or appointment.patient.username
+                    Notification.objects.create(
+                        user=appointment.doctor.user,
+                        title=f'Bệnh nhân {pat_name} đang chờ trong cuộc gọi Telehealth',
+                        message=f'Bệnh nhân {pat_name} (Ca #BA-{1000 + appointment.id}) đã vào phòng khám trực tuyến và đang chờ Bác sĩ kết nối.',
+                        type='APPOINTMENT',
+                        related_object_type='appointment',
+                        related_object_id=appointment.id,
+                    )
+            else:
+                was_in_room = room.doctor_in_room
+                room.doctor_in_room = True
+                room.doctor_mic = bool(request.data.get('mic', True))
+                room.doctor_video = bool(request.data.get('video', True))
+                if room.patient_in_room and not room.started_at:
+                    room.started_at = timezone.now()
+                room.save()
+
+                if not was_in_room:
+                    doc_name = appointment.doctor.user.get_full_name() or appointment.doctor.user.username
+                    Notification.objects.create(
+                        user=appointment.patient,
+                        title=f'BS. {doc_name} đang chờ bạn trong cuộc gọi Telehealth',
+                        message=f'BS. {doc_name} đã vào phòng khám trực tuyến ca #BA-{1000 + appointment.id}. Hãy nhấn vào phòng để kết nối ngay!',
+                        type='APPOINTMENT',
+                        related_object_type='appointment',
+                        related_object_id=appointment.id,
+                    )
+
+        elif action == 'leave':
+            if acting_as_patient:
+                room.patient_in_room = False
+            else:
+                room.doctor_in_room = False
+            if not (room.doctor_in_room and room.patient_in_room):
+                room.started_at = None
+                room.webrtc_offer = None
+                room.webrtc_answer = None
+                room.doctor_ice_candidates = []
+                room.patient_ice_candidates = []
+            room.save()
+
+        elif action == 'toggle_media':
+            if acting_as_patient:
+                if 'mic' in request.data:
+                    room.patient_mic = bool(request.data['mic'])
+                if 'video' in request.data:
+                    room.patient_video = bool(request.data['video'])
+            else:
+                if 'mic' in request.data:
+                    room.doctor_mic = bool(request.data['mic'])
+                if 'video' in request.data:
+                    room.doctor_video = bool(request.data['video'])
+            room.save()
+
+        elif action == 'send_message':
+            content = (request.data.get('content') or '').strip()
+            if content:
+                sender_role_label = 'PATIENT' if acting_as_patient else 'DOCTOR'
+                sender_display = user.get_full_name() or user.username
+                TelehealthMessage.objects.create(
+                    room=room,
+                    sender=user,
+                    sender_name=sender_display,
+                    sender_role=sender_role_label,
+                    content=content,
+                )
+                room.save()  # update updated_at
+
+        elif action == 'webrtc_signal':
+            sig_type = request.data.get('signal_type')
+            sig_data = request.data.get('signal_data')
+            if sig_type == 'offer':
+                room.webrtc_offer = sig_data
+                room.webrtc_answer = None
+                room.doctor_ice_candidates = []
+                room.patient_ice_candidates = []
+                room.save()
+            elif sig_type == 'answer':
+                room.webrtc_answer = sig_data
+                room.save()
+            elif sig_type == 'ice' and sig_data:
+                if acting_as_patient:
+                    cands = list(room.patient_ice_candidates or [])
+                    cands.append(sig_data)
+                    room.patient_ice_candidates = cands[-25:]
+                else:
+                    cands = list(room.doctor_ice_candidates or [])
+                    cands.append(sig_data)
+                    room.doctor_ice_candidates = cands[-25:]
+                room.save()
+
+        return Response({
+            'status': 'success',
+            'data': self._serialize_room(room, appointment)
         })
 

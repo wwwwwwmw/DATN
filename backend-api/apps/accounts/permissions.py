@@ -5,14 +5,14 @@ from rest_framework import permissions
 
 
 class IsDoctor(permissions.BasePermission):
-    """Chỉ cho phép Bác sĩ truy cập."""
-    message = 'Chỉ bác sĩ mới có quyền truy cập.'
+    """Cho phép Bác sĩ hoặc Admin truy cập."""
+    message = 'Chỉ bác sĩ hoặc quản trị viên mới có quyền truy cập.'
 
     def has_permission(self, request, view):
         return (
             request.user
             and request.user.is_authenticated
-            and request.user.role == 'DOCTOR'
+            and request.user.role in ('DOCTOR', 'ADMIN')
         )
 
 
@@ -54,12 +54,12 @@ class IsOwnerOrAdmin(permissions.BasePermission):
 
 
 class IsDoctorOrReadOnly(permissions.BasePermission):
-    """Bác sĩ full access, người khác chỉ đọc."""
+    """Bác sĩ và Admin full access, người khác chỉ đọc."""
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:
             return request.user and request.user.is_authenticated
         return (
             request.user
             and request.user.is_authenticated
-            and request.user.role == 'DOCTOR'
+            and request.user.role in ('DOCTOR', 'ADMIN')
         )

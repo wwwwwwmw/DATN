@@ -74,16 +74,37 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class DoctorProfileSerializer(serializers.ModelSerializer):
-    """Profile bác sĩ."""
+    """Profile bác sĩ kèm khung giờ khám thực tế từ database."""
     user = UserSerializer(read_only=True)
     clinic_name = serializers.CharField(source='clinic.name', read_only=True, default='')
+    clinic_address = serializers.CharField(source='clinic.address', read_only=True, default='')
+    queue_count = serializers.SerializerMethodField()
+    available_slots = serializers.SerializerMethodField()
 
     class Meta:
         model = DoctorProfile
         fields = [
             'id', 'user', 'specialization', 'license_number',
             'experience_years', 'bio', 'clinic', 'clinic_name',
-            'consultation_fee', 'created_at'
+            'clinic_address', 'consultation_fee', 'queue_count',
+            'available_slots', 'created_at'
+        ]
+
+    def get_queue_count(self, obj):
+        return obj.appointments.filter(status__in=['PENDING', 'CONFIRMED']).count()
+
+    def get_available_slots(self, obj):
+        slots = obj.time_slots.filter(is_available=True).order_by('date', 'start_time')[:18]
+        return [
+            {
+                'id': s.id,
+                'date': str(s.date),
+                'start_time': s.start_time.strftime('%H:%M'),
+                'end_time': s.end_time.strftime('%H:%M'),
+                'is_available': s.is_available and not s.is_full,
+                'remaining_slots': s.remaining_slots,
+            }
+            for s in slots
         ]
 
 

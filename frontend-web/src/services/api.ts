@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { emitDataChange } from '../utils/realtime'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -18,9 +19,20 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// Response interceptor: handle 401
+// Response interceptor: broadcast real-time sync on mutations & handle 401
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const method = (response.config.method || '').toLowerCase()
+    if (['post', 'put', 'patch', 'delete'].includes(method)) {
+      const url = response.config.url || ''
+      // Avoid feedback loop if it's purely WebRTC ICE candidate signaling
+      const reqData = typeof response.config.data === 'string' ? response.config.data : ''
+      if (!reqData.includes('webrtc_signal')) {
+        emitDataChange(url)
+      }
+    }
+    return response
+  },
   async (error) => {
     if (error.response?.status === 401) {
       const refreshToken = localStorage.getItem('refresh_token')
@@ -50,8 +62,18 @@ export const authAPI = {
     api.post('/api/auth/register/', data),
   getProfile: () =>
     api.get('/api/auth/profile/'),
+  updateProfile: (data: any) =>
+    api.put('/api/auth/profile/', data),
   getDoctors: () =>
     api.get('/api/auth/doctors/'),
+}
+
+// Medical Records
+export const medicalRecordAPI = {
+  list: () => api.get('/api/medical-records/'),
+  detail: (id: number) => api.get(`/api/medical-records/${id}/`),
+  create: (data: any) => api.post('/api/medical-records/', data),
+  update: (id: number, data: any) => api.patch(`/api/medical-records/${id}/`, data),
 }
 
 // Clinics
@@ -65,6 +87,7 @@ export const clinicAPI = {
 // Appointments
 export const appointmentAPI = {
   list: () => api.get('/api/appointments/'),
+  detail: (id: number) => api.get(`/api/appointments/${id}/`),
   getDashboard: () => api.get('/api/appointments/dashboard/'),
   create: (data: any) => api.post('/api/appointments/create/', data),
   optimalSlots: (clinicId: number, date: string, patientLat?: number, patientLng?: number) => {
@@ -74,8 +97,12 @@ export const appointmentAPI = {
     }
     return api.get(url)
   },
-  updateStatus: (id: number, status: string) =>
-    api.patch(`/api/appointments/${id}/status/`, { status }),
+  updateStatus: (id: number, status: string, notes?: string) =>
+    api.patch(`/api/appointments/${id}/status/`, notes ? { status, notes } : { status }),
+  getTelehealthRoom: (id: number) =>
+    api.get(`/api/appointments/${id}/telehealth-room/`),
+  updateTelehealthRoom: (id: number, data: any) =>
+    api.post(`/api/appointments/${id}/telehealth-room/`, data),
 }
 
 // X-ray
@@ -87,6 +114,8 @@ export const xrayAPI = {
     }),
   results: () => api.get('/api/xray/results/'),
   detail: (id: number) => api.get(`/api/xray/results/${id}/`),
+  review: (id: number, data: { doctor_review: string; doctor_agrees_with_ai: boolean }) =>
+    api.patch(`/api/xray/results/${id}/review/`, data),
 }
 
 // Chat

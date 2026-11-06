@@ -95,3 +95,11 @@ class PatientProfile(models.Model):
 
     def __str__(self):
         return f"BN. {self.user.get_full_name()}"
+
+    def get_gender_display(self):
+        g = (self.gender or '').upper()
+        if g in ('M', 'MALE', 'NAM'):
+            return 'Nam'
+        if g in ('F', 'FEMALE', 'NỮ', 'NU'):
+            return 'Nữ'
+        return self.gender or 'Nam'

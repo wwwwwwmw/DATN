@@ -16,7 +16,11 @@ class NotificationListView(generics.ListAPIView):
     serializer_class = NotificationSerializer
 
     def get_queryset(self):
-        qs = Notification.objects.filter(user=self.request.user)
+        user = self.request.user
+        if user.role == 'ADMIN':
+            qs = Notification.objects.all()
+        else:
+            qs = Notification.objects.filter(user=user)
         is_read = self.request.query_params.get('is_read')
         if is_read is not None:
             qs = qs.filter(is_read=is_read.lower() == 'true')
@@ -29,7 +33,10 @@ class NotificationListView(generics.ListAPIView):
 class MarkReadView(APIView):
     def patch(self, request, pk):
         try:
-            notif = Notification.objects.get(pk=pk, user=request.user)
+            if request.user.role == 'ADMIN':
+                notif = Notification.objects.get(pk=pk)
+            else:
+                notif = Notification.objects.get(pk=pk, user=request.user)
             notif.is_read = True
             notif.save()
             return Response({'status': 'success', 'message': 'Đã đánh dấu đã đọc.'})
@@ -39,5 +46,8 @@ class MarkReadView(APIView):
 
 class MarkAllReadView(APIView):
     def post(self, request):
-        count = Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+        if request.user.role == 'ADMIN':
+            count = Notification.objects.filter(is_read=False).update(is_read=True)
+        else:
+            count = Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
         return Response({'status': 'success', 'message': f'Đã đánh dấu {count} thông báo đã đọc.'})

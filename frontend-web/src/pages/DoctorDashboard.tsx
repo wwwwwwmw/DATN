@@ -1,34 +1,59 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useAuth } from '../contexts/AuthContext'
 import { appointmentAPI } from '../services/api'
+import { useRealtimeSync } from '../utils/realtime'
 import {
   Calendar, Users, Brain, AlertTriangle,
   Clock, Video, ChevronRight,
   Eye, Check, X, RefreshCw, FileText, CheckCircle2,
-  Printer, Activity, Stethoscope, Pill
+  Printer, Activity, Stethoscope, Pill, Shield
 } from 'lucide-react'
 
 interface ScheduleItem {
   id: number
+  patient_id?: number
   time: string
+  date?: string
   period: string
   name: string
   age: number
   gender: string
+  blood_type?: string
+  patient_history?: string
   code: string
   type: string
+  notes?: string
   status: 'completed' | 'in_progress' | 'waiting' | 'emergency' | 'confirmed'
   isVideo?: boolean
   doctor?: string
+  doctor_specialization?: string
   clinic_name?: string
+  medical_record?: {
+    id: number
+    diagnosis: string
+    symptoms: string
+    prescription: string
+    notes: string
+    follow_up_date?: string
+  } | null
 }
 
 interface RequestItem {
   id: number
+  patient_id?: number
   name: string
+  age?: number
+  gender?: string
+  phone?: string
+  blood_type?: string
+  patient_history?: string
+  doctor_name?: string
+  clinic_name?: string
   specialty: string
   time: string
+  reason?: string
   note: string
   aiMatch?: number
   isVideo?: boolean
@@ -47,6 +72,7 @@ interface AIResultItem {
 
 export default function DoctorDashboard() {
   const { t } = useTranslation()
+  const { user } = useAuth()
   const navigate = useNavigate()
   const scheduleRef = useRef<HTMLDivElement>(null)
   const requestsRef = useRef<HTMLDivElement>(null)
@@ -55,10 +81,10 @@ export default function DoctorDashboard() {
   const [filter, setFilter] = useState<'all' | 'waiting' | 'emergency' | 'in_progress' | 'completed'>('all')
 
   const [stats, setStats] = useState({
-    total_appointments: 8,
-    waiting: 4,
-    ai_review: 3,
-    urgent: 1,
+    total_appointments: 0,
+    waiting: 0,
+    ai_review: 0,
+    urgent: 0,
   })
 
   const [schedule, setSchedule] = useState<ScheduleItem[]>([])
@@ -70,9 +96,9 @@ export default function DoctorDashboard() {
   const [selectedRequest, setSelectedRequest] = useState<RequestItem | null>(null)
 
   // Load real data from backend
-  const loadDashboardData = async () => {
+  const loadDashboardData = async (silent = false) => {
     try {
-      setLoading(true)
+      if (!silent) setLoading(true)
       const res = await appointmentAPI.getDashboard()
       const data = res.data.data
       if (data) {
@@ -84,13 +110,18 @@ export default function DoctorDashboard() {
     } catch (err) {
       console.error('Failed to load dashboard data:', err)
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }
 
   useEffect(() => {
-    loadDashboardData()
+    loadDashboardData(false)
   }, [])
+
+  // Auto-update silently every 3s and immediately on any mutation
+  useRealtimeSync(() => {
+    loadDashboardData(true)
+  }, 3000)
 
   // Action: Approve Request
   const handleApprove = async (id: number) => {
@@ -155,6 +186,21 @@ export default function DoctorDashboard() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
+      {/* Role Scope Banner */}
+      <div className="card" style={{ background: 'var(--color-primary-light)', borderLeft: '4px solid var(--color-primary)' }}>
+        <div className="card-body" style={{ padding: 'var(--space-3) var(--space-4)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--text-sm)' }}>
+            <Shield size={18} color="var(--color-primary)" />
+            {user?.role === 'ADMIN' ? (
+              <span><strong>Chế độ Quản trị viên (ADMIN):</strong> Hiển thị toàn bộ ca khám, yêu cầu đặt lịch và X-quang của <strong>tất cả các Bác sĩ và Bệnh nhân</strong> trên hệ thống.</span>
+            ) : (
+              <span><strong>Chế độ Bác sĩ ({user?.last_name} {user?.first_name}):</strong> Chỉ hiển thị dữ liệu của các bệnh nhân do chính bạn phụ trách.</span>
+            )}
+          </div>
+          <span className="badge badge-primary font-mono">{user?.role} SCOPE • DATABASE LIVE</span>
+        </div>
+      </div>
+
       {/* Top 4 Interactive Stat Cards */}
       <div className="grid grid-cols-4">
         {/* Total Appointments Card */}
@@ -272,7 +318,7 @@ export default function DoctorDashboard() {
               </button>
               <button
                 className="btn btn-ghost btn-sm btn-icon"
-                onClick={loadDashboardData}
+                onClick={() => loadDashboardData(false)}
                 title="Làm mới dữ liệu từ Database"
               >
                 <RefreshCw size={14} className={loading ? 'loading-spinner' : ''} />
@@ -601,8 +647,8 @@ export default function DoctorDashboard() {
                 </div>
               </div>
 
-              {/* Completed Clinical Examination Results & Prescription */}
-              {selectedAppointment.status === 'completed' ? (
+              {/* Completed Clinical Examination Results & Prescription from Real Database MedicalRecord */}
+              {(selectedAppointment.status === 'completed' || selectedAppointment.medical_record) ? (
                 <div style={{
                   display: 'flex',
                   flexDirection: 'column',
@@ -615,95 +661,76 @@ export default function DoctorDashboard() {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: 'var(--space-2)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', color: 'var(--color-success)', fontWeight: 'var(--font-bold)', fontSize: 'var(--text-md)' }}>
                       <CheckCircle2 size={18} />
-                      <span>KẾT QUẢ KHÁM LÂM SÀNG VÀ CHẨN ĐOÁN XÁC ĐỊNH</span>
+                      <span>KẾT QUẢ KHÁM LÂM SÀNG VÀ CHẨN ĐOÁN XÁC ĐỊNH (DATABASE)</span>
                     </div>
-                    <span className="badge badge-success" style={{ fontSize: '11px' }}>ĐÃ HOÀN TẤT VÀ KÝ SỐ</span>
+                    <span className="badge badge-success" style={{ fontSize: '11px' }}>
+                      HỒ SƠ #{selectedAppointment.medical_record?.id || selectedAppointment.id}
+                    </span>
                   </div>
 
-                  {/* Vitals Grid */}
-                  <div>
-                    <div style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)', color: 'var(--color-text-secondary)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Activity size={14} color="var(--color-primary)" /> CHỈ SỐ SINH HIỆU (VITALS)
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--space-3)' }}>
-                      <div style={{ padding: '8px 12px', background: 'var(--color-bg)', borderRadius: 'var(--radius-md)', textAlign: 'center', border: '1px solid var(--color-border)' }}>
-                        <div style={{ fontSize: '11px', color: 'var(--color-text-tertiary)' }}>Huyết áp</div>
-                        <div style={{ fontSize: 'var(--text-md)', fontWeight: 'var(--font-bold)', color: 'var(--color-primary)' }}>125/82 <span style={{ fontSize: '10px', fontWeight: 'normal' }}>mmHg</span></div>
+                  {/* Clinical Notes & Vitals from DB */}
+                  {selectedAppointment.medical_record?.notes && (
+                    <div>
+                      <div style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)', color: 'var(--color-text-secondary)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Activity size={14} color="var(--color-primary)" /> GHI CHÚ SINH HIỆU VÀ KHÁM LÂM SÀNG
                       </div>
-                      <div style={{ padding: '8px 12px', background: 'var(--color-bg)', borderRadius: 'var(--radius-md)', textAlign: 'center', border: '1px solid var(--color-border)' }}>
-                        <div style={{ fontSize: '11px', color: 'var(--color-text-tertiary)' }}>Nhịp tim</div>
-                        <div style={{ fontSize: 'var(--text-md)', fontWeight: 'var(--font-bold)', color: 'var(--color-emergency)' }}>76 <span style={{ fontSize: '10px', fontWeight: 'normal' }}>bpm</span></div>
-                      </div>
-                      <div style={{ padding: '8px 12px', background: 'var(--color-bg)', borderRadius: 'var(--radius-md)', textAlign: 'center', border: '1px solid var(--color-border)' }}>
-                        <div style={{ fontSize: '11px', color: 'var(--color-text-tertiary)' }}>SpO2</div>
-                        <div style={{ fontSize: 'var(--text-md)', fontWeight: 'var(--font-bold)', color: 'var(--color-success)' }}>98% <span style={{ fontSize: '10px', fontWeight: 'normal' }}>khí trời</span></div>
-                      </div>
-                      <div style={{ padding: '8px 12px', background: 'var(--color-bg)', borderRadius: 'var(--radius-md)', textAlign: 'center', border: '1px solid var(--color-border)' }}>
-                        <div style={{ fontSize: '11px', color: 'var(--color-text-tertiary)' }}>Thân nhiệt</div>
-                        <div style={{ fontSize: 'var(--text-md)', fontWeight: 'var(--font-bold)' }}>36.8°C</div>
+                      <div style={{ padding: 'var(--space-3)', background: 'var(--color-bg)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', fontSize: 'var(--text-sm)' }}>
+                        {selectedAppointment.medical_record.notes}
                       </div>
                     </div>
-                  </div>
+                  )}
 
-                  {/* Diagnosis & Findings */}
+                  {/* Diagnosis & Symptoms from DB */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
                     <div style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)', color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Stethoscope size={14} color="var(--color-secondary)" /> CHẨN ĐOÁN XÁC ĐỊNH (ICD-10) VÀ KẾT LUẬN
+                      <Stethoscope size={14} color="var(--color-secondary)" /> CHẨN ĐOÁN XÁC ĐỊNH (ICD-10) VÀ TRIỆU CHỨNG
                     </div>
                     <div style={{ padding: 'var(--space-3)', background: 'var(--color-bg)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 6 }}>
-                        <span className="badge badge-primary font-mono" style={{ fontSize: '12px' }}>
-                          {selectedAppointment.type.toLowerCase().includes('huyết áp') ? 'ICD-10: I10' : (selectedAppointment.type.toLowerCase().includes('hô hấp') || selectedAppointment.type.toLowerCase().includes('phổi') ? 'ICD-10: J18.9' : 'ICD-10: I20.0')}
-                        </span>
-                        <strong style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-primary)' }}>
-                          {selectedAppointment.type.toLowerCase().includes('huyết áp') ? 'Tăng huyết áp vô căn (nguyên phát)' : (selectedAppointment.type.toLowerCase().includes('hô hấp') || selectedAppointment.type.toLowerCase().includes('phổi') ? 'Viêm phế quản phổi không đặc hiệu' : 'Cơn đau thắt ngực không ổn định')}
-                        </strong>
+                      <div style={{ fontWeight: 'var(--font-bold)', fontSize: 'var(--text-sm)', color: 'var(--color-primary)', marginBottom: 6 }}>
+                        {selectedAppointment.medical_record?.diagnosis || 'Chưa cập nhật mã ICD-10'}
                       </div>
                       <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
-                        Bệnh nhân tỉnh táo, tiếp xúc tốt. Tim đều, T1 T2 rõ ràng, không âm thổi bệnh lý. Phổi thông khí tốt 2 phế trường, không rale ẩm rale rít. Bụng mềm, không phù ngoại biên. Điện tâm đồ và phim chụp X-quang không ghi nhận biến đổi hoại tử cơ tim cấp tính. Huyết áp được kiểm soát ổn định.
+                        <strong>Triệu chứng ghi nhận:</strong> {selectedAppointment.medical_record?.symptoms || selectedAppointment.notes || selectedAppointment.type}
                       </p>
                     </div>
                   </div>
 
-                  {/* Prescribed Medications */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-                    <div style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)', color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Pill size={14} color="var(--color-primary)" /> ĐƠN THUỐC ĐIỀU TRỊ NGOẠI TRÚ
+                  {/* Prescribed Medications from DB */}
+                  {selectedAppointment.medical_record?.prescription && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                      <div style={{ fontSize: 'var(--text-xs)', fontWeight: 'var(--font-semibold)', color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Pill size={14} color="var(--color-primary)" /> ĐƠN THUỐC ĐIỀU TRỊ NGOẠI TRÚ
+                      </div>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)', background: 'var(--color-bg)', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--color-border)' }}>
+                        <thead>
+                          <tr style={{ background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', textAlign: 'left' }}>
+                            <th style={{ padding: '8px 12px', width: 40 }}>STT</th>
+                            <th style={{ padding: '8px 12px' }}>Tên thuốc và Hàm lượng</th>
+                            <th style={{ padding: '8px 12px' }}>Liều dùng và Cách dùng</th>
+                            <th style={{ padding: '8px 12px', textAlign: 'right', width: 100 }}>Thời gian</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selectedAppointment.medical_record.prescription.split('\n').filter(Boolean).map((line, idx) => {
+                            const parts = line.split('|').map(s => s.trim())
+                            return (
+                              <tr key={idx} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                                <td style={{ padding: '8px 12px', color: 'var(--color-text-tertiary)' }}>{idx + 1}</td>
+                                <td style={{ padding: '8px 12px' }}><strong>{parts[0] || line}</strong></td>
+                                <td style={{ padding: '8px 12px', color: 'var(--color-text-secondary)' }}>{parts[1] || 'Theo chỉ định'}</td>
+                                <td style={{ padding: '8px 12px', textAlign: 'right' }}><span className="font-mono">{parts[2] || ''}</span></td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                      {selectedAppointment.medical_record.follow_up_date && (
+                        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', fontStyle: 'italic', marginTop: 4 }}>
+                          Ngày hẹn tái khám: <strong>{selectedAppointment.medical_record.follow_up_date}</strong>
+                        </div>
+                      )}
                     </div>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)', background: 'var(--color-bg)', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--color-border)' }}>
-                      <thead>
-                        <tr style={{ background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', textAlign: 'left' }}>
-                          <th style={{ padding: '8px 12px', width: 40 }}>STT</th>
-                          <th style={{ padding: '8px 12px' }}>Tên thuốc và Hàm lượng</th>
-                          <th style={{ padding: '8px 12px' }}>Liều dùng và Cách dùng</th>
-                          <th style={{ padding: '8px 12px', textAlign: 'right', width: 90 }}>Số lượng</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
-                          <td style={{ padding: '8px 12px', color: 'var(--color-text-tertiary)' }}>1</td>
-                          <td style={{ padding: '8px 12px' }}><strong>Aspirin Protect 81mg</strong> (Bayer)</td>
-                          <td style={{ padding: '8px 12px', color: 'var(--color-text-secondary)' }}>Uống 1 viên/ngày vào buổi sáng sau ăn no</td>
-                          <td style={{ padding: '8px 12px', textAlign: 'right' }}><span className="font-mono">30 viên</span></td>
-                        </tr>
-                        <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
-                          <td style={{ padding: '8px 12px', color: 'var(--color-text-tertiary)' }}>2</td>
-                          <td style={{ padding: '8px 12px' }}><strong>Atorvastatin 20mg</strong> (Lipitor)</td>
-                          <td style={{ padding: '8px 12px', color: 'var(--color-text-secondary)' }}>Uống 1 viên/ngày vào buổi tối trước khi đi ngủ</td>
-                          <td style={{ padding: '8px 12px', textAlign: 'right' }}><span className="font-mono">30 viên</span></td>
-                        </tr>
-                        <tr>
-                          <td style={{ padding: '8px 12px', color: 'var(--color-text-tertiary)' }}>3</td>
-                          <td style={{ padding: '8px 12px' }}><strong>Bisoprolol Fumarate 2.5mg</strong> (Concor)</td>
-                          <td style={{ padding: '8px 12px', color: 'var(--color-text-secondary)' }}>Uống 1 viên/ngày vào buổi sáng</td>
-                          <td style={{ padding: '8px 12px', textAlign: 'right' }}><span className="font-mono">30 viên</span></td>
-                        </tr>
-                      </tbody>
-                    </table>
-                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', fontStyle: 'italic', marginTop: 4 }}>
-                      Lời dặn Bác sĩ: Uống thuốc đều đặn đúng giờ. Hạn chế thức ăn mặn và dầu mỡ. Tái khám sau 14 ngày hoặc khi có dấu hiệu bất thường.
-                    </div>
-                  </div>
+                  )}
                 </div>
               ) : (
                 /* For in_progress, waiting, emergency */

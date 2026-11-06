@@ -77,3 +77,49 @@ class Appointment(models.Model):
 
     def __str__(self):
         return f"Lịch hẹn #{self.id}: {self.patient} → {self.doctor} ({self.status})"
+
+
+class TelehealthRoom(models.Model):
+    """Phòng khám trực tuyến WebRTC gắn với từng Lịch hẹn (Appointment)."""
+    appointment = models.OneToOneField(
+        Appointment, on_delete=models.CASCADE, related_name='telehealth_room'
+    )
+    doctor_in_room = models.BooleanField(default=False)
+    patient_in_room = models.BooleanField(default=False)
+    doctor_mic = models.BooleanField(default=True)
+    doctor_video = models.BooleanField(default=True)
+    patient_mic = models.BooleanField(default=True)
+    patient_video = models.BooleanField(default=True)
+    webrtc_offer = models.JSONField(null=True, blank=True, default=None)
+    webrtc_answer = models.JSONField(null=True, blank=True, default=None)
+    doctor_ice_candidates = models.JSONField(default=list, blank=True)
+    patient_ice_candidates = models.JSONField(default=list, blank=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'appointments_telehealthroom'
+
+    def __str__(self):
+        return f"TelehealthRoom #{self.appointment_id} (Doc={self.doctor_in_room}, Pat={self.patient_in_room})"
+
+
+class TelehealthMessage(models.Model):
+    """Tin nhắn trao đổi trực tiếp giữa Bác sĩ và Bệnh nhân trong phiên Telehealth."""
+    room = models.ForeignKey(
+        TelehealthRoom, on_delete=models.CASCADE, related_name='messages'
+    )
+    sender = models.ForeignKey(
+        CustomUser, on_delete=models.CASCADE, related_name='telehealth_messages'
+    )
+    sender_name = models.CharField(max_length=150)
+    sender_role = models.CharField(max_length=20)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'appointments_telehealthmessage'
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"[{self.sender_role}] {self.sender_name}: {self.content[:40]}"

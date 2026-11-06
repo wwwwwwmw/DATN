@@ -67,11 +67,39 @@ class LoginView(APIView):
 
 
 class ProfileView(generics.RetrieveUpdateAPIView):
-    """GET/PUT /api/auth/profile/ — Xem/cập nhật profile."""
+    """GET/PUT /api/auth/profile/ — Xem/cập nhật profile thực tế trong Database."""
     serializer_class = UserDetailSerializer
 
     def get_object(self):
         return self.request.user
+
+    def update(self, request, *args, **kwargs):
+        user = self.get_object()
+        for field in ['first_name', 'last_name', 'phone']:
+            if field in request.data:
+                setattr(user, field, request.data[field])
+        user.save()
+
+        if user.role == 'PATIENT':
+            profile, _ = PatientProfile.objects.get_or_create(user=user)
+            p_data = request.data.get('patient_profile', request.data)
+            for pf in ['date_of_birth', 'gender', 'blood_type', 'address', 'emergency_contact', 'medical_history']:
+                if pf in p_data and p_data[pf] is not None:
+                    setattr(profile, pf, p_data[pf] or None if pf == 'date_of_birth' else p_data[pf])
+            profile.save()
+        elif user.role == 'DOCTOR':
+            profile, _ = DoctorProfile.objects.get_or_create(user=user)
+            d_data = request.data.get('doctor_profile', request.data)
+            for df in ['specialization', 'license_number', 'experience_years', 'bio', 'consultation_fee']:
+                if df in d_data and d_data[df] is not None:
+                    setattr(profile, df, d_data[df])
+            profile.save()
+
+        return Response({
+            'status': 'success',
+            'data': UserDetailSerializer(user).data,
+            'message': 'Cập nhật hồ sơ thành công.'
+        })
 
 
 class ChangePasswordView(APIView):

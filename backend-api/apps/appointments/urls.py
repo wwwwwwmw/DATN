@@ -10,4 +10,5 @@ urlpatterns = [
     path('optimal-slots/', views.OptimalSlotsView.as_view(), name='optimal_slots'),
     path('<int:pk>/', views.AppointmentDetailView.as_view(), name='detail'),
     path('<int:pk>/status/', views.UpdateAppointmentStatusView.as_view(), name='update_status'),
+    path('<int:pk>/telehealth-room/', views.TelehealthRoomView.as_view(), name='telehealth_room'),
 ]

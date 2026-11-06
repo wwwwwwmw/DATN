@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
 import { notificationAPI } from '../services/api'
+import { useRealtimeSync } from '../utils/realtime'
 import {
   Search, Bell, LogOut, Globe, CheckCheck,
   Calendar, Brain, AlertTriangle, Shield, Video, Info
@@ -41,7 +42,7 @@ export default function Header() {
 
   useEffect(() => {
     fetchNotifications()
-    const interval = setInterval(fetchNotifications, 30000) // Poll every 30s
+    const interval = setInterval(fetchNotifications, 3000) // Poll every 3s + instant BroadcastChannel sync
     return () => clearInterval(interval)
   }, [])
 
@@ -59,6 +60,7 @@ export default function Header() {
   }, [isOpen])
 
   const unreadCount = notifications.filter(n => !n.is_read).length
+  useRealtimeSync(fetchNotifications, 3000)
 
   const handleMarkAllRead = async () => {
     try {
@@ -88,7 +90,7 @@ export default function Header() {
 
     if (rel === 'xray' || type === 'XRAY_RESULT' || titleLower.includes('x-quang') || titleLower.includes('xray')) {
       navigate('/xray')
-    } else if (rel === 'telehealth' || titleLower.includes('telehealth') || titleLower.includes('video')) {
+    } else if (rel === 'telehealth' || titleLower.includes('telehealth') || titleLower.includes('video') || titleLower.includes('cuộc gọi')) {
       navigate('/telehealth')
     } else if (rel === 'appointment' || type === 'APPOINTMENT') {
       if (user?.role === 'PATIENT') {
