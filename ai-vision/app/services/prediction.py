@@ -115,17 +115,28 @@ def predict(image_bytes: bytes, generate_heatmap: bool = True):
         sorted(predictions.items(), key=lambda x: x[1], reverse=True)
     )
 
-    # Generate Grad-CAM heatmap for top finding
+    # Generate Grad-CAM heatmap for top pathology finding
     heatmap_path = None
     if generate_heatmap and _gradcam is not None:
         top_class_idx = int(np.argmax(probs))
+        # Nếu class cao nhất là 'No Finding' (index 0), tính Grad-CAM trên bệnh lý có xác suất cao nhất (index 1..13)
+        # và điều chỉnh cường độ nhiệt theo đúng xác suất bệnh lý thực tế (không tô đỏ rực trên phổi bình thường)
+        if top_class_idx == 0 and len(probs) > 1:
+            pathology_idx = 1 + int(np.argmax(probs[1:]))
+            max_pathology_prob = float(probs[pathology_idx])
+            heat_scale = min(1.0, max(0.15, max_pathology_prob * 1.8))
+            target_cam_idx = pathology_idx
+        else:
+            heat_scale = min(1.0, max(0.45, float(probs[top_class_idx]) * 1.25))
+            target_cam_idx = top_class_idx
+
         try:
             timestamp = int(time.time() * 1000)
             heatmap_filename = f"heatmap_{timestamp}_{settings.CLASS_NAMES[top_class_idx].replace(' ', '_')}.jpg"
             heatmap_full_path = Path(settings.HEATMAP_DIR) / heatmap_filename
 
             _gradcam.save_heatmap(
-                input_tensor, img_bgr, top_class_idx, str(heatmap_full_path)
+                input_tensor, img_bgr, target_cam_idx, str(heatmap_full_path), heat_scale=heat_scale
             )
             heatmap_path = f"/heatmaps/{heatmap_filename}"
         except Exception as e:

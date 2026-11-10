@@ -24,16 +24,22 @@ from apps.accounts.permissions import IsDoctor
 
 logger = logging.getLogger(__name__)
 
-# Tên bệnh lý tiếng Việt
+# Tên bệnh lý tiếng Việt (đầy đủ 14 lớp CheXpert)
 DISEASE_NAME_VI = {
-    'Atelectasis': 'Xẹp phổi',
-    'Cardiomegaly': 'Bóng tim to',
-    'Consolidation': 'Đông đặc phổi',
-    'Edema': 'Phù phổi',
-    'Pleural Effusion': 'Tràn dịch màng phổi',
-    'Pneumonia': 'Viêm phổi thùy',
-    'Pneumothorax': 'Tràn khí màng phổi',
     'No Finding': 'Không phát hiện bất thường',
+    'Enlarged Cardiomediastinum': 'Giãn rộng trung thất - tim',
+    'Cardiomegaly': 'Bóng tim to',
+    'Lung Opacity': 'Mờ phổi / Thâm nhiễm phổi',
+    'Lung Lesion': 'Nốt / Khối tổn thương phổi',
+    'Edema': 'Phù phổi / Sung huyết phổi',
+    'Consolidation': 'Đông đặc nhu mô phổi',
+    'Pneumonia': 'Viêm phổi thùy',
+    'Atelectasis': 'Xẹp phổi',
+    'Pneumothorax': 'Tràn khí màng phổi',
+    'Pleural Effusion': 'Tràn dịch màng phổi',
+    'Pleural Other': 'Tổn thương màng phổi khác',
+    'Fracture': 'Gãy xương sườn / xương đòn',
+    'Support Devices': 'Thiết bị y tế can thiệp',
 }
 
 
@@ -102,15 +108,28 @@ def generate_gradcam_and_predictions_from_image(image_bytes: bytes, existing_pre
     radius_main = hm_s * 0.22
     radius_sec = hm_s * 0.26
 
+    # Nếu kết quả dự đoán có 'No Finding' chiếm ưu thế (phổi bình thường), hạ thấp cường độ nhiệt
+    # để không vẽ vùng đỏ (cảnh báo tổn thương) lên phim phổi bình thường
+    heat_scale = 1.0
+    if existing_preds and isinstance(existing_preds, dict) and 'error' not in existing_preds:
+        no_finding_prob = float(existing_preds.get('No Finding', 0.0) or 0.0)
+        pathology_probs = [
+            float(v) for k, v in existing_preds.items()
+            if k != 'No Finding' and isinstance(v, (int, float))
+        ]
+        max_path_prob = max(pathology_probs) if pathology_probs else 0.0
+        if no_finding_prob >= 0.45 and max_path_prob < 0.35:
+            heat_scale = min(0.32, max(0.12, max_path_prob * 1.6))
+
     for y in range(hm_s):
         for x in range(hm_s):
             g_val = gray_hm_px[y * hm_s + x] / 255.0
             d1 = ((x - hx) / radius_main) ** 2 + ((y - hy) / radius_main) ** 2
             d2 = ((x - mx) / radius_sec) ** 2 + ((y - my) / radius_sec) ** 2
-            heat = math.exp(-0.5 * d1) * (0.65 + 0.35 * g_val) + 0.32 * math.exp(-0.5 * d2) * g_val
-            heat = max(0.0, min(1.0, heat))
+            raw_heat = math.exp(-0.5 * d1) * (0.65 + 0.35 * g_val) + 0.32 * math.exp(-0.5 * d2) * g_val
+            heat = max(0.0, min(1.0, raw_heat * heat_scale))
             r, g, b = _jet_rgb(heat)
-            alpha = int(max(18, min(185, (heat ** 1.25) * 190)))
+            alpha = int(max(12, min(185, (heat ** 1.15) * 190)))
             overlay_data.append((r, g, b, alpha))
 
     overlay_small.putdata(overlay_data)

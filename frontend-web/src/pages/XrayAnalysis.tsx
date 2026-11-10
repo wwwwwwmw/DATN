@@ -44,14 +44,20 @@ function resolveMediaUrl(url?: string): string {
 }
 
 const DISEASE_VI_MAP: Record<string, string> = {
-  Pneumonia: 'Viêm phổi thùy (Pneumonia)',
-  'Pleural Effusion': 'Tràn dịch màng phổi (Pleural Effusion)',
+  'No Finding': 'Không phát hiện bất thường (No Finding)',
+  'Enlarged Cardiomediastinum': 'Giãn rộng trung thất - tim (Enlarged Cardiomediastinum)',
   Cardiomegaly: 'Bóng tim to (Cardiomegaly)',
-  Consolidation: 'Đông đặc phổi (Consolidation)',
-  Atelectasis: 'Xẹp phổi (Atelectasis)',
+  'Lung Opacity': 'Mờ phổi / Thâm nhiễm phổi (Lung Opacity)',
+  'Lung Lesion': 'Nốt / Khối tổn thương phổi (Lung Lesion)',
   Edema: 'Phù phổi / Sung huyết phổi (Edema)',
+  Consolidation: 'Đông đặc nhu mô phổi (Consolidation)',
+  Pneumonia: 'Viêm phổi thùy (Pneumonia)',
+  Atelectasis: 'Xẹp phổi (Atelectasis)',
   Pneumothorax: 'Tràn khí màng phổi (Pneumothorax)',
-  'No Finding': 'Không phát hiện bất thường',
+  'Pleural Effusion': 'Tràn dịch màng phổi (Pleural Effusion)',
+  'Pleural Other': 'Tổn thương màng phổi khác (Pleural Other)',
+  Fracture: 'Gãy xương sườn / xương đòn (Fracture)',
+  'Support Devices': 'Thiết bị y tế can thiệp (Support Devices)',
 }
 
 function extractList(res: any): any[] {
@@ -90,26 +96,65 @@ function mapDbRecordToCase(r: any) {
   const mappedPreds = entries.map(([rawName, rawProb]: [string, any]) => {
     const probPct =
       rawProb <= 1 ? Number((rawProb * 100).toFixed(1)) : Number(Number(rawProb).toFixed(1))
-    const badge = probPct > 60 ? 'emergency' : probPct > 30 ? 'warning' : 'neutral'
-    const label =
-      probPct > 60
-        ? 'CẢNH BÁO NGUY CƠ CAO'
-        : probPct > 30
-        ? 'Theo dõi lâm sàng'
-        : 'Mức nền thấp'
+    const isNoFinding =
+      rawName === 'No Finding' ||
+      rawName.toLowerCase().includes('no finding') ||
+      rawName.includes('Không phát hiện bất thường')
+
+    let badge = 'neutral'
+    let label = 'Mức nền thấp'
+
+    if (isNoFinding) {
+      if (probPct >= 50) {
+        badge = 'success'
+        label = 'PHỔI BÌNH THƯỜNG / AN TOÀN'
+      } else if (probPct >= 25) {
+        badge = 'neutral'
+        label = 'Khả năng bình thường trung bình'
+      } else {
+        badge = 'neutral'
+        label = 'Khả năng bình thường thấp'
+      }
+    } else {
+      if (probPct > 60) {
+        badge = 'emergency'
+        label = 'CẢNH BÁO NGUY CƠ CAO'
+      } else if (probPct > 30) {
+        badge = 'warning'
+        label = 'Theo dõi lâm sàng'
+      } else {
+        badge = 'neutral'
+        label = 'Mức nền thấp'
+      }
+    }
+
     return {
       rawKey: rawName,
       name: DISEASE_VI_MAP[rawName] || rawName,
       prob: probPct,
       badge,
       label,
+      isNoFinding,
     }
   })
 
-  const top = mappedPreds[0] || { name: 'Không phát hiện bất thường', prob: 0, rawKey: '' }
+  const top = mappedPreds[0] || {
+    name: 'Không phát hiện bất thường (No Finding)',
+    prob: 0,
+    rawKey: 'No Finding',
+    isNoFinding: true,
+  }
+  const isNormalFinding = Boolean(top.isNoFinding && top.prob >= 45)
+
   let defaultICD = 'J18.9'
-  if (top.rawKey.includes('Effusion')) defaultICD = 'J90'
-  else if (top.rawKey.includes('Cardiomegaly') || top.rawKey.includes('Edema')) defaultICD = 'I50.9'
+  if (isNormalFinding) defaultICD = 'Z00.0'
+  else if (top.rawKey.includes('Effusion')) defaultICD = 'J90'
+  else if (
+    top.rawKey.includes('Cardiomegaly') ||
+    top.rawKey.includes('Edema') ||
+    top.rawKey.includes('Enlarged')
+  )
+    defaultICD = 'I50.9'
 
   const dtInfo = formatDateTimeVi(r.created_at)
   const xrayCode = r.xray_code || r.case_code || `XQ-${r.id}`
@@ -117,7 +162,9 @@ function mapDbRecordToCase(r: any) {
 
   const defaultNote =
     r.doctor_review ||
-    `Hình ảnh X-quang ngực thẳng kỹ thuật số (Mã ảnh: ${imageCode}, chụp ngày ${dtInfo.fullStr}) ghi nhận: ${top.name} với xác suất AI ${top.prob}%.`
+    (isNormalFinding
+      ? `Hình ảnh X-quang ngực thẳng kỹ thuật số (Mã ảnh: ${imageCode}, chụp ngày ${dtInfo.fullStr}): Hai trường phổi sáng đều, không phát hiện đám mờ thâm nhiễm hay tổn thương khu trú (Xác suất bình thường AI: ${top.prob}%). Bóng tim, trung thất và góc sườn hoành hai bên trong giới hạn bình thường.`
+      : `Hình ảnh X-quang ngực thẳng kỹ thuật số (Mã ảnh: ${imageCode}, chụp ngày ${dtInfo.fullStr}) ghi nhận: ${top.name} với xác suất AI ${top.prob}%.`)
 
   return {
     id: r.id,
@@ -140,6 +187,7 @@ function mapDbRecordToCase(r: any) {
     auc: 0.941,
     finding: top.name,
     prob: top.prob,
+    isNormalFinding,
     predictions: mappedPreds,
     defaultICD,
     defaultNote,
@@ -397,6 +445,7 @@ export default function XrayAnalysis() {
   }
 
   const icdLabelsMap: Record<string, string> = {
+    'Z00.0': 'Z00.0 — Bình thường: Chưa phát hiện tổn thương bất thường trên phim X-quang ngực',
     'J18.9': 'J18.9 — Viêm phổi thùy do vi khuẩn (Thùy dưới phải)',
     J90: 'J90 — Tràn dịch màng phổi góc sườn hoành',
     'I50.9': 'I50.9 — Suy tim sung huyết và Bóng tim to',
@@ -873,7 +922,11 @@ export default function XrayAnalysis() {
                     <span
                       style={{
                         fontWeight: 700,
-                        color: c.prob > 60 ? '#dc2626' : '#d97706',
+                        color: c.isNormalFinding
+                          ? '#16a34a'
+                          : c.prob > 60
+                          ? '#dc2626'
+                          : '#d97706',
                         fontSize: 11,
                       }}
                     >
@@ -1162,7 +1215,9 @@ export default function XrayAnalysis() {
                           position: 'absolute',
                           top: 8,
                           left: 8,
-                          background: 'rgba(220,38,38,0.88)',
+                          background: activeCase.isNormalFinding
+                            ? 'rgba(22,163,74,0.88)'
+                            : 'rgba(220,38,38,0.88)',
                           color: '#ffffff',
                           fontSize: 11,
                           fontWeight: 700,
@@ -1170,7 +1225,9 @@ export default function XrayAnalysis() {
                           borderRadius: 6,
                         }}
                       >
-                        BẢN ĐỒ NHIỆT GRAD-CAM ({activeCase.prob}%)
+                        {activeCase.isNormalFinding
+                          ? `BẢN ĐỒ NHIỆT GRAD-CAM — PHỔI BÌNH THƯỜNG (${activeCase.prob}%)`
+                          : `BẢN ĐỒ NHIỆT GRAD-CAM (${activeCase.prob}%)`}
                       </div>
                     </div>
                   </div>
@@ -1258,16 +1315,22 @@ export default function XrayAnalysis() {
                           position: 'absolute',
                           bottom: 10,
                           right: 10,
-                          background: 'rgba(15,23,42,0.85)',
-                          color: '#fca5a5',
+                          background: activeCase.isNormalFinding
+                            ? 'rgba(20,83,45,0.88)'
+                            : 'rgba(15,23,42,0.85)',
+                          color: activeCase.isNormalFinding ? '#bbf7d0' : '#fca5a5',
                           padding: '4px 10px',
                           borderRadius: 6,
                           fontSize: 11.5,
                           fontWeight: 700,
-                          border: '1px solid rgba(239,68,68,0.4)',
+                          border: activeCase.isNormalFinding
+                            ? '1px solid rgba(34,197,94,0.5)'
+                            : '1px solid rgba(239,68,68,0.4)',
                         }}
                       >
-                        AI HOTSPOT: {activeCase.finding} ({activeCase.prob}%)
+                        {activeCase.isNormalFinding
+                          ? `KẾT QUẢ AI: PHỔI BÌNH THƯỜNG — KHÔNG PHÁT HIỆN BẤT THƯỜNG (${activeCase.prob}%)`
+                          : `AI HOTSPOT: ${activeCase.finding} (${activeCase.prob}%)`}
                       </div>
                     )}
                   </div>
@@ -1331,63 +1394,79 @@ export default function XrayAnalysis() {
                   </span>
                 </div>
                 <div className="card-body" style={{ padding: 0 }}>
-                  {activeCase.predictions.map((p: any, i: number) => (
-                    <div
-                      key={i}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: 'var(--space-2) var(--space-4)',
-                        borderBottom: '1px solid var(--color-border)',
-                        background: p.prob > 50 ? 'var(--color-emergency-bg)' : 'transparent',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                        <span
-                          style={{
-                            width: 8,
-                            height: 8,
-                            borderRadius: '50%',
-                            background:
-                              p.prob > 50
+                  {activeCase.predictions.map((p: any, i: number) => {
+                    const isNormalHigh = Boolean(p.isNoFinding && p.prob >= 50)
+                    const isPathologyHigh = Boolean(!p.isNoFinding && p.prob > 50)
+                    const isPathologyMed = Boolean(!p.isNoFinding && p.prob > 30 && p.prob <= 50)
+
+                    return (
+                      <div
+                        key={i}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: 'var(--space-2) var(--space-4)',
+                          borderBottom: '1px solid var(--color-border)',
+                          background: isNormalHigh
+                            ? '#f0fdf4'
+                            : isPathologyHigh
+                            ? 'var(--color-emergency-bg)'
+                            : 'transparent',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                          <span
+                            style={{
+                              width: 8,
+                              height: 8,
+                              borderRadius: '50%',
+                              background: isNormalHigh
+                                ? '#16a34a'
+                                : isPathologyHigh
                                 ? 'var(--color-emergency)'
-                                : p.prob > 30
+                                : isPathologyMed
                                 ? 'var(--color-warning)'
                                 : 'var(--color-text-tertiary)',
-                          }}
-                        />
+                            }}
+                          />
+                          <span
+                            style={{
+                              fontWeight:
+                                isNormalHigh || isPathologyHigh
+                                  ? 'var(--font-semibold)'
+                                  : 'var(--font-normal)',
+                              fontSize: 'var(--text-sm)',
+                              color: isNormalHigh ? '#15803d' : 'var(--color-text-primary)',
+                            }}
+                          >
+                            {p.name}
+                          </span>
+                          {p.label && (
+                            <span className={`badge badge-${p.badge}`} style={{ fontSize: '10px' }}>
+                              {p.label}
+                            </span>
+                          )}
+                        </div>
                         <span
+                          className="tabular-nums"
                           style={{
-                            fontWeight: p.prob > 50 ? 'var(--font-semibold)' : 'var(--font-normal)',
+                            fontWeight: 'var(--font-bold)',
+                            color: isNormalHigh
+                              ? '#15803d'
+                              : isPathologyHigh
+                              ? 'var(--color-emergency)'
+                              : isPathologyMed
+                              ? 'var(--color-warning)'
+                              : 'var(--color-text-secondary)',
                             fontSize: 'var(--text-sm)',
                           }}
                         >
-                          {p.name}
+                          {p.prob}%
                         </span>
-                        {p.label && (
-                          <span className={`badge badge-${p.badge}`} style={{ fontSize: '10px' }}>
-                            {p.label}
-                          </span>
-                        )}
                       </div>
-                      <span
-                        className="tabular-nums"
-                        style={{
-                          fontWeight: 'var(--font-bold)',
-                          color:
-                            p.prob > 50
-                              ? 'var(--color-emergency)'
-                              : p.prob > 30
-                              ? 'var(--color-warning)'
-                              : 'var(--color-text-secondary)',
-                          fontSize: 'var(--text-sm)',
-                        }}
-                      >
-                        {p.prob}%
-                      </span>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
 
@@ -1452,6 +1531,9 @@ export default function XrayAnalysis() {
                       onChange={(e) => setDiagnosis(e.target.value)}
                     >
                       <option value="">{t('xray.select_icd10')}</option>
+                      <option value="Z00.0">
+                        Z00.0 — Bình thường: Chưa phát hiện tổn thương bất thường trên phim X-quang ngực
+                      </option>
                       <option value="J18.9">
                         J18.9 — Viêm phổi thùy do vi khuẩn (Thùy dưới phải)
                       </option>

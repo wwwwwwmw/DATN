@@ -89,40 +89,32 @@ class GradCAM:
 
         return cam.cpu().numpy()
 
-    def generate_heatmap_overlay(self, input_tensor, original_image, class_idx=None, alpha=0.4):
+    def generate_heatmap_overlay(self, input_tensor, original_image, class_idx=None, alpha=0.4, heat_scale=1.0):
         """
         Generate colored heatmap overlaid on original image.
-
-        Args:
-            input_tensor: Preprocessed tensor [1, 3, 224, 224]
-            original_image: Original image as numpy array [H, W, 3] (BGR)
-            class_idx: Target class index
-            alpha: Overlay transparency
-
-        Returns:
-            overlay: Heatmap overlaid image [H, W, 3]
         """
         # Generate CAM
         cam = self.generate(input_tensor, class_idx)
 
         # Resize to original image size
         h, w = original_image.shape[:2]
-        cam_resized = cv2.resize(cam, (w, h))
+        cam_resized = cv2.resize(cam, (w, h)) * float(heat_scale)
 
         # Apply colormap (JET: blue→green→red)
         heatmap = cv2.applyColorMap(
-            np.uint8(255 * cam_resized), cv2.COLORMAP_JET
+            np.uint8(255 * np.clip(cam_resized, 0.0, 1.0)), cv2.COLORMAP_JET
         )
 
         # Overlay
-        overlay = cv2.addWeighted(original_image, 1 - alpha, heatmap, alpha, 0)
+        eff_alpha = alpha * (0.45 + 0.55 * float(heat_scale))
+        overlay = cv2.addWeighted(original_image, 1 - eff_alpha, heatmap, eff_alpha, 0)
 
         return overlay, cam_resized
 
-    def save_heatmap(self, input_tensor, original_image, class_idx, output_path, alpha=0.4):
+    def save_heatmap(self, input_tensor, original_image, class_idx, output_path, alpha=0.4, heat_scale=1.0):
         """Generate and save heatmap to file."""
         overlay, cam = self.generate_heatmap_overlay(
-            input_tensor, original_image, class_idx, alpha
+            input_tensor, original_image, class_idx, alpha, heat_scale=heat_scale
         )
 
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
