@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mẫu 18/BV-01 — Phiếu Chiếu/Chụp X-Quang Chuẩn Bộ Y Tế ({{XRAY_CODE}})</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 12mm 15mm 12mm 15mm;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: "Times New Roman", Times, serif;
+      font-size: 13pt;
+      line-height: 1.42;
+      color: #000000;
+      background: #e2e8f0;
+      padding: 20px;
+    }
+    .toolbar-no-print {
+      max-width: 210mm;
+      margin: 0 auto 14px auto;
+      background: #0f172a;
+      color: #ffffff;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .toolbar-no-print button {
+      background: #2563eb;
+      color: #ffffff;
+      border: none;
+      padding: 7px 14px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 13px;
+      margin-left: 8px;
+    }
+    .toolbar-no-print button.secondary {
+      background: #475559;
+    }
+    .a4-sheet {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 14mm 16mm;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+      border: 1px solid #cbd5e1;
+    }
+    .moh-header {
+      display: grid;
+      grid-template-columns: 1.25fr 1fr;
+      gap: 10px;
+      border-bottom: 1.5px solid #000;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+      font-size: 11.5pt;
+    }
+    .moh-org { text-align: left; }
+    .moh-org .dept-upper { text-transform: uppercase; font-size: 11pt; }
+    .moh-org .hospital-name { text-transform: uppercase; font-weight: bold; font-size: 11.5pt; }
+    .moh-org .faculty-name { font-weight: bold; margin-top: 2px; }
+    .moh-meta { text-align: right; font-size: 11pt; }
+    .moh-meta .form-code { font-weight: bold; }
+    .report-title-block { text-align: center; margin: 10px 0 14px 0; }
+    .report-title-block h1 { font-size: 17pt; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
+    .report-title-block .sub-scan { font-size: 12pt; font-style: italic; margin-top: 2px; }
+    .section-heading {
+      font-size: 12.5pt;
+      font-weight: bold;
+      text-transform: uppercase;
+      border-bottom: 1px solid #000;
+      padding-bottom: 2px;
+      margin: 10px 0 8px 0;
+    }
+    .patient-info-grid {
+      display: grid;
+      grid-template-columns: 1.6fr 0.7fr 0.7fr;
+      gap: 6px 12px;
+      font-size: 12.5pt;
+      margin-bottom: 6px;
+    }
+    .info-row { margin-bottom: 5px; font-size: 12.5pt; }
+    .info-label { font-weight: bold; }
+    .imaging-layout {
+      display: grid;
+      grid-template-columns: 1fr 1.15fr;
+      gap: 14px;
+      margin: 8px 0 10px 0;
+      align-items: start;
+    }
+    .xray-film-box {
+      border: 1.5px solid #000;
+      padding: 6px;
+      text-align: center;
+      background: #ffffff;
+    }
+    .xray-film-box img {
+      width: 100%;
+      max-height: 215px;
+      object-fit: contain;
+      background: #000000;
+      border: 1px solid #000;
+      filter: grayscale(100%) contrast(108%);
+    }
+    .xray-film-caption { font-size: 10.5pt; font-style: italic; margin-top: 4px; }
+    .quant-table { width: 100%; border-collapse: collapse; font-size: 11.5pt; }
+    .quant-table th, .quant-table td { border: 1px solid #000; padding: 5px 8px; text-align: left; }
+    .quant-table th { background: #f1f5f9; font-weight: bold; text-align: center; }
+    .quant-table td.num { text-align: center; font-weight: bold; }
+    .clinical-box { border: 1px solid #000; padding: 8px 10px; margin-bottom: 10px; font-size: 12.5pt; min-height: 72px; }
+    .conclusion-box { border: 1.5px solid #000; padding: 8px 10px; margin-bottom: 12px; font-size: 13pt; font-weight: bold; }
+    .signature-grid { display: grid; grid-template-columns: 1fr 1fr; margin-top: 14px; text-align: center; font-size: 12pt; }
+    .sig-role { font-weight: bold; text-transform: uppercase; margin-top: 2px; }
+    .sig-note { font-style: italic; font-size: 11pt; }
+    .sig-space { height: 95px; }
+    .sig-name { font-weight: bold; font-size: 12.5pt; }
+    .moh-footer { margin-top: 14px; padding-top: 6px; border-top: 1px dashed #000; font-size: 10.5pt; font-style: italic; display: flex; justify-content: space-between; }
+    @media print {
+      body { background: #ffffff; padding: 0; }
+      .toolbar-no-print { display: none !important; }
+      .a4-sheet { width: 100%; min-height: auto; box-shadow: none; border: none; padding: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar-no-print">
+    <div>
+      <strong>Biểu mẫu Chuẩn Y tế Bộ Y tế (Mẫu số: 18/BV-01)</strong> — Chế độ in Trắng Đen chuẩn khoa Chẩn đoán hình ảnh (Không phủ nhiệt màu)
+    </div>
+    <div>
+      <button onclick="window.print()">🖨️ In Phiếu / Lưu PDF (A4)</button>
+      <button class="secondary" onclick="window.close()">Đóng cửa sổ</button>
+    </div>
+  </div>
+
+  <div class="a4-sheet">
+    <div class="moh-header">
+      <div class="moh-org">
+        <div class="dept-upper">SỞ Y TẾ TP. HỒ CHÍ MINH</div>
+        <div class="hospital-name">BỆNH VIỆN ĐA KHOA QUỐC TẾ MEDTECH SÀI GÒN</div>
+        <div class="faculty-name">KHOA CHẨN ĐOÁN HÌNH ẢNH</div>
+        <div>Địa chỉ: 125 Lê Lợi, P. Bến Thành, Quận 1, TP.HCM • ĐT: 028 3822 6868</div>
+      </div>
+      <div class="moh-meta">
+        <div class="form-code">Mẫu số: 18/BV-01</div>
+        <div>(Ban hành theo QĐ số 4069/2001/QĐ-BYT</div>
+        <div>&amp; TT số 32/2023/TT-BYT của Bộ Y tế)</div>
+        <div style="margin-top:4px;">Số phiếu / Mã KQ: <strong>{{XRAY_CODE}}</strong></div>
+        <div>Mã phim X-quang gốc: <strong>{{IMAGE_CODE}}</strong></div>
+      </div>
+    </div>
+
+    <div class="report-title-block">
+      <h1>PHIẾU CHIẾU / CHỤP X-QUANG</h1>
+    </div>
+
+    <div class="section-heading">I. THÔNG TIN HÀNH CHÍNH VÀ CHỈ ĐỊNH LÂM SÀNG</div>
+    <div class="patient-info-grid">
+      <div><span class="info-label">- Họ và tên người bệnh:</span> {{PATIENT_NAME}}</div>
+      <div><span class="info-label">Tuổi:</span> {{PATIENT_AGE}}</div>
+      <div><span class="info-label">Giới tính:</span> {{PATIENT_GENDER}}</div>
+    </div>
+    <div class="info-row">
+      <span class="info-label">- Mã số người bệnh:</span> {{PATIENT_CODE}} &nbsp;&nbsp;|&nbsp;&nbsp;
+      <span class="info-label">Khoa/Phòng chỉ định:</span> Khoa Nội Tim mạch – Hô hấp
+    </div>
+    <div class="info-row">
+      <span class="info-label">- Thời gian thực hiện chụp:</span> {{SCAN_DATETIME}}
+    </div>
+    <div class="info-row">
+      <span class="info-label">- Yêu cầu chiếu/chụp:</span> Chụp X-quang ngực thẳng kỹ thuật số (Digital Chest Radiography — Tư thế PA)
+    </div>
+    <div class="info-row">
+      <span class="info-label">- Chẩn đoán lâm sàng / ICD-10:</span> {{ICD10_DIAGNOSIS}}
+    </div>
+
+    <div class="section-heading">II. HÌNH ẢNH PHIM X-QUANG GỐC &amp; CHỈ SỐ ĐO LƯỜNG HỖ TRỢ</div>
+    <div class="imaging-layout">
+      <div class="xray-film-box">
+        <img src="{{ORIGINAL_IMAGE_URL}}" alt="Phim X-quang gốc {{IMAGE_CODE}}" />
+        <div class="xray-film-caption">
+          Phim X-quang ngực gốc (Trắng đen — Không phủ lớp nhiệt)<br />
+          Mã định danh phim: <strong>{{IMAGE_CODE}}</strong>
+        </div>
+      </div>
+
+      <div>
+        <table class="quant-table">
+          <thead>
+            <tr>
+              <th>STT</th>
+              <th>Dấu hiệu / Bệnh lý khảo sát trên phim</th>
+              <th>Chỉ số định lượng</th>
+              <th>Đánh giá ngưỡng</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{PREDICTIONS_TABLE_ROWS}}
+          </tbody>
+        </table>
+        <div style="font-size:10.5pt;font-style:italic;margin-top:6px;">
+          * Ghi chú kỹ thuật: Hình ảnh in trên phiếu là phim X-quang gốc thang xám (Grayscale) tiêu chuẩn DICOM để đảm bảo độ tương phản xương - nhu mô phổi khi in laser trắng đen.
+        </div>
+      </div>
+    </div>
+
+    <div class="section-heading">III. KẾT QUẢ ĐỌC PHIM CỦA BÁC SĨ CHUYÊN KHOA</div>
+    <div style="font-weight:bold;margin-bottom:4px;">1. Mô tả hình ảnh X-quang (Description of Findings):</div>
+    <div class="clinical-box">
+      {{DOCTOR_DESCRIPTION}}
+    </div>
+
+    <div style="font-weight:bold;margin-bottom:4px;">2. Kết luận chẩn đoán hình ảnh (Diagnostic Conclusion):</div>
+    <div class="conclusion-box">
+      {{DIAGNOSTIC_CONCLUSION}}
+    </div>
+
+    <div class="signature-grid">
+      <div>
+        <div>Ngày {{PRINT_DAY}} tháng {{PRINT_MONTH}} năm {{PRINT_YEAR}}</div>
+        <div class="sig-role">KỸ THUẬT VIÊN X-QUANG</div>
+        <div class="sig-note">(Ký và ghi rõ họ tên)</div>
+        <div class="sig-space"></div>
+        <div class="sig-name">CN. Nguyễn Minh Tuấn</div>
+      </div>
+
+      <div>
+        <div>Ngày {{PRINT_DAY}} tháng {{PRINT_MONTH}} năm {{PRINT_YEAR}}</div>
+        <div class="sig-role">BÁC SĨ CHUYÊN KHOA CHẨN ĐOÁN HÌNH ẢNH</div>
+        <div class="sig-note">(Ký, ghi rõ họ tên và đóng dấu)</div>
+        <div class="sig-space"></div>
+        <div class="sig-name">{{DOCTOR_NAME}}</div>
+      </div>
+    </div>
+
+    <div class="moh-footer">
+      <span>Lưu ý: Khi đi tái khám, người bệnh vui lòng mang theo Phiếu kết quả này hoặc cung cấp Mã KQ: <strong>{{XRAY_CODE}}</strong>.</span>
+      <span>Biểu mẫu 18/BV-01 • Trang 1/1</span>
+    </div>
+  </div>
+</body>
+</html>
+

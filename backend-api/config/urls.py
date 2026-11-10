@@ -2,9 +2,10 @@
 Django URL Configuration for MedTech API.
 """
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
+from django.views.static import serve
 
 def _home_view(request):
     """Landing page - xac nhan Backend API dang chay."""
@@ -89,7 +90,9 @@ urlpatterns = [
     })),
 ]
 
-# Serve media files in development
+# Serve media files (real patient X-ray images & Grad-CAM heatmaps)
+urlpatterns += [
+    re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
+]
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

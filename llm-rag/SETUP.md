@@ -26,7 +26,7 @@ REM 4. Nhúng tài liệu vào vector store
 python scripts/ingest_documents.py
 
 REM 5. Chạy API server
-uvicorn app.main:app --host 0.0.0.0 --port 8002 --reload
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8002 --reload
 ```
 
 ## Cách hoạt động

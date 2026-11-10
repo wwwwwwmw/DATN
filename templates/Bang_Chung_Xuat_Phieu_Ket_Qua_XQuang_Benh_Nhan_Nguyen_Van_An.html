@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mẫu 18/BV-01 — Phiếu Chiếu/Chụp X-Quang Chuẩn Bộ Y Tế (XQ-20261108-104510-A309)</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 12mm 15mm 12mm 15mm;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: "Times New Roman", Times, serif;
+      font-size: 13pt;
+      line-height: 1.42;
+      color: #000000;
+      background: #e2e8f0;
+      padding: 20px;
+    }
+    .toolbar-no-print {
+      max-width: 210mm;
+      margin: 0 auto 14px auto;
+      background: #0f172a;
+      color: #ffffff;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .toolbar-no-print button {
+      background: #2563eb;
+      color: #ffffff;
+      border: none;
+      padding: 7px 14px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 13px;
+      margin-left: 8px;
+    }
+    .a4-sheet {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 14mm 16mm;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+      border: 1px solid #cbd5e1;
+    }
+    .moh-header {
+      display: grid;
+      grid-template-columns: 1.25fr 1fr;
+      gap: 10px;
+      border-bottom: 1.5px solid #000;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+      font-size: 11.5pt;
+    }
+    .moh-org { text-align: left; }
+    .moh-org .dept-upper { text-transform: uppercase; font-size: 11pt; }
+    .moh-org .hospital-name { text-transform: uppercase; font-weight: bold; font-size: 11.5pt; }
+    .moh-org .faculty-name { font-weight: bold; margin-top: 2px; }
+    .moh-meta { text-align: right; font-size: 11pt; }
+    .moh-meta .form-code { font-weight: bold; }
+    .report-title-block { text-align: center; margin: 10px 0 14px 0; }
+    .report-title-block h1 { font-size: 17pt; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
+    .report-title-block .sub-scan { font-size: 12pt; font-style: italic; margin-top: 2px; }
+    .section-heading {
+      font-size: 12.5pt;
+      font-weight: bold;
+      text-transform: uppercase;
+      border-bottom: 1px solid #000;
+      padding-bottom: 2px;
+      margin: 10px 0 8px 0;
+    }
+    .patient-info-grid {
+      display: grid;
+      grid-template-columns: 1.6fr 0.7fr 0.7fr;
+      gap: 6px 12px;
+      font-size: 12.5pt;
+      margin-bottom: 6px;
+    }
+    .info-row { margin-bottom: 5px; font-size: 12.5pt; }
+    .info-label { font-weight: bold; }
+    .imaging-layout {
+      display: grid;
+      grid-template-columns: 1fr 1.15fr;
+      gap: 14px;
+      margin: 8px 0 10px 0;
+      align-items: start;
+    }
+    .xray-film-box {
+      border: 1.5px solid #000;
+      padding: 6px;
+      text-align: center;
+      background: #ffffff;
+    }
+    .xray-film-box img {
+      width: 100%;
+      max-height: 215px;
+      object-fit: contain;
+      background: #000000;
+      border: 1px solid #000;
+      filter: grayscale(100%) contrast(108%);
+    }
+    .xray-film-caption { font-size: 10.5pt; font-style: italic; margin-top: 4px; }
+    .quant-table { width: 100%; border-collapse: collapse; font-size: 11.5pt; }
+    .quant-table th, .quant-table td { border: 1px solid #000; padding: 5px 8px; text-align: left; }
+    .quant-table th { background: #f1f5f9; font-weight: bold; text-align: center; }
+    .quant-table td.num { text-align: center; font-weight: bold; }
+    .clinical-box { border: 1px solid #000; padding: 8px 10px; margin-bottom: 10px; font-size: 12.5pt; min-height: 72px; }
+    .conclusion-box { border: 1.5px solid #000; padding: 8px 10px; margin-bottom: 12px; font-size: 13pt; font-weight: bold; }
+    .signature-grid { display: grid; grid-template-columns: 1fr 1fr; margin-top: 14px; text-align: center; font-size: 12pt; }
+    .sig-role { font-weight: bold; text-transform: uppercase; margin-top: 2px; }
+    .sig-note { font-style: italic; font-size: 11pt; }
+    .sig-space { height: 95px; }
+    .sig-name { font-weight: bold; font-size: 12.5pt; }
+    .moh-footer { margin-top: 14px; padding-top: 6px; border-top: 1px dashed #000; font-size: 10.5pt; font-style: italic; display: flex; justify-content: space-between; }
+    @media print {
+      body { background: #ffffff; padding: 0; }
+      .toolbar-no-print { display: none !important; }
+      .a4-sheet { width: 100%; min-height: auto; box-shadow: none; border: none; padding: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar-no-print">
+    <div>
+      <strong>Bằng chứng Xuất Phiếu Kết quả X-quang Chuẩn Bộ Y tế (Mẫu số: 18/BV-01)</strong> — Chỉ in phim X-quang gốc trắng đen (Không phủ nhiệt)
+    </div>
+    <div>
+      <button onclick="window.print()">🖨️ In Phiếu / Lưu PDF (A4)</button>
+    </div>
+  </div>
+
+  <div class="a4-sheet">
+    <div class="moh-header">
+      <div class="moh-org">
+        <div class="dept-upper">SỞ Y TẾ TP. HỒ CHÍ MINH</div>
+        <div class="hospital-name">BỆNH VIỆN ĐA KHOA QUỐC TẾ MEDTECH SÀI GÒN</div>
+        <div class="faculty-name">KHOA CHẨN ĐOÁN HÌNH ẢNH</div>
+        <div>Địa chỉ: 125 Lê Lợi, P. Bến Thành, Quận 1, TP.HCM • ĐT: 028 3822 6868</div>
+      </div>
+      <div class="moh-meta">
+        <div class="form-code">Mẫu số: 18/BV-01</div>
+        <div>(Ban hành theo QĐ số 4069/2001/QĐ-BYT</div>
+        <div>&amp; TT số 32/2023/TT-BYT của Bộ Y tế)</div>
+        <div style="margin-top:4px;">Số phiếu / Mã KQ: <strong>XQ-20261108-104510-A309</strong></div>
+        <div>Mã phim X-quang gốc: <strong>IMG-20261108-104510-A309</strong></div>
+      </div>
+    </div>
+
+    <div class="report-title-block">
+      <h1>PHIẾU CHIẾU / CHỤP X-QUANG</h1>
+    </div>
+
+    <div class="section-heading">I. THÔNG TIN HÀNH CHÍNH VÀ CHỈ ĐỊNH LÂM SÀNG</div>
+    <div class="patient-info-grid">
+      <div><span class="info-label">- Họ và tên người bệnh:</span> Nguyễn Văn An</div>
+      <div><span class="info-label">Tuổi:</span> 58</div>
+      <div><span class="info-label">Giới tính:</span> Nam</div>
+    </div>
+    <div class="info-row">
+      <span class="info-label">- Mã số người bệnh:</span> #BN-10026 &nbsp;&nbsp;|&nbsp;&nbsp;
+      <span class="info-label">Khoa/Phòng chỉ định:</span> Khoa Nội Tim mạch – Hô hấp
+    </div>
+    <div class="info-row">
+      <span class="info-label">- Thời gian thực hiện chụp:</span> 08/11/2026 lúc 17:45
+    </div>
+    <div class="info-row">
+      <span class="info-label">- Yêu cầu chiếu/chụp:</span> Chụp X-quang ngực thẳng kỹ thuật số (Digital Chest Radiography — Tư thế PA)
+    </div>
+    <div class="info-row">
+      <span class="info-label">- Chẩn đoán lâm sàng / ICD-10:</span> I50.9 — Suy tim sung huyết và Bóng tim to
+    </div>
+
+    <div class="section-heading">II. HÌNH ẢNH PHIM X-QUANG GỐC &amp; CHỈ SỐ ĐO LƯỜNG HỖ TRỢ</div>
+    <div class="imaging-layout">
+      <div class="xray-film-box">
+        <img src="../backend-api/media/xrays/originals/IMG-20261108-104510-A309.jpg" onerror="this.src='http://localhost:8000/media/xrays/originals/IMG-20261108-104510-A309.jpg'" alt="Phim X-quang gốc IMG-20261108-104510-A309" />
+        <div class="xray-film-caption">
+          Phim X-quang ngực gốc (Trắng đen — Không phủ lớp nhiệt)<br />
+          Mã định danh phim: <strong>IMG-20261108-104510-A309</strong>
+        </div>
+      </div>
+
+      <div>
+        <table class="quant-table">
+          <thead>
+            <tr>
+              <th>STT</th>
+              <th>Dấu hiệu / Bệnh lý khảo sát trên phim</th>
+              <th>Chỉ số định lượng</th>
+              <th>Đánh giá ngưỡng</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="num">1</td>
+              <td>Bóng tim to (Cardiomegaly)</td>
+              <td class="num">48.5%</td>
+              <td>Theo dõi lâm sàng</td>
+            </tr>
+            <tr>
+              <td class="num">2</td>
+              <td>Xẹp phổi (Atelectasis)</td>
+              <td class="num">14.0%</td>
+              <td>Mức nền thấp</td>
+            </tr>
+            <tr>
+              <td class="num">3</td>
+              <td>Tràn dịch màng phổi (Pleural Effusion)</td>
+              <td class="num">8.0%</td>
+              <td>Mức nền thấp</td>
+            </tr>
+            <tr>
+              <td class="num">4</td>
+              <td>Viêm phổi thùy (Pneumonia)</td>
+              <td class="num">4.0%</td>
+              <td>Mức nền thấp</td>
+            </tr>
+            <tr>
+              <td class="num">5</td>
+              <td>Tràn khí màng phổi (Pneumothorax)</td>
+              <td class="num">1.0%</td>
+              <td>Mức nền thấp</td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="font-size:10.5pt;font-style:italic;margin-top:6px;">
+          * Ghi chú kỹ thuật: Hình ảnh in trên phiếu là phim X-quang gốc thang xám (Grayscale) tiêu chuẩn DICOM để đảm bảo độ tương phản xương - nhu mô phổi khi in laser trắng đen.
+        </div>
+      </div>
+    </div>
+
+    <div class="section-heading">III. KẾT QUẢ ĐỌC PHIM CỦA BÁC SĨ CHUYÊN KHOA</div>
+    <div style="font-weight:bold;margin-bottom:4px;">1. Mô tả hình ảnh X-quang (Description of Findings):</div>
+    <div class="clinical-box">
+      - Trường phổi hai bên: Nhu mô phổi hai bên thông khí đều, không thấy đám mờ thâm nhiễm hay đông đặc nhu mô mới.<br />
+      - Bóng tim và trung thất: Đáp ứng điều trị tốt, chỉ số tim-ngực (CTR) ổn định khoảng 0.51, cung động mạch chủ không giãn.<br />
+      - Màng phổi và cơ hoành: Vòm hoành hai bên đều rõ, góc sườn hoành hai bên nhọn, không có dịch hay khí khoang màng phổi.<br />
+      - Nhận xét chuyên môn của Bác sĩ: [I50.9] Lần chụp 3 gần nhất (08/11/2026): Đáp ứng điều trị tốt, CTR ổn định 0.51, nhu mô phổi hai bên thông khí đều, không thấy tổn thương mới.
+    </div>
+
+    <div style="font-weight:bold;margin-bottom:4px;">2. Kết luận chẩn đoán hình ảnh (Diagnostic Conclusion):</div>
+    <div class="conclusion-box">
+      [I50.9 — Suy tim sung huyết và Bóng tim to] — Hình ảnh theo dõi Bóng tim to (Cardiomegaly) đáp ứng điều trị ổn định trên phim X-quang ngực thẳng.
+    </div>
+
+    <div class="signature-grid">
+      <div>
+        <div>Ngày 10 tháng 11 năm 2026</div>
+        <div class="sig-role">KỸ THUẬT VIÊN X-QUANG</div>
+        <div class="sig-note">(Ký và ghi rõ họ tên)</div>
+        <div class="sig-space"></div>
+        <div class="sig-name">CN. Nguyễn Minh Tuấn</div>
+      </div>
+
+      <div>
+        <div>Ngày 10 tháng 11 năm 2026</div>
+        <div class="sig-role">BÁC SĨ CHUYÊN KHOA CHẨN ĐOÁN HÌNH ẢNH</div>
+        <div class="sig-note">(Ký, ghi rõ họ tên và đóng dấu)</div>
+        <div class="sig-space"></div>
+        <div class="sig-name">BS. Sarah Jenkins</div>
+      </div>
+    </div>
+
+    <div class="moh-footer">
+      <span>Lưu ý: Khi đi tái khám, người bệnh vui lòng mang theo Phiếu kết quả này hoặc cung cấp Mã KQ: <strong>XQ-20261108-104510-A309</strong>.</span>
+      <span>Biểu mẫu 18/BV-01 • Trang 1/1</span>
+    </div>
+  </div>
+</body>
+</html>
+

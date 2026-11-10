@@ -28,6 +28,8 @@ class MedicalRecord(models.Model):
 
 class XrayAnalysisResult(models.Model):
     """Kết quả phân tích ảnh X-quang từ AI Vision service."""
+    xray_code = models.CharField(max_length=40, unique=True, db_index=True, null=True, blank=True)
+    image_code = models.CharField(max_length=40, unique=True, db_index=True, null=True, blank=True)
     patient = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='xray_results')
     original_image = models.ImageField(upload_to='xrays/originals/')
     heatmap_image = models.ImageField(upload_to='xrays/heatmaps/', blank=True, default='')
@@ -39,10 +41,30 @@ class XrayAnalysisResult(models.Model):
 
     class Meta:
         db_table = 'medical_records_xrayanalysisresult'
-        ordering = ['-created_at']
+        ordering = ['-created_at', '-id']
+
+    def save(self, *args, **kwargs):
+        import uuid
+        from django.utils import timezone
+        now_dt = self.created_at or timezone.now()
+        stamp = now_dt.strftime('%Y%m%d-%H%M%S')
+        if not self.xray_code:
+            suffix = uuid.uuid4().hex[:4].upper()
+            candidate = f"XQ-{stamp}-{suffix}"
+            while XrayAnalysisResult.objects.filter(xray_code=candidate).exclude(pk=self.pk).exists():
+                suffix = uuid.uuid4().hex[:4].upper()
+                candidate = f"XQ-{stamp}-{suffix}"
+            self.xray_code = candidate
+        if not self.image_code:
+            suffix = self.xray_code.split('-')[-1] if '-' in self.xray_code else uuid.uuid4().hex[:4].upper()
+            img_candidate = f"IMG-{stamp}-{suffix}"
+            while XrayAnalysisResult.objects.filter(image_code=img_candidate).exclude(pk=self.pk).exists():
+                img_candidate = f"IMG-{stamp}-{uuid.uuid4().hex[:4].upper()}"
+            self.image_code = img_candidate
+        super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"X-ray #{self.id}: {self.patient}"
+        return f"{self.xray_code} ({self.image_code}): {self.patient}"
 
     @property
     def top_findings(self):
