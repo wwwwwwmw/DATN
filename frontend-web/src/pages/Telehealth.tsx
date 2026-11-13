@@ -9,6 +9,7 @@ import {
   Video, VideoOff, Mic, MicOff, Phone, PhoneCall, PhoneIncoming,
   MessageSquare, Shield, AlertTriangle, FileText,
   CheckCircle, Send, Search, PanelRightClose, PanelRightOpen,
+  PanelLeftClose, PanelLeftOpen,
   Volume2, UserCheck, Minimize2, Maximize2
 } from 'lucide-react'
 
@@ -29,6 +30,7 @@ export default function Telehealth() {
   const [roomState, setRoomState] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const [showLeftDrawer, setShowLeftDrawer] = useState(true)
   const [showRightDrawer, setShowRightDrawer] = useState(true)
 
   // Call & Modal state (Zalo style: Chat is default; Call overlay opens only when calling!)
@@ -530,15 +532,19 @@ export default function Telehealth() {
       <div style={{
         flex: 1,
         display: 'grid',
-        gridTemplateColumns: showRightDrawer ? '320px 1fr 350px' : '320px 1fr',
+        gridTemplateColumns: `${showLeftDrawer ? '280px' : '0px'} minmax(360px, 1fr) ${showRightDrawer ? '320px' : '0px'}`,
         background: 'var(--color-surface)',
         borderRadius: 'var(--radius-lg)',
         border: '1px solid var(--color-border)',
         overflow: 'hidden',
         boxShadow: 'var(--shadow-sm)',
         minHeight: 0,
+        width: '100%',
+        maxWidth: '100%',
+        transition: 'grid-template-columns 0.2s ease',
       }}>
         {/* ================= COLUMN 1: ZALO CONTACT LIST SIDEBAR ================= */}
+        {showLeftDrawer && (
         <div style={{
           borderRight: '1px solid var(--color-border)',
           display: 'flex',
@@ -681,6 +687,7 @@ export default function Telehealth() {
             )}
           </div>
         </div>
+        )}
 
         {/* ================= COLUMN 2: ZALO MAIN CHAT WINDOW (Shows Messages First!) ================= */}
         {!activeAppt ? (
@@ -701,6 +708,14 @@ export default function Telehealth() {
               flexShrink: 0,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <button
+                  className="btn btn-ghost btn-icon btn-sm"
+                  onClick={() => setShowLeftDrawer(!showLeftDrawer)}
+                  title={showLeftDrawer ? 'Ẩn danh bạ' : 'Hiện danh bạ'}
+                  style={{ color: '#0068ff' }}
+                >
+                  {showLeftDrawer ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
+                </button>
                 <div style={{ position: 'relative' }}>
                   <div style={{
                     width: 44, height: 44, borderRadius: '50%',
@@ -1027,40 +1042,55 @@ export default function Telehealth() {
 
                 <div className="form-group">
                   <label className="form-label" style={{ fontSize: '12px' }}>{t('telehealth.icd10_label')}</label>
-                  <input
-                    className="form-input"
-                    style={{ fontSize: '12px' }}
-                    placeholder={t('telehealth.icd10_placeholder')}
-                    value={diagnosis}
-                    readOnly={isPatientUser}
-                    onChange={e => setDiagnosis(e.target.value)}
-                  />
+                  {isPatientUser ? (
+                    <div style={{ padding: '8px 12px', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', fontSize: '12px', fontWeight: 600, color: 'var(--color-primary)' }}>
+                      {diagnosis || 'Chưa có chẩn đoán từ Bác sĩ'}
+                    </div>
+                  ) : (
+                    <input
+                      className="form-input"
+                      style={{ fontSize: '12px' }}
+                      placeholder={t('telehealth.icd10_placeholder')}
+                      value={diagnosis}
+                      onChange={e => setDiagnosis(e.target.value)}
+                    />
+                  )}
                 </div>
 
                 <div className="form-group">
                   <label className="form-label" style={{ fontSize: '12px' }}>{t('telehealth.symptoms_label')}</label>
-                  <textarea
-                    className="form-input"
-                    style={{ fontSize: '12px' }}
-                    rows={2}
-                    placeholder={t('telehealth.symptoms_placeholder')}
-                    value={symptoms}
-                    readOnly={isPatientUser}
-                    onChange={e => setSymptoms(e.target.value)}
-                  />
+                  {isPatientUser ? (
+                    <div style={{ padding: '8px 12px', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', fontSize: '12px', color: 'var(--color-text-secondary)', whiteSpace: 'pre-wrap' }}>
+                      {symptoms || 'Không ghi nhận'}
+                    </div>
+                  ) : (
+                    <textarea
+                      className="form-input"
+                      style={{ fontSize: '12px' }}
+                      rows={2}
+                      placeholder={t('telehealth.symptoms_placeholder')}
+                      value={symptoms}
+                      onChange={e => setSymptoms(e.target.value)}
+                    />
+                  )}
                 </div>
 
                 <div className="form-group">
                   <label className="form-label" style={{ fontSize: '12px' }}>{t('telehealth.quick_rx')}</label>
-                  <textarea
-                    className="form-input"
-                    style={{ fontSize: '12px' }}
-                    rows={3}
-                    placeholder={t('telehealth.quick_rx_placeholder')}
-                    value={prescription}
-                    readOnly={isPatientUser}
-                    onChange={e => setPrescription(e.target.value)}
-                  />
+                  {isPatientUser ? (
+                    <div style={{ padding: '8px 12px', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', fontSize: '12px', color: 'var(--color-text-primary)', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                      {prescription || 'Chưa có đơn thuốc'}
+                    </div>
+                  ) : (
+                    <textarea
+                      className="form-input"
+                      style={{ fontSize: '12px' }}
+                      rows={3}
+                      placeholder={t('telehealth.quick_rx_placeholder')}
+                      value={prescription}
+                      onChange={e => setPrescription(e.target.value)}
+                    />
+                  )}
                 </div>
 
                 {!isPatientUser && (

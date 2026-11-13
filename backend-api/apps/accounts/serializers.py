@@ -94,7 +94,12 @@ class DoctorProfileSerializer(serializers.ModelSerializer):
         return obj.appointments.filter(status__in=['PENDING', 'CONFIRMED']).count()
 
     def get_available_slots(self, obj):
-        slots = obj.time_slots.filter(is_available=True).order_by('date', 'start_time')[:18]
+        from django.utils import timezone
+        today = timezone.now().date()
+        slots = obj.time_slots.filter(
+            is_available=True,
+            date__gte=today
+        ).order_by('date', 'start_time')[:18]
         return [
             {
                 'id': s.id,

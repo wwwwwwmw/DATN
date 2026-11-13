@@ -269,7 +269,7 @@ def process_consultation_message(message: str, history: list = None) -> dict:
     # 2. Medication typo check
     med_result = check_medication_query(raw_text)
     extra_med_instruction = ""
-    suggested_specs = ['Đa khoa']
+    suggested_specs = ['Đa khoa & Nội Tổng quát']
     urgency = 'NORMAL'
 
     if med_result:
@@ -283,27 +283,39 @@ def process_consultation_message(message: str, history: list = None) -> dict:
                 f"và tư vấn rõ về công dụng ({med['indication']}), liều dùng an toàn ({med['dosage']}), cách uống sau ăn và lưu ý."
             )
 
-    # 3. Emergency Cardio / Rabies / Trauma Check
+    # 3. Clinical Symptom to Specialty Classification
     cardio_emergency_kw = ['dau nguc du doi', 'dau that nguc', 'de nang nguc', 'kho tho cap', 'dau nhoi nguc']
     rabies_kw = ['cho can', 'meo can', 'dai', 'dai can', 'vet thuong cho can']
 
     if any(k in stripped_text for k in cardio_emergency_kw):
         urgency = 'EMERGENCY'
-        suggested_specs = ['Cấp cứu Tim mạch', 'Tim mạch Can thiệp']
+        suggested_specs = ['Cấp cứu Tim mạch', 'Nội Tim mạch']
     elif any(k in stripped_text for k in rabies_kw):
-        suggested_specs = ['Trung tâm Tiêm chủng & Y tế dự phòng', 'Ngoại chấn thương']
+        suggested_specs = ['Trung tâm Tiêm chủng & Y tế dự phòng', 'Đa khoa & Nội Tổng quát']
         urgency = 'HIGH'
-    elif any(k in stripped_text for k in ['tim', 'nguc', 'nhip tim', 'hoi hop', 'huyet ap']):
-        suggested_specs = ['Tim mạch Can thiệp', 'Nội Tim mạch']
+    elif any(k in stripped_text for k in ['dau dau', 'nhuc dau', 'nua dau', 'choang vang', 'hoa mat', 'chong mat', 'tien dinh', 'mat ngu', 'tai bien', 'dot quy', 'than kinh']):
+        suggested_specs = ['Nội Thần kinh']
+    elif any(k in stripped_text for k in ['tim', 'nguc', 'nhip tim', 'hoi hop', 'huyet ap', 'dap nhanh', 'tim mach']):
+        suggested_specs = ['Nội Tim mạch']
         urgency = 'HIGH' if urgency != 'EMERGENCY' else urgency
-    elif any(k in stripped_text for k in ['ho', 'kho tho', 'viem phoi', 'phe quan', 'dom']):
-        suggested_specs = ['Hô hấp & Phổi', 'Tai Mũi Họng']
+    elif any(k in stripped_text for k in ['an khong ngon', 'chan an', 'da day', 'bao tu', 'o chua', 'trao nguoc', 'thuong vi', 'tieu hoa', 'dau bung', 'day bung', 'buon non', 'non', 'tieu chay', 'tao bon']):
+        suggested_specs = ['Tiêu hóa - Gan mật']
+    elif any(k in stripped_text for k in ['ho', 'kho tho', 'viem phoi', 'phe quan', 'dom', 'viem hong', 'dau hong', 'nghet mui', 'so mui', 'viem xoang', 'amidan', 'tai mui hong']):
+        suggested_specs = ['Tai Mũi Họng & Hô hấp']
         if 'kho tho' in stripped_text:
             urgency = 'HIGH'
-    elif any(k in stripped_text for k in ['da day', 'bao tu', 'o chua', 'trao nguoc', 'thuong vi']):
-        suggested_specs = ['Tiêu hóa - Gan mật', 'Nội khoa']
-    elif any(k in stripped_text for k in ['dau dau', 'chong mat', 'tien dinh', 'mat ngu']):
-        suggested_specs = ['Thần kinh', 'Nội tổng quát']
+    elif any(k in stripped_text for k in ['khop', 'xuong', 'lung', 'vai gay', 'moi goi', 'thoai hoa', 'cot song', 'gay xuong']):
+        suggested_specs = ['Cơ xương khớp']
+    elif any(k in stripped_text for k in ['ngua', 'di ung', 'noi me day', 'phat ban', 'mun', 'viem da', 'vay nen', 'da lieu']):
+        suggested_specs = ['Da liễu']
+    elif any(k in stripped_text for k in ['mat', 'dau mat', 'do mat', 'mo mat', 'can thi', 'khuc xa', 'viem ket mac']):
+        suggested_specs = ['Mắt']
+    elif any(k in stripped_text for k in ['tre em', 'be', 'so sinh', 'bieng an', 'nhi khoa']):
+        suggested_specs = ['Nhi khoa']
+    elif any(k in stripped_text for k in ['x quang', 'xquang', 'sieu am', 'ct', 'mri', 'chup hinh']):
+        suggested_specs = ['Chẩn đoán hình ảnh']
+    elif any(k in stripped_text for k in ['kham tong quat', 'met moi', 'sot', 'suy nhuoc', 'nhuc moi', 'cam cum', 'suc khoe']):
+        suggested_specs = ['Đa khoa & Nội Tổng quát']
 
     # 4. Generate dynamic response with Ollama Multi-turn Memory
     llm_answer = query_ollama_chat(

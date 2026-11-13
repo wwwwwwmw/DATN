@@ -1,5 +1,5 @@
 # 📋 BÁO CÁO DEMO & KẾ HOẠCH NÂNG CẤP HỆ THỐNG MEDTECH AI
-## Hệ thống Y tế Thông minh Tích hợp Trí tuệ Nhân tạo — Đồ án Tốt nghiệp
+## Hadd  thống Y tế Thông minh Tích hợp Trí tuệ Nhân tạo — Đồ án Tốt nghiệp
 > **Thời điểm cập nhật**: 13/11/2026  
 > **Phiên bản hệ thống**: v2.5-MED (Live Multi-Services)  
 > **Trạng thái môi trường**: Đang chạy đồng thời toàn bộ 6 dịch vụ nền tảng
