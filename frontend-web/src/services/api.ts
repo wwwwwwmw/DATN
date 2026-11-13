@@ -74,6 +74,7 @@ export const medicalRecordAPI = {
   detail: (id: number) => api.get(`/api/medical-records/${id}/`),
   create: (data: any) => api.post('/api/medical-records/', data),
   update: (id: number, data: any) => api.patch(`/api/medical-records/${id}/`, data),
+  checkInteractions: (prescription: string) => api.post('/api/medical-records/check-interactions/', { prescription }),
 }
 
 // Clinics

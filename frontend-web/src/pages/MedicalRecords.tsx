@@ -4,9 +4,11 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
 import { medicalRecordAPI } from '../services/api'
 import { useRealtimeSync } from '../utils/realtime'
+import InfoTooltip from '../components/InfoTooltip'
 import {
   FileText, Shield, ExternalLink,
-  Printer, Activity, RefreshCw, Users
+  Printer, Activity, RefreshCw, Users,
+  AlertTriangle
 } from 'lucide-react'
 
 function extractList(res: any): any[] {
@@ -108,6 +110,22 @@ export default function MedicalRecords() {
   const activeRecord = filteredRecords.find(r => r.id === selectedRecordId) || filteredRecords[0] || null
   const diagnoses = activeRecord ? parseDiagnoses(activeRecord.diagnosis, activeRecord.symptoms, t) : []
   const medications = activeRecord ? parseMedications(activeRecord.prescription) : []
+
+  // Drug-Drug Interaction check
+  const [drugInteractions, setDrugInteractions] = useState<any[]>([])
+
+  useEffect(() => {
+    if (!activeRecord?.prescription || medications.length < 2) {
+      setDrugInteractions([])
+      return
+    }
+    medicalRecordAPI.checkInteractions(activeRecord.prescription)
+      .then(res => {
+        const data = res.data?.data || res.data
+        setDrugInteractions(data?.interactions || [])
+      })
+      .catch(() => setDrugInteractions([]))
+  }, [activeRecord?.id, activeRecord?.prescription])
 
   const roleScopeBanner = user?.role === 'PATIENT'
     ? 'Phạm vi dữ liệu: Hồ sơ Bệnh án cá nhân của bạn'
@@ -281,7 +299,13 @@ export default function MedicalRecords() {
             {/* ICD-10 Diagnoses */}
             <div className="card">
               <div className="card-header">
-                <h3 className="card-title"><Activity size={16} /> {t('records.icd10_title')}</h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <h3 className="card-title" style={{ margin: 0 }}><Activity size={16} /> {t('records.icd10_title')}</h3>
+                  <InfoTooltip
+                    title="Mã chẩn đoán ICD-10"
+                    content="Mã bệnh chuẩn quốc tế của Tổ chức Y tế Thế giới (WHO) giúp đồng bộ và theo dõi chính xác bệnh án trên toàn quốc."
+                  />
+                </div>
                 <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', textTransform: 'uppercase' }}>{t('records.icd10_system')}</span>
               </div>
               <div className="card-body" style={{ padding: 0 }}>
@@ -312,7 +336,13 @@ export default function MedicalRecords() {
             {/* Medications Table */}
             <div className="card">
               <div className="card-header">
-                <h3 className="card-title">{t('records.rx_title')}</h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <h3 className="card-title" style={{ margin: 0 }}>{t('records.rx_title')}</h3>
+                  <InfoTooltip
+                    title="Đơn thuốc của bạn"
+                    content="Uống thuốc đúng liều lượng, số lần và hướng dẫn của bác sĩ. Không tự ý ngưng thuốc hoặc đổi thuốc khi chưa hỏi ý kiến chuyên môn."
+                  />
+                </div>
                 <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>{t('records.rx_note')}</span>
               </div>
               <div className="card-body" style={{ padding: 0, overflowX: 'auto' }}>
@@ -341,12 +371,77 @@ export default function MedicalRecords() {
               </div>
             </div>
 
+            {/* Drug-Drug Interaction Warnings */}
+            {drugInteractions.length > 0 && (
+              <div className="card" style={{ border: '2px solid var(--color-warning)' }}>
+                <div className="card-header" style={{ background: 'var(--color-warning-bg)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <AlertTriangle size={18} color="var(--color-warning)" />
+                    <h3 className="card-title" style={{ margin: 0, color: 'var(--color-warning)' }}>
+                      Cảnh báo tương tác thuốc ({drugInteractions.length})
+                    </h3>
+                    <InfoTooltip
+                      title="Tương tác thuốc"
+                      content="Hệ thống phát hiện các cặp thuốc có thể gây tương tác bất lợi. Cảnh báo này chỉ mang tính tham khảo — luôn tuân theo chỉ định của bác sĩ điều trị."
+                    />
+                  </div>
+                </div>
+                <div className="card-body" style={{ padding: 0 }}>
+                  {drugInteractions.map((interaction: any, idx: number) => (
+                    <div
+                      key={idx}
+                      style={{
+                        padding: 'var(--space-4) var(--space-5)',
+                        borderBottom: idx < drugInteractions.length - 1 ? '1px solid var(--color-border)' : 'none',
+                        borderLeft: `4px solid ${interaction.severity === 'HIGH' ? 'var(--color-emergency)' : 'var(--color-warning)'}`,
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                        <span
+                          className={`badge ${interaction.severity === 'HIGH' ? 'badge-emergency' : 'badge-warning'}`}
+                          style={{ fontSize: '10px' }}
+                        >
+                          {interaction.severity === 'HIGH' ? '⚠️ NGUY CƠ CAO' : '⚡ TRUNG BÌNH'}
+                        </span>
+                        <strong style={{ fontSize: 'var(--text-sm)' }}>
+                          {interaction.drug_a} ↔ {interaction.drug_b}
+                        </strong>
+                      </div>
+                      <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', marginBottom: 4 }}>
+                        {interaction.description}
+                      </div>
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-primary)', fontWeight: 600 }}>
+                        💡 {interaction.recommendation}
+                      </div>
+                    </div>
+                  ))}
+                  <div style={{
+                    padding: 'var(--space-3) var(--space-5)',
+                    background: 'var(--color-neutral-bg)',
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--color-text-secondary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}>
+                    <Shield size={13} color="var(--color-primary)" />
+                    ⚠️ Tuân theo hướng dẫn của Bác sĩ — Đơn thuốc đã được Bác sĩ xem xét và chấp thuận.
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Actions */}
             <div className="card">
-              <div className="card-body" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>
-                  <Shield size={14} /> {t('records.audit_hash')} <span className="font-mono">SHA256-REC-{activeRecord.id}-{activeRecord.patient}</span>
+              <div className="card-body" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>
+                  <Shield size={15} color="var(--color-primary)" />
                   <span className="badge badge-success">{t('records.fips_compliant')}</span>
+                  <span className="font-mono" style={{ color: 'var(--color-text-tertiary)' }}>#REC-{activeRecord.id}</span>
+                  <InfoTooltip
+                    title="Bảo mật hồ sơ y tế"
+                    content="Hồ sơ bệnh án được bảo mật tuyệt đối theo quy định của Bộ Y tế. Chỉ bạn và bác sĩ điều trị mới có quyền truy cập."
+                  />
                 </div>
                 <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
                   <button className="btn btn-secondary btn-sm" onClick={() => window.print()}><Printer size={14} /> {t('records.print_summary')}</button>

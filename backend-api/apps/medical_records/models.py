@@ -37,6 +37,9 @@ class XrayAnalysisResult(models.Model):
     doctor_review = models.TextField(blank=True, default='')
     doctor_agrees_with_ai = models.BooleanField(null=True, blank=True)
     reviewed_by = models.ForeignKey(DoctorProfile, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewed_xrays')
+    # Digital signature: HMAC-SHA256 hash of review content for non-repudiation
+    digital_signature = models.CharField(max_length=128, blank=True, default='')
+    signature_timestamp = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -71,6 +74,52 @@ class XrayAnalysisResult(models.Model):
         """Top 3 predictions by probability."""
         sorted_preds = sorted(self.predictions.items(), key=lambda x: x[1], reverse=True)
         return [{'name': k, 'probability': round(v, 4)} for k, v in sorted_preds[:3]]
+
+    def sign_review(self, doctor_user):
+        """
+        Generate HMAC-SHA256 digital signature for the doctor's review.
+        Signs: xray_code + doctor_review + doctor_id + agrees_with_ai.
+        Uses doctor's email as the signing key (unique per doctor).
+        """
+        import hmac
+        import hashlib
+        from django.utils import timezone
+
+        # Build the data to sign
+        sign_data = (
+            f"{self.xray_code}|"
+            f"{self.doctor_review}|"
+            f"{doctor_user.id}|"
+            f"{self.doctor_agrees_with_ai}|"
+            f"{self.predictions}"
+        )
+
+        # Use doctor's email (unique, private) as HMAC key
+        key = doctor_user.email.encode('utf-8')
+        signature = hmac.new(key, sign_data.encode('utf-8'), hashlib.sha256).hexdigest()
+
+        self.digital_signature = signature
+        self.signature_timestamp = timezone.now()
+        return signature
+
+    def verify_signature(self, doctor_user):
+        """Verify the digital signature matches the current review content."""
+        import hmac
+        import hashlib
+
+        if not self.digital_signature:
+            return False
+
+        sign_data = (
+            f"{self.xray_code}|"
+            f"{self.doctor_review}|"
+            f"{doctor_user.id}|"
+            f"{self.doctor_agrees_with_ai}|"
+            f"{self.predictions}"
+        )
+        key = doctor_user.email.encode('utf-8')
+        expected = hmac.new(key, sign_data.encode('utf-8'), hashlib.sha256).hexdigest()
+        return hmac.compare_digest(self.digital_signature, expected)
 
 
 class ChatSession(models.Model):

@@ -4,8 +4,10 @@ Medical Records Views — Role-Scoped (PATIENT: own, DOCTOR: own patients, ADMIN
 from django.db import models
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from .models import MedicalRecord
 from .serializers import MedicalRecordSerializer
+from .drug_interactions import check_drug_interactions
 from apps.accounts.models import DoctorProfile
 from apps.appointments.models import Appointment
 
@@ -100,3 +102,30 @@ class MedicalRecordDetailView(generics.RetrieveUpdateAPIView):
             ).distinct()
         return qs
 
+
+
+class CheckDrugInteractionsView(APIView):
+    """
+    POST /api/medical-records/check-interactions/
+    Kiểm tra tương tác thuốc từ chuỗi đơn thuốc.
+    Body: { "prescription": "Aspirin 81mg|...\nWarfarin 5mg|..." }
+    Returns: { "interactions": [...], "has_warnings": true/false }
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        prescription = request.data.get('prescription', '')
+        if not prescription:
+            return Response({
+                'status': 'success',
+                'data': {'interactions': [], 'has_warnings': False}
+            })
+
+        interactions = check_drug_interactions(prescription)
+        return Response({
+            'status': 'success',
+            'data': {
+                'interactions': interactions,
+                'has_warnings': len(interactions) > 0,
+            }
+        })

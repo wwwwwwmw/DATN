@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { chatAPI } from '../services/api'
+import InfoTooltip from '../components/InfoTooltip'
 import {
   Send, Bot, AlertTriangle, BookOpen, Shield,
   Paperclip, Mic, Calendar, Video, ThumbsUp, Copy,
@@ -142,18 +143,19 @@ export default function ChatAI() {
       {/* Main Chat Area */}
       <div className="card" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {/* Session Header (Vital Signs bar removed as requested) */}
-        <div className="card-header" style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+        <div className="card-header" style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
             <span className="badge badge-success">
-              <span className="badge-dot" /> HỆ THỐNG TƯ VẤN Y KHOA RAG V4.2
+              <span className="badge-dot" /> BÁC SĨ TƯ VẤN AI TRỰC TUYẾN
             </span>
-            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', gap: 4 }}>
-              <Sparkles size={14} color="var(--color-primary)" /> Cơ sở Dữ liệu Y khoa Lâm sàng Quốc gia
-            </span>
+            <InfoTooltip
+              title="Trợ lý Sức khỏe AI"
+              content="Hệ thống giúp bạn tra cứu triệu chứng ban đầu và tìm chuyên khoa khám phù hợp. Lời khuyên của AI mang tính tham khảo và không thay thế chẩn đoán của bác sĩ."
+            />
           </div>
           <div>
-            <span className="badge badge-neutral" style={{ fontSize: '11px' }}>
-              Huấn luyện chuyên sâu Nội khoa và Dược lý
+            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Sparkles size={14} color="var(--color-primary)" /> Hỗ trợ tra cứu triệu chứng &amp; đơn thuốc 24/7
             </span>
           </div>
         </div>

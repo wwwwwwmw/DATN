@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
 import { authAPI } from '../services/api'
+import InfoTooltip from '../components/InfoTooltip'
 import {
   User, Shield, CreditCard, Bell, Share2,
   Globe, QrCode, CheckCircle, Download, Lock, RefreshCw
@@ -188,13 +189,17 @@ export default function Settings() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
                 <Lock size={20} color="var(--color-primary)" />
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 'var(--font-semibold)' }}>{t('settings.security_title')}</div>
-                  <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>{t('settings.security_desc')}</div>
+                  <div style={{ fontWeight: 'var(--font-semibold)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {t('settings.security_title')}
+                    <InfoTooltip
+                      title="An toàn dữ liệu"
+                      content="Thông tin sức khỏe cá nhân của bạn được bảo mật tuyệt đối, chỉ dùng phục vụ công tác khám chữa bệnh."
+                    />
+                  </div>
+                  <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', marginTop: 2 }}>{t('settings.security_desc')}</div>
                 </div>
                 <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                  <span className="badge badge-primary">{t('settings.encryption_aes')}</span>
-                  <span className="badge badge-primary">{t('settings.encryption_fips')}</span>
-                  <span className="badge badge-primary">{t('settings.encryption_hipaa')}</span>
+                  <span className="badge badge-success">{t('settings.compliance_badge')}</span>
                 </div>
               </div>
             </div>
@@ -203,7 +208,10 @@ export default function Settings() {
           {/* Real Database Profile Form */}
           <div className="card">
             <div className="card-header">
-              <h3 className="card-title">Hồ sơ Tài khoản & Định danh Y tế (Lưu trực tiếp trên PostgreSQL)</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <h3 className="card-title" style={{ margin: 0 }}>Hồ sơ Tài khoản & Định danh Y tế</h3>
+                <InfoTooltip content="Vui lòng điền thông tin chính xác để bác sĩ dễ dàng liên hệ và theo dõi quá trình khám chữa bệnh." />
+              </div>
               <span className="font-mono badge badge-neutral">ID #{user?.id}</span>
             </div>
             <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>

@@ -368,6 +368,9 @@ class XrayReviewView(APIView):
         elif not result.reviewed_by:
             latest_app = result.patient.appointments.select_related('doctor').first()
             result.reviewed_by = latest_app.doctor if latest_app else DoctorProfile.objects.first()
+
+        # Generate HMAC-SHA256 digital signature for non-repudiation
+        result.sign_review(user)
         result.save()
 
         return Response({

@@ -133,9 +133,10 @@ class XrayAnalysisResultSerializer(serializers.ModelSerializer):
             'predictions', 'top_findings',
             'doctor_review', 'doctor_agrees_with_ai',
             'reviewed_by', 'reviewed_by_name',
+            'digital_signature', 'signature_timestamp',
             'created_at'
         ]
-        read_only_fields = ['id', 'xray_code', 'image_code', 'predictions', 'heatmap_image', 'created_at']
+        read_only_fields = ['id', 'xray_code', 'image_code', 'predictions', 'heatmap_image', 'digital_signature', 'signature_timestamp', 'created_at']
 
     def get_xray_code(self, obj):
         return obj.xray_code or f"XQ-{obj.created_at.strftime('%Y%m%d') if obj.created_at else '20261110'}-{1000 + obj.id}"

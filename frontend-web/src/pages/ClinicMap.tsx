@@ -14,6 +14,7 @@ import {
 } from 'react-leaflet'
 import { clinicAPI } from '../services/api'
 import { useRealtimeSync } from '../utils/realtime'
+import InfoTooltip from '../components/InfoTooltip'
 import {
   MapPin,
   Clock,
@@ -742,9 +743,15 @@ export default function ClinicMap() {
         <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)' }}>
           <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
             <div>
-              <h3 style={{ margin: 0, fontSize: '1.05rem' }}>Bản đồ Y tế & Chỉ đường GIS</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <h3 style={{ margin: 0, fontSize: '1.05rem' }}>Bản đồ Y tế & Chỉ đường</h3>
+                <InfoTooltip
+                  title="Chỉ đường & Giao thông"
+                  content="Bấm vào một bệnh viện để xem đường đi nhanh nhất và tình trạng kẹt xe theo dải màu sắc (Xanh: thông thoáng, Vàng: đông đúc, Đỏ: ùn tắc)."
+                />
+              </div>
               <span className="badge badge-success" style={{ marginTop: 4 }}>
-                POSTGIS TRỰC TUYẾN ({clinics.length} BỆNH VIỆN)
+                {clinics.length} CƠ SỞ Y TẾ SẴN SÀNG
               </span>
             </div>
             <button

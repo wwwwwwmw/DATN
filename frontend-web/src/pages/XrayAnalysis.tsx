@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
 import { xrayAPI } from '../services/api'
 import { useRealtimeSync } from '../utils/realtime'
+import InfoTooltip from '../components/InfoTooltip'
 import {
   Upload,
   FileImage,
@@ -599,10 +600,16 @@ export default function XrayAnalysis() {
                   fontSize: 'var(--text-xs)',
                   color: 'var(--color-text-secondary)',
                   margin: '2px 0 0 0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
                 }}
               >
-                Mỗi lần tải ảnh lên sẽ tự động được cấp <strong>Mã Ảnh (IMG-...)</strong> và{' '}
-                <strong>Mã Kết quả (XQ-...)</strong> duy nhất kèm ngày giờ chụp để truy xuất không bị trùng.
+                <span>Hỗ trợ định dạng JPG, PNG và DICOM y tế</span>
+                <InfoTooltip
+                  title="Lưu trữ an toàn"
+                  content="Mỗi bức ảnh X-quang tải lên sẽ được cấp mã riêng và lưu vào hồ sơ để bạn và bác sĩ dễ dàng tra cứu lại bất cứ lúc nào."
+                />
               </p>
             </div>
           </div>
@@ -1020,7 +1027,8 @@ export default function XrayAnalysis() {
                     gap: 4,
                   }}
                 >
-                  <Hash size={12} /> MÃ KẾT QUẢ & MÃ ẢNH DUY NHẤT
+                  <Hash size={12} /> MÃ KẾT QUẢ & MÃ ẢNH
+                  <InfoTooltip content="Mã số duy nhất của lần chụp này để theo dõi chính xác lịch sử bệnh án, không bị nhầm lẫn." />
                 </div>
                 <div
                   className="font-mono"
@@ -1101,7 +1109,7 @@ export default function XrayAnalysis() {
             {/* TRÌNH XEM ẢNH X-QUANG THẬT CỦA BỆNH NHÂN + LỚP PHỦ NHIỆT GRAD-CAM */}
             <div className="card">
               <div className="card-header" style={{ flexWrap: 'wrap', gap: 8 }}>
-                <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
                   <button
                     type="button"
                     className={`btn btn-sm ${viewMode === 'overlay' ? 'btn-primary' : 'btn-ghost'}`}
@@ -1116,6 +1124,10 @@ export default function XrayAnalysis() {
                   >
                     <Layers size={14} /> {t('xray.view_parallel')} (Gốc & Nhiệt)
                   </button>
+                  <InfoTooltip
+                    title="Chế độ xem phim"
+                    content="Chế độ hòa trộn phủ màu AI lên ảnh gốc để nhận diện nhanh vùng cần chú ý. Chế độ song song giúp so sánh ảnh gốc và ảnh nhiệt cạnh nhau."
+                  />
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1385,12 +1397,18 @@ export default function XrayAnalysis() {
               {/* AI Pathology Prediction Results from DB */}
               <div className="card">
                 <div className="card-header">
-                  <h3 className="card-title">{t('xray.result_title')}</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <h3 className="card-title" style={{ margin: 0 }}>{t('xray.result_title')}</h3>
+                    <InfoTooltip
+                      title="Kết quả tham khảo từ AI"
+                      content="Hệ thống ước tính tỷ lệ xuất hiện của các dấu hiệu trên phim để hỗ trợ bác sĩ. Kết luận chẩn đoán chính thức luôn do Bác sĩ chuyên khoa quyết định."
+                    />
+                  </div>
                   <span
                     className="font-mono"
-                    style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}
+                    style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 600 }}
                   >
-                    {activeCase.xray_code} • AUC: {activeCase.auc}
+                    {activeCase.xray_code}
                   </span>
                 </div>
                 <div className="card-body" style={{ padding: 0 }}>

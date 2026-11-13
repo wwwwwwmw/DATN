@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
 import { appointmentAPI, medicalRecordAPI } from '../services/api'
 import { useRealtimeSync } from '../utils/realtime'
+import { useCallRingtone } from '../hooks/useCallRingtone'
+import InfoTooltip from '../components/InfoTooltip'
 import {
   Video, VideoOff, Mic, MicOff, Phone, PhoneCall, PhoneIncoming,
   MessageSquare, Shield, AlertTriangle, FileText,
@@ -411,6 +413,9 @@ export default function Telehealth() {
 
   const bothConnected = Boolean(roomState?.doctor_in_room && roomState?.patient_in_room)
   const otherPartyInRoom = isPatientUser ? Boolean(roomState?.doctor_in_room) : Boolean(roomState?.patient_in_room)
+
+  // 🔔 Call ringtone: outgoing ring when waiting, incoming chime when other party arrives
+  useCallRingtone({ isInCall, bothConnected, otherPartyInRoom, isCallModalOpen })
   const otherPartyMicOn = isPatientUser ? (roomState?.doctor_mic ?? true) : (roomState?.patient_mic ?? true)
   const otherPartyVideoOn = isPatientUser ? (roomState?.doctor_video ?? true) : (roomState?.patient_video ?? true)
   const otherPartyName = activeAppt
@@ -544,9 +549,15 @@ export default function Telehealth() {
           {/* Sidebar Header + Search */}
           <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <strong style={{ fontSize: 'var(--text-base)', color: '#0068ff' }}>
-                {isPatientUser ? 'Bác sĩ của tôi' : user?.role === 'DOCTOR' ? 'Bệnh nhân phụ trách' : 'Danh bạ Telehealth'}
-              </strong>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <strong style={{ fontSize: 'var(--text-base)', color: '#0068ff' }}>
+                  {isPatientUser ? 'Bác sĩ của tôi' : user?.role === 'DOCTOR' ? 'Bệnh nhân phụ trách' : 'Danh bạ Telehealth'}
+                </strong>
+                <InfoTooltip
+                  title="Danh bạ khám từ xa"
+                  content="Danh sách bác sĩ hoặc bệnh nhân có lịch hẹn với bạn. Bấm vào một người để nhắn tin hoặc bấm Gọi để khám trực tiếp."
+                />
+              </div>
               <span className="badge badge-primary" style={{ fontSize: '11px' }}>{filteredContacts.length} liên hệ</span>
             </div>
             <div style={{ position: 'relative' }}>
@@ -758,6 +769,10 @@ export default function Telehealth() {
                     >
                       <Video size={15} /> {otherPartyInRoom ? 'Chấp nhận Gọi Video' : 'Gọi Video'}
                     </button>
+                    <InfoTooltip
+                      title="Khám bệnh trực tuyến"
+                      content="Bạn có thể nhắn tin trao đổi trước. Khi cả hai đã sẵn sàng, hãy bấm nút Gọi Video để bắt đầu cuộc khám. Cuộc gọi được bảo mật y tế tuyệt đối."
+                    />
                   </>
                 )}
 

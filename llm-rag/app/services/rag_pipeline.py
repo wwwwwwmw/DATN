@@ -86,7 +86,7 @@ def rag_chat(message: str, history: list = None, patient_id: int = None) -> dict
 
 
 def _build_prompt(query: str, context: str, history: list = None) -> str:
-    """Build full prompt for LLM."""
+    """Build full prompt for LLM with clinical structure."""
     prompt = f"{SYSTEM_PROMPT}\n\n"
     prompt += f"=== TÀI LIỆU Y KHOA THAM KHẢO ===\n{context}\n\n"
 
@@ -97,6 +97,12 @@ def _build_prompt(query: str, context: str, history: list = None) -> str:
             prompt += f"{role}: {msg['content']}\n"
         prompt += "\n"
 
+    prompt += "=== HƯỚNG DẪN TRẢ LỜI ===\n"
+    prompt += "Trả lời ngắn gọn 3-5 ý, cấu trúc:\n"
+    prompt += "1. Nhận diện vấn đề\n"
+    prompt += "2. Thông tin y khoa liên quan (từ tài liệu)\n"
+    prompt += "3. Lời khuyên cụ thể\n"
+    prompt += "4. Gợi ý chuyên khoa nên khám\n\n"
     prompt += f"=== CÂU HỎI HIỆN TẠI ===\nBệnh nhân: {query}\n\nTrợ lý:"
     return prompt
 

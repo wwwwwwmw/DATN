@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
 import { authAPI, appointmentAPI } from '../services/api'
 import { useRealtimeSync } from '../utils/realtime'
+import InfoTooltip from '../components/InfoTooltip'
 import {
   MapPin, Clock, ChevronRight,
   Zap, Shield, CheckCircle, Calendar, RefreshCw
@@ -31,8 +32,6 @@ export default function SmartBooking() {
   const [loading, setLoading] = useState(true)
   const [bookingLoading, setBookingLoading] = useState(false)
   const [bookingMessage, setBookingMessage] = useState<string | null>(null)
-
-  const weights = { wait: 40, distance: 35, experience: 25 }
 
   const loadBookingData = async (silent = false) => {
     if (!silent) setLoading(true)
@@ -100,8 +99,14 @@ export default function SmartBooking() {
               <Zap size={22} />
             </div>
             <div>
-              <h3>{t('booking.title')}</h3>
-              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <h3 style={{ margin: 0 }}>{t('booking.title')}</h3>
+                <InfoTooltip
+                  title="Đặt lịch khám thông minh"
+                  content="Hệ thống tự động tìm và gợi ý bác sĩ chuyên khoa ở gần bạn nhất, có lịch trống sớm nhất và phù hợp với triệu chứng của bạn để bạn không phải chờ đợi lâu."
+                />
+              </div>
+              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', marginTop: 2 }}>
                 {t('booking.subtitle')}
               </p>
             </div>
@@ -119,7 +124,10 @@ export default function SmartBooking() {
       <div className="card">
         <div className="card-body" style={{ display: 'flex', gap: 'var(--space-4)', alignItems: 'flex-end', flexWrap: 'wrap' }}>
           <div className="form-group" style={{ flex: 2, minWidth: 240 }}>
-            <label className="form-label">{t('booking.symptom_label')}</label>
+            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              {t('booking.symptom_label')}
+              <InfoTooltip content="Mô tả cảm giác khó chịu bạn đang gặp phải để hệ thống lọc đúng chuyên khoa phù hợp." />
+            </label>
             <input
               className="form-input"
               placeholder={t('booking.symptom_placeholder')}
@@ -137,16 +145,25 @@ export default function SmartBooking() {
               <option value="Chẩn đoán hình ảnh">Chẩn đoán hình ảnh & Hô hấp</option>
             </select>
           </div>
-          <div className="form-group" style={{ width: 180, flexShrink: 0 }}>
-            <label className="form-label">{t('booking.max_distance')}</label>
+          <div className="form-group" style={{ width: 190, flexShrink: 0 }}>
+            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              {t('booking.max_distance')}
+              <InfoTooltip content="Kéo để mở rộng hoặc thu hẹp khoảng cách tìm kiếm bác sĩ quanh khu vực bạn ở." />
+            </label>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
               <input type="range" min={1} max={20} value={radius} onChange={e => setRadius(Number(e.target.value))} style={{ flex: 1, minWidth: 80 }} />
               <span className="tabular-nums" style={{ fontWeight: 'var(--font-semibold)', color: 'var(--color-primary)', whiteSpace: 'nowrap', minWidth: 42 }}>{radius} km</span>
             </div>
           </div>
         </div>
-        <div className="card-footer" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>
-          {t('booking.weights')} <strong>{t('booking.weight_time')} ({weights.wait}%)</strong> &bull; <strong>{t('booking.weight_distance')} ({weights.distance}%)</strong> &bull; <strong>{t('booking.weight_experience')} ({weights.experience}%)</strong>
+        <div className="card-footer" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            Tiêu chí sắp xếp: <strong>Gần bạn nhất</strong> &bull; <strong>Lịch khám sớm</strong> &bull; <strong>Bác sĩ giàu kinh nghiệm</strong>
+            <InfoTooltip
+              title="Cách xếp hạng bác sĩ"
+              content="Hệ thống tự động so sánh quãng đường đi lại, thời gian chờ và chuyên môn của bác sĩ để bạn có lịch khám thuận tiện nhất."
+            />
+          </span>
         </div>
       </div>
 
@@ -165,7 +182,6 @@ export default function SmartBooking() {
           {filteredDoctors.map((doc, i) => {
             const fullName = `BS. ${doc.user?.last_name || ''} ${doc.user?.first_name || ''}`.trim()
             const initials = `${doc.user?.first_name?.[0] || 'B'}${doc.user?.last_name?.[0] || 'S'}`
-            const fitness = (0.042 + i * 0.025).toFixed(3)
             const matchScore = Math.max(82, 97 - i * 3)
             const nextSlotObj = (doc.available_slots || [])[0]
             const nextSlotStr = nextSlotObj ? `${nextSlotObj.start_time} (${nextSlotObj.date})` : 'Liên hệ'
@@ -198,8 +214,9 @@ export default function SmartBooking() {
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       {i === 0 && <span className="badge badge-success" style={{ marginBottom: 4 }}>{t('booking.sa_best_match')}</span>}
-                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>{t('booking.sa_function')}: f(x) = {fitness}</div>
-                      <div style={{ fontWeight: 'var(--font-bold)', color: 'var(--color-primary)' }}>{t('booking.match_score', { score: matchScore })}</div>
+                      <div style={{ fontWeight: 'var(--font-bold)', color: 'var(--color-primary)', fontSize: 13, marginTop: 2 }}>
+                        {t('booking.match_score', { score: matchScore })}
+                      </div>
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 'var(--space-6)', marginTop: 'var(--space-3)', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', flexWrap: 'wrap' }}>
@@ -225,7 +242,10 @@ export default function SmartBooking() {
         {/* Real TimeSlots Grid from Database */}
         <div className="card" style={{ alignSelf: 'flex-start' }}>
           <div className="card-header">
-            <h3 className="card-title">{t('booking.time_grid_title')}</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <h3 className="card-title" style={{ margin: 0 }}>{t('booking.time_grid_title')}</h3>
+              <InfoTooltip content="Chọn một khung giờ còn chỗ dưới đây để đặt lịch khám với bác sĩ." />
+            </div>
             <span className="badge badge-primary">{selectedDoc ? `BS. ${selectedDoc.user?.first_name}` : ''}</span>
           </div>
           <div className="card-body">

@@ -18,15 +18,19 @@ logger = logging.getLogger(__name__)
 
 VOWELS = set('aeiouyáàảãạăắằẳẵặâấầẩẫậéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵ')
 
-OLLAMA_SYSTEM_PROMPT = """Bạn là Bác sĩ Trợ lý Y tế Lâm sàng MedTech AI.
+OLLAMA_SYSTEM_PROMPT = """Bạn là Bác sĩ Trợ lý Y tế Lâm sàng MedTech AI — nền tảng y tế thông minh.
+
 QUY TẮC BẮT BUỘC:
-1. NGÔN NGỮ: BẮT BUỘC 100% TIẾNG VIỆT HOẶC TIẾNG ANH (CHO THUẬT NGỮ Y KHOA VÀ TÊN BIỆT DƯỢC/THUỐC NHƯ Aspirin, Paracetamol, Panadol, Lipitor...). TUYỆT ĐỐI KHÔNG DÙNG BẤT KỲ TỪ, CHỮ HÁN HOẶC DẤU CÂU HOA NGỮ NÀO.
-2. DẤU CÂU: CHỈ DÙNG DẤU CÂU CHUẨN LATIN (., ? !). KHÔNG DÙNG DẤU CÂU TIẾNG TRUNG (，。！？：).
-3. VẾT THƯƠNG & BĂNG BÓ: Dùng từ tiếng Việt chuẩn: "băng gạc vô khuẩn", "gạc y tế tiệt trùng", "băng cuộn". Tuyệt đối không dùng chữ Hán.
-4. GHI NHỚ LỊCH SỬ HỘI THOẠI: Luôn đọc kỹ toàn bộ ngữ cảnh trao đổi trước đó của người bệnh để trả lời nối tiếp, không hỏi lại hay lặp lại những bước người bệnh đã thực hiện.
-5. PHONG CÁCH TƯ VẤN: Ngắn gọn, chuyên nghiệp, ân cần, trình bày từ 3 - 4 ý gạch đầu dòng rõ ràng.
-6. SỬA TÊN THUỐC SAI: Nếu người bệnh viết sai tên thuốc (như asprin, parasetamon, amoxilin...), hãy ân cần hỏi: "Có phải bạn đang muốn hỏi về thuốc [Tên thuốc chuẩn tiếng Anh/Việt] không?" và tư vấn công dụng, liều dùng an toàn, cách uống sau ăn.
-7. CẤP CỨU: Nếu người bệnh có triệu chứng cấp cứu (đau thắt ngực cấp, khó thở cấp tính, ngất), lập tức cảnh báo gọi hotline cấp cứu 1900 6868 hoặc 115."""
+1. NGÔN NGỮ: BẮT BUỘC 100% TIẾNG VIỆT cho nội dung chính. Chỉ dùng TIẾNG ANH cho thuật ngữ y khoa và tên biệt dược (Aspirin, Paracetamol, Lipitor...). TUYỆT ĐỐI KHÔNG DÙNG CHỮ HÁN hoặc dấu câu Hoa ngữ.
+2. DẤU CÂU: CHỈ DÙNG dấu câu Latin (., ? !). KHÔNG dùng dấu câu Trung Quốc (，。！？：).
+3. PHẠM VI: CHỈ trả lời câu hỏi y tế, sức khỏe, thuốc. Từ chối lịch sự câu hỏi ngoài phạm vi.
+4. GHI NHỚ HỘI THOẠI: Đọc kỹ lịch sử, trả lời nối tiếp, không lặp lại bước đã thực hiện.
+5. PHONG CÁCH: Ngắn gọn 3-5 ý gạch đầu dòng, chuyên nghiệp, ân cần, dễ hiểu cho người bệnh thông thường.
+6. KHÔNG TỰ CHẨN ĐOÁN: Dùng "có thể liên quan đến", "triệu chứng thường gặp ở", KHÔNG nói "bạn bị bệnh X".
+7. SỬA TÊN THUỐC SAI: Nếu người bệnh viết sai (asprin, parasetamon...), ân cần hỏi: "Có phải bạn đang muốn hỏi về thuốc [Tên đúng] không?" rồi tư vấn công dụng, liều dùng, cách uống.
+8. CẤP CỨU: Nếu phát hiện triệu chứng nguy hiểm (đau thắt ngực cấp, khó thở cấp, ngất, co giật), mở đầu bằng "🚨 CẢNH BÁO KHẨN CẤP" và hướng dẫn gọi 115 ngay.
+9. VỀ THUỐC: Chỉ cung cấp thông tin chung. KHÔNG kê đơn. Luôn nhắc: "Việc sử dụng thuốc cần có chỉ định của bác sĩ."
+10. GỢI Ý CHUYÊN KHOA: Cuối mỗi câu trả lời, đề xuất chuyên khoa phù hợp (VD: "Bạn nên đặt lịch khám khoa Tim mạch")."""
 
 def normalize_text(text: str) -> str:
     return re.sub(r'\s+', ' ', text.strip().lower())
@@ -36,24 +40,6 @@ def strip_accents(text: str) -> str:
     text = ''.join(c for c in text if unicodedata.category(c) != 'Mn')
     return text.replace('đ', 'd').replace('Đ', 'D').lower()
 
-CJK_PUNCT_MAP = {
-    '，': ', ',
-    '。': '. ',
-    '：': ': ',
-    '；': '; ',
-    '！': '! ',
-    '？': '? ',
-    '（': ' (',
-    '）': ') ',
-    '【': ' [',
-    '】': '] ',
-    '“': '"',
-    '”': '"',
-    '‘': "'",
-    '’': "'",
-    '、': ', ',
-}
-
 def sanitize_text(text: str) -> str:
     """
     Remove any Chinese / Han characters (CJK Unicode range) and unwanted token artifacts.
@@ -61,22 +47,9 @@ def sanitize_text(text: str) -> str:
     """
     if not text:
         return ""
-    
-    # 1. Map fullwidth CJK punctuation to Latin equivalents
-    for cjk_char, latin_char in CJK_PUNCT_MAP.items():
-        text = text.replace(cjk_char, latin_char)
-
-    # 2. Strip all CJK Unified Ideographs, Compatibility Ideographs, Extension A-F, and fullwidth forms
-    cleaned = re.sub(
-        r'[\u2e80-\u2fd5\u3000-\u303f\u31c0-\u31ef\u3200-\u32ff\u3300-\u33ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff00-\uffef]+',
-        '',
-        text
-    )
-
-    # 3. Clean up broken punctuation leftovers like ", ," or ". ." or trailing commas
-    cleaned = re.sub(r'[,.\s]{3,}', '. ', cleaned)
-    # Ensure numbered bullet points are on newlines
-    cleaned = re.sub(r'([^\n])\s+(\d+\.\s+\*\*)', r'\1\n\2', cleaned)
+    # Strip CJK Unified Ideographs, CJK Compatibility Ideographs, and Extension A
+    cleaned = re.sub(r'[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]+', '', text)
+    # Clean up double spaces or broken formatting caused by removed tokens
     cleaned = re.sub(r'[ \t]+', ' ', cleaned)
     cleaned = re.sub(r'\n{3,}', '\n\n', cleaned)
     return cleaned.strip()
@@ -219,15 +192,13 @@ def query_ollama_chat(message: str, history: list = None, system_prompt: str = O
         {"role": "system", "content": system_prompt}
     ]
 
-    # Append conversation history (compact to prevent latency/timeout over Tailscale)
+    # Append conversation history
     if history:
-        for h in history[-4:]:
+        for h in history[-8:]:  # Last 8 messages for rich context
             role = 'user' if h.get('role') == 'user' else 'assistant'
             content = h.get('content', '').strip()
-            # Remove disclaimers to keep context lean
-            content = re.sub(r'⚠️.*', '', content).strip()
-            if role == 'assistant' and len(content) > 250:
-                content = content[:250] + '...'
+            # Remove repeated disclaimers from history to keep context clean
+            content = content.replace("⚠️ Lưu ý: Kết quả tư vấn chỉ mang tính chất tham khảo, không thay thế cho việc khám và chỉ định điều trị của Bác sĩ chuyên khoa.", "").strip()
             if content:
                 messages.append({"role": role, "content": content})
 
@@ -243,8 +214,8 @@ def query_ollama_chat(message: str, history: list = None, system_prompt: str = O
         "messages": messages,
         "stream": False,
         "options": {
-            "temperature": 0.1,
-            "num_predict": 220
+            "temperature": 0.2,
+            "num_predict": 240
         }
     }
     data_bytes = json.dumps(payload).encode('utf-8')
@@ -256,7 +227,7 @@ def query_ollama_chat(message: str, history: list = None, system_prompt: str = O
                 data=data_bytes,
                 headers={"Content-Type": "application/json"}
             )
-            with urllib.request.urlopen(req, timeout=50) as resp:
+            with urllib.request.urlopen(req, timeout=28) as resp:
                 if resp.status == 200:
                     res_json = json.loads(resp.read().decode('utf-8'))
                     ans = res_json.get('message', {}).get('content', '').strip()
