@@ -96,6 +96,70 @@ export default function Settings() {
   })
   const [createSaving, setCreateSaving] = useState(false)
 
+  // Modal Đổi Mật Khẩu Cá Nhân (Dùng cho cả Admin, Bác sĩ và Bệnh nhân)
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [pwdOld, setPwdOld] = useState('')
+  const [pwdNew, setPwdNew] = useState('')
+  const [pwdConfirm, setPwdConfirm] = useState('')
+  const [pwdLoading, setPwdLoading] = useState(false)
+  const [pwdError, setPwdError] = useState('')
+  const [pwdSuccess, setPwdSuccess] = useState('')
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setPwdError('')
+    setPwdSuccess('')
+
+    if (!pwdOld) {
+      setPwdError('Vui lòng nhập mật khẩu hiện tại.')
+      return
+    }
+    if (pwdNew.length < 8) {
+      setPwdError('Mật khẩu mới phải có ít nhất 8 ký tự.')
+      return
+    }
+    if (!/[A-Z]/.test(pwdNew)) {
+      setPwdError('Mật khẩu mới phải chứa ít nhất 1 chữ in hoa (A-Z).')
+      return
+    }
+    if (!/[^A-Za-z0-9]/.test(pwdNew)) {
+      setPwdError('Mật khẩu mới phải chứa ít nhất 1 ký tự đặc biệt (!@#$%...).')
+      return
+    }
+    if (pwdNew !== pwdConfirm) {
+      setPwdError('Mật khẩu xác nhận không khớp.')
+      return
+    }
+
+    setPwdLoading(true)
+    try {
+      await authAPI.changePassword({
+        old_password: pwdOld,
+        new_password: pwdNew,
+        new_password_confirm: pwdConfirm,
+      })
+      setPwdSuccess('Đổi mật khẩu thành công! Hãy ghi nhớ mật khẩu mới của bạn.')
+      setPwdOld('')
+      setPwdNew('')
+      setPwdConfirm('')
+      setTimeout(() => {
+        setShowPasswordModal(false)
+        setPwdSuccess('')
+      }, 1800)
+    } catch (err: any) {
+      const errDetail = err.response?.data?.errors
+      let msg = err.response?.data?.message
+      if (errDetail?.new_password) {
+        msg = errDetail.new_password[0]
+      } else if (errDetail?.old_password) {
+        msg = errDetail.old_password[0]
+      }
+      setPwdError(msg || 'Mật khẩu cũ không chính xác hoặc dữ liệu không hợp lệ.')
+    } finally {
+      setPwdLoading(false)
+    }
+  }
+
   // ==========================================
   // LOAD DATA FUNCTIONS
   // ==========================================
@@ -175,8 +239,8 @@ export default function Settings() {
     setOtpSentMessage(null)
     try {
       const res = await authAPI.sendOTP()
-      setOtpSentMessage(res.data?.message || `Mã OTP đã được gửi đến email ${email}. Vui lòng kiểm tra hộp thư.`)
-      setOtpCountdown(60)
+      setOtpSentMessage(res.data?.message || `Mã OTP đã được gửi đến email ${email} (hiệu lực 120 giây). Vui lòng kiểm tra hộp thư.`)
+      setOtpCountdown(120)
     } catch (err: any) {
       setErrorMessage(err.response?.data?.message || 'Không thể gửi mã OTP. Vui lòng kiểm tra lại kết nối email.')
     } finally {
@@ -189,6 +253,10 @@ export default function Settings() {
       setErrorMessage('Vui lòng nhập mã OTP gồm 6 chữ số.')
       return
     }
+    if (otpCountdown === 0 && otpSentMessage) {
+      setErrorMessage('Mã OTP đã hết hạn. Yêu cầu thực hiện lại.')
+      return
+    }
     setVerifyingOtp(true)
     setErrorMessage(null)
     try {
@@ -196,7 +264,7 @@ export default function Settings() {
       setIsOtpVerified(true)
       setOtpSentMessage(res.data?.message || 'Xác thực OTP thành công! Bạn có thể chỉnh sửa hồ sơ.')
     } catch (err: any) {
-      setErrorMessage(err.response?.data?.message || 'Mã OTP không đúng hoặc đã hết hạn.')
+      setErrorMessage(err.response?.data?.message || 'Mã OTP đã hết hạn. Yêu cầu thực hiện lại.')
     } finally {
       setVerifyingOtp(false)
     }
@@ -403,6 +471,85 @@ export default function Settings() {
     return `${l}${f}` || 'MT'
   }
 
+  // Modal Đổi Mật Khẩu Dùng Chung (Admin / Doctor / Patient)
+  const renderPasswordModal = () => {
+    if (!showPasswordModal) return null
+    return (
+      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+        <div style={{ background: 'white', borderRadius: 12, maxWidth: 460, width: '100%', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <KeyRound size={18} style={{ color: '#0068ff' }} />
+              <strong style={{ fontSize: 16 }}>Đổi Mật Khẩu Cá Nhân</strong>
+            </div>
+            <button className="btn btn-ghost btn-sm" onClick={() => setShowPasswordModal(false)}><X size={16} /></button>
+          </div>
+
+          <form onSubmit={handleChangePassword}>
+            <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {pwdSuccess && (
+                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d', padding: '10px 14px', borderRadius: 8, fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <CheckCircle size={16} /> {pwdSuccess}
+                </div>
+              )}
+              {pwdError && (
+                <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', padding: '10px 14px', borderRadius: 8, fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <AlertCircle size={16} /> {pwdError}
+                </div>
+              )}
+
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: 600 }}>Mật khẩu hiện tại <span style={{ color: 'red' }}>*</span></label>
+                <input
+                  className="form-input"
+                  type="password"
+                  placeholder="Nhập mật khẩu bạn đang dùng..."
+                  value={pwdOld}
+                  onChange={e => setPwdOld(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: 600 }}>Mật khẩu mới <span style={{ color: 'red' }}>*</span></label>
+                <input
+                  className="form-input"
+                  type="password"
+                  placeholder="Tối thiểu 8 ký tự, 1 chữ hoa, 1 ký tự đặc biệt..."
+                  value={pwdNew}
+                  onChange={e => setPwdNew(e.target.value)}
+                  required
+                />
+                <small style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: 4, display: 'block' }}>
+                  Quy chuẩn: ≥ 8 ký tự, gồm ít nhất 1 chữ hoa (A-Z) và 1 ký tự đặc biệt (!@#$%...).
+                </small>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: 600 }}>Xác nhận mật khẩu mới <span style={{ color: 'red' }}>*</span></label>
+                <input
+                  className="form-input"
+                  type="password"
+                  placeholder="Nhập lại mật khẩu mới..."
+                  value={pwdConfirm}
+                  onChange={e => setPwdConfirm(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            <div style={{ padding: '12px 20px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setShowPasswordModal(false)}>Hủy</button>
+              <button type="submit" className="btn btn-primary" disabled={pwdLoading} style={{ background: '#0068ff', borderColor: '#0068ff' }}>
+                {pwdLoading ? 'Đang cập nhật...' : 'Cập Nhật Mật Khẩu'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    )
+  }
+
   // =========================================================================
   // GIAO DIỆN QUẢN TRỊ ADMIN (ROLE: ADMIN)
   // =========================================================================
@@ -428,6 +575,13 @@ export default function Settings() {
               </div>
             </div>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => { setShowPasswordModal(true); setPwdError(''); setPwdSuccess('') }}
+                style={{ background: 'rgba(255,255,255,0.15)', color: 'white', borderColor: 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', gap: 6 }}
+              >
+                <KeyRound size={14} /> Đổi Mật Khẩu
+              </button>
               <button
                 className="btn btn-secondary btn-sm"
                 onClick={handleDownloadTemplate}
@@ -854,6 +1008,9 @@ export default function Settings() {
             </div>
           </div>
         )}
+
+        {/* Modal Đổi Mật Khẩu (Admin) */}
+        {renderPasswordModal()}
       </div>
     )
   }
@@ -932,7 +1089,15 @@ export default function Settings() {
             </div>
           </div>
 
-          <div style={{ textAlign: 'right' }}>
+          <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => { setShowPasswordModal(true); setPwdError(''); setPwdSuccess('') }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, borderColor: '#cbd5e1', fontWeight: 600 }}
+            >
+              <KeyRound size={14} color="#0068ff" /> Đổi Mật Khẩu
+            </button>
             {isOtpVerified ? (
               <span className="badge badge-success" style={{ fontSize: 12, padding: '6px 12px' }}>
                 <CheckCircle size={14} style={{ display: 'inline', marginRight: 4 }} /> Đã xác thực OTP (Được quyền chỉnh sửa)
@@ -952,10 +1117,10 @@ export default function Settings() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
             <div>
               <strong style={{ fontSize: 14, display: 'flex', alignItems: 'center', gap: 6, color: '#0068ff' }}>
-                <Mail size={16} /> Phương Thức Xác Thực: Mã OTP Qua Email
+                <Mail size={16} /> Phương Thức Xác Thực: Mã OTP Qua Email (Hiệu lực 120s)
               </strong>
               <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 4 }}>
-                Để bảo vệ thông tin hồ sơ y tế, hệ thống yêu cầu xác thực mã OTP gửi về email <strong>{email}</strong> trước khi bạn chỉnh sửa và lưu hồ sơ.
+                Để bảo vệ thông tin hồ sơ y tế, hệ thống yêu cầu xác thực mã OTP gửi về email <strong>{email}</strong> trước khi bạn chỉnh sửa và lưu hồ sơ. Mã OTP có hiệu lực tối đa 120 giây.
               </div>
             </div>
 
@@ -974,12 +1139,17 @@ export default function Settings() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <input
                     className="form-input"
-                    style={{ width: 130, padding: '6px 10px', fontSize: 13, textAlign: 'center', letterSpacing: 2, fontWeight: 'bold' }}
+                    style={{ width: 120, padding: '6px 10px', fontSize: 13, textAlign: 'center', letterSpacing: 2, fontWeight: 'bold' }}
                     placeholder="Mã 6 số"
                     maxLength={6}
                     value={otpCode}
                     onChange={e => setOtpCode(e.target.value)}
                   />
+                  {otpCountdown > 0 && (
+                    <span style={{ fontSize: 12, color: otpCountdown <= 30 ? '#dc2626' : '#0068ff', fontWeight: 600, minWidth: 40 }}>
+                      ⏱️ {otpCountdown}s
+                    </span>
+                  )}
                   <button
                     type="button"
                     className="btn btn-secondary btn-sm"
@@ -1213,6 +1383,40 @@ export default function Settings() {
         </div>
       </div>
 
+      {/* KHỐI BẢO MẬT & ĐỔI MẬT KHẨU TÀI KHOẢN */}
+      <div className="card">
+        <div className="card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <KeyRound size={18} style={{ color: '#0068ff' }} />
+            <strong style={{ fontSize: 15 }}>Bảo Mật & Đổi Mật Khẩu Cá Nhân</strong>
+          </div>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => { setShowPasswordModal(true); setPwdError(''); setPwdSuccess('') }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, borderColor: '#0068ff', color: '#0068ff', fontWeight: 600 }}
+          >
+            <KeyRound size={14} /> Thay đổi mật khẩu
+          </button>
+        </div>
+        <div className="card-body" style={{ fontSize: 13, color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+          <div>
+            <div>Để đảm bảo an toàn cho tài khoản và hồ sơ y tế, bạn nên đổi mật khẩu định kỳ hoặc ngay sau khi sử dụng tính năng cấp lại mật khẩu.</div>
+            <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginTop: 4 }}>
+              Yêu cầu: Tối thiểu 8 ký tự, gồm ít nhất 1 chữ hoa (A-Z) và 1 ký tự đặc biệt (!@#$%...).
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            onClick={() => { setShowPasswordModal(true); setPwdError(''); setPwdSuccess('') }}
+            style={{ background: '#0068ff', borderColor: '#0068ff', display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            <KeyRound size={14} /> Đổi mật khẩu ngay
+          </button>
+        </div>
+      </div>
+
       {/* MODAL CẬP NHẬT ẢNH AVATAR */}
       {showAvatarModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
@@ -1259,6 +1463,9 @@ export default function Settings() {
           </div>
         </div>
       )}
+
+      {/* Modal Đổi Mật Khẩu (Doctor / Patient) */}
+      {renderPasswordModal()}
     </div>
   )
 }

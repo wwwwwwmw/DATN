@@ -88,15 +88,14 @@ class LoginView(APIView):
         lockout_key = f"login_lockout_{email}"
         fail_history_key = f"login_fail_history_{email}"
 
-        # 1. Kiểm tra tài khoản có đang trong thời gian bị khóa 1 tiếng không
+        # 1. Kiểm tra tài khoản có đang trong thời gian bị khóa không
         locked_until = cache.get(lockout_key)
         if locked_until:
             remaining_seconds = locked_until - now
             if remaining_seconds > 0:
-                remaining_mins = max(1, int(remaining_seconds / 60))
                 return Response({
                     'status': 'error',
-                    'message': f'Tài khoản tạm thời bị khóa 1 giờ do nhập sai mật khẩu 5 lần trong 5 phút. Vui lòng thử lại sau {remaining_mins} phút hoặc sử dụng tính năng "Quên mật khẩu".'
+                    'message': 'Tài khoản đang bị tạm khóa do nhập sai mật khẩu nhiều lần. Vui lòng thử lại sau hoặc sử dụng tính năng "Quên mật khẩu".'
                 }, status=status.HTTP_403_FORBIDDEN)
             else:
                 cache.delete(lockout_key)
@@ -117,14 +116,14 @@ class LoginView(APIView):
                 cache.delete(fail_history_key)
                 return Response({
                     'status': 'error',
-                    'message': 'Tài khoản đã bị khóa 1 giờ do đăng nhập sai 5 lần trong vòng 5 phút. Vui lòng quay lại sau 60 phút hoặc bấm "Quên mật khẩu" để cấp lại mật khẩu mới.'
+                    'message': 'Tài khoản đã bị tạm khóa do đăng nhập sai quá nhiều lần. Vui lòng thử lại sau hoặc bấm "Quên mật khẩu" để cấp lại mật khẩu mới.'
                 }, status=status.HTTP_403_FORBIDDEN)
             else:
                 cache.set(fail_history_key, valid_fails, timeout=300)
                 remaining_attempts = 5 - len(valid_fails)
                 return Response({
                     'status': 'error',
-                    'message': f'Email hoặc mật khẩu không đúng. Bạn còn {remaining_attempts} lần thử trước khi tài khoản bị khóa 1 giờ.'
+                    'message': f'Email hoặc mật khẩu không đúng. Bạn còn {remaining_attempts} lần thử.'
                 }, status=status.HTTP_400_BAD_REQUEST)
 
         if not user.is_active:
@@ -172,14 +171,15 @@ class VerifyProfileOTPView(APIView):
         if not code:
             return Response({'status': 'error', 'message': 'Vui lòng nhập mã OTP gồm 6 chữ số.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if verify_profile_update_otp(request.user, code):
+        success, err_msg = verify_profile_update_otp(request.user, code)
+        if success:
             return Response({
                 'status': 'success',
                 'message': 'Xác thực mã OTP thành công! Bạn đã được mở quyền chỉnh sửa hồ sơ.'
             })
         return Response({
             'status': 'error',
-            'message': 'Mã OTP không chính xác hoặc đã hết hạn (10 phút). Vui lòng thử lại.'
+            'message': err_msg or 'Mã OTP đã hết hạn. Yêu cầu thực hiện lại.'
         }, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -216,10 +216,11 @@ class ProfileView(generics.RetrieveUpdateAPIView):
             is_verified = is_user_otp_verified(user)
             if not is_verified:
                 if otp_code:
-                    if not verify_profile_update_otp(user, otp_code):
+                    success, err_msg = verify_profile_update_otp(user, otp_code)
+                    if not success:
                         return Response({
                             'status': 'error',
-                            'message': 'Mã OTP không chính xác hoặc đã hết hiệu lực. Vui lòng bấm "Nhận mã OTP" để gửi mã mới về email.'
+                            'message': err_msg or 'Mã OTP đã hết hạn. Yêu cầu thực hiện lại.'
                         }, status=status.HTTP_400_BAD_REQUEST)
                 else:
                     return Response({
@@ -303,13 +304,23 @@ class ChangePasswordView(APIView):
 
     def post(self, request):
         serializer = ChangePasswordSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            first_err = 'Dữ liệu không hợp lệ.'
+            for field, errs in serializer.errors.items():
+                if isinstance(errs, list) and len(errs) > 0:
+                    first_err = str(errs[0])
+                    break
+            return Response({
+                'status': 'error',
+                'message': first_err,
+                'errors': serializer.errors,
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         user = request.user
         if not user.check_password(serializer.validated_data['old_password']):
             return Response({
                 'status': 'error',
-                'message': 'Mật khẩu cũ không đúng.'
+                'message': 'Mật khẩu cũ không chính xác.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
         user.set_password(serializer.validated_data['new_password'])

@@ -21,14 +21,19 @@ def generate_otp_code(length=6) -> str:
 def send_profile_update_otp(user) -> dict:
     """
     Generate and send a 6-digit OTP to user's email for profile updating.
-    OTP valid for 10 minutes (600 seconds).
+    OTP valid for 120 seconds (2 minutes).
     """
     if not user.email:
         return {'success': False, 'message': 'Tài khoản chưa có địa chỉ email hợp lệ.'}
 
     code = generate_otp_code(6)
     cache_key = f"otp_profile_{user.id}"
-    cache.set(cache_key, code, timeout=600)
+    sent_key = f"otp_profile_sent_{user.id}"
+
+    # OTP hết hạn sau 120 giây
+    cache.set(cache_key, code, timeout=120)
+    # Ghi nhận cờ đã gửi OTP trong vòng 10 phút để xác định chính xác trường hợp mã bị quá hạn 120s
+    cache.set(sent_key, True, timeout=600)
 
     subject = "[MedTech AI] Mã OTP xác thực cập nhật hồ sơ cá nhân"
     html_message = f"""
@@ -47,8 +52,8 @@ def send_profile_update_otp(user) -> dict:
                     {code}
                 </span>
             </div>
-            <p style="font-size: 13px; color: #64748b; line-height: 1.5;">
-                ⏱️ Mã OTP này có hiệu lực trong vòng <strong>10 phút</strong>. Tuyệt đối không chia sẻ mã này cho bất kỳ ai.
+            <p style="font-size: 13px; color: #dc2626; line-height: 1.5; font-weight: 500;">
+                ⏱️ Mã OTP này có hiệu lực trong vòng <strong>120 giây (2 phút)</strong>. Sau thời gian này mã sẽ tự động vô hiệu hóa. Tuyệt đối không chia sẻ mã này cho bất kỳ ai.
             </p>
             <p style="font-size: 13px; color: #94a3b8; margin-top: 24px; border-top: 1px solid #f1f5f9; padding-top: 14px;">
                 Nếu bạn không thực hiện yêu cầu này, vui lòng liên hệ ngay với Ban Quản trị hệ thống qua email: 1150080125@sv.hcmunre.edu.vn.
@@ -59,7 +64,7 @@ def send_profile_update_otp(user) -> dict:
         </div>
     </div>
     """
-    plain_message = f"Mã xác thực OTP cập nhật hồ sơ MedTech AI của bạn là: {code}. Mã có hiệu lực trong 10 phút."
+    plain_message = f"Mã xác thực OTP cập nhật hồ sơ MedTech AI của bạn là: {code}. Mã có hiệu lực trong 120 giây (2 phút)."
 
     try:
         send_mail(
@@ -70,24 +75,36 @@ def send_profile_update_otp(user) -> dict:
             html_message=html_message,
             fail_silently=False,
         )
-        return {'success': True, 'message': f'Mã OTP đã được gửi đến email {user.email}. Vui lòng kiểm tra hộp thư.'}
+        return {'success': True, 'message': f'Mã OTP đã được gửi đến email {user.email} (hiệu lực 120s). Vui lòng kiểm tra hộp thư.'}
     except Exception as e:
         logger.error(f"Failed to send OTP email to {user.email}: {e}")
         return {'success': False, 'message': f'Không thể gửi email OTP: {str(e)}'}
 
 
-def verify_profile_update_otp(user, code: str) -> bool:
-    """Verify OTP for user profile update."""
+def verify_profile_update_otp(user, code: str):
+    """
+    Verify OTP for user profile update.
+    Returns tuple: (success: bool, error_message: str)
+    """
     if not code:
-        return False
+        return False, "Vui lòng nhập mã OTP gồm 6 chữ số."
+
     cache_key = f"otp_profile_{user.id}"
+    sent_key = f"otp_profile_sent_{user.id}"
+
     saved_code = cache.get(cache_key)
-    if saved_code and str(saved_code).strip() == str(code).strip():
-        # Clean OTP and set verified flag for 15 minutes
-        cache.delete(cache_key)
-        cache.set(f"otp_verified_user_{user.id}", True, timeout=900)
-        return True
-    return False
+
+    if saved_code is None:
+        return False, "Mã OTP đã hết hạn. Yêu cầu thực hiện lại."
+
+    if str(saved_code).strip() != str(code).strip():
+        return False, "Mã OTP không chính xác. Vui lòng kiểm tra lại."
+
+    # Xác thực thành công: Xóa mã OTP và cờ gửi, cấp quyền chỉnh sửa trong 15 phút
+    cache.delete(cache_key)
+    cache.delete(sent_key)
+    cache.set(f"otp_verified_user_{user.id}", True, timeout=900)
+    return True, ""
 
 
 def is_user_otp_verified(user) -> bool:

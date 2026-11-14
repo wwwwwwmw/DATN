@@ -72,6 +72,8 @@ export const authAPI = {
     api.post('/api/auth/otp/verify/', { code }),
   forgotPassword: (email: string) =>
     api.post('/api/auth/forgot-password/', { email }),
+  changePassword: (data: { old_password: string; new_password: string; new_password_confirm: string }) =>
+    api.post('/api/auth/change-password/', data),
   adminGetUsers: (params?: { role?: string; search?: string }) =>
     api.get('/api/auth/admin/users/', { params }),
   adminCreateUser: (data: any) =>
