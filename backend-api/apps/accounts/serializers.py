@@ -1,16 +1,33 @@
 """
 Accounts Serializers — Auth, Profile, User management.
 """
+import re
 from rest_framework import serializers
 from django.contrib.auth import authenticate
-from django.contrib.auth.password_validation import validate_password
 from .models import CustomUser, DoctorProfile, PatientProfile
+
+
+def validate_strong_password(value: str):
+    """
+    Quy chuẩn bảo mật mật khẩu:
+    - Ít nhất 8 ký tự
+    - Ít nhất 1 chữ hoa (A-Z)
+    - Ít nhất 1 ký tự đặc biệt (!@#$%^&*...)
+    """
+    if len(value) < 8:
+        raise serializers.ValidationError("Mật khẩu phải có độ dài ít nhất 8 ký tự.")
+    if not re.search(r'[A-Z]', value):
+        raise serializers.ValidationError("Mật khẩu phải chứa ít nhất 1 chữ in hoa (A-Z).")
+    if not re.search(r'[^A-Za-z0-9]', value):
+        raise serializers.ValidationError("Mật khẩu phải chứa ít nhất 1 ký tự đặc biệt (ví dụ: @, #, $, !, %, *...).")
+    return value
 
 
 class RegisterSerializer(serializers.ModelSerializer):
     """Đăng ký tài khoản mới."""
-    password = serializers.CharField(write_only=True, validators=[validate_password])
+    password = serializers.CharField(write_only=True, validators=[validate_strong_password])
     password_confirm = serializers.CharField(write_only=True)
+
 
     class Meta:
         model = CustomUser
@@ -31,16 +48,19 @@ class RegisterSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
+        # Mặc định người dùng tự đăng ký luôn có role là PATIENT
         user = CustomUser.objects.create_user(
             email=validated_data['email'],
             username=validated_data['username'],
             password=validated_data['password'],
-            role=validated_data.get('role', CustomUser.Role.PATIENT),
+            role=CustomUser.Role.PATIENT,
             first_name=validated_data.get('first_name', ''),
             last_name=validated_data.get('last_name', ''),
             phone=validated_data.get('phone', ''),
         )
+        PatientProfile.objects.get_or_create(user=user)
         return user
+
 
 
 class LoginSerializer(serializers.Serializer):
@@ -144,8 +164,9 @@ class UserDetailSerializer(serializers.ModelSerializer):
 class ChangePasswordSerializer(serializers.Serializer):
     """Đổi mật khẩu."""
     old_password = serializers.CharField(write_only=True)
-    new_password = serializers.CharField(write_only=True, validators=[validate_password])
+    new_password = serializers.CharField(write_only=True, validators=[validate_strong_password])
     new_password_confirm = serializers.CharField(write_only=True)
+
 
     def validate(self, attrs):
         if attrs['new_password'] != attrs.pop('new_password_confirm'):
@@ -153,3 +174,24 @@ class ChangePasswordSerializer(serializers.Serializer):
                 'new_password_confirm': 'Mật khẩu xác nhận không khớp.'
             })
         return attrs
+
+
+class AdminUserManageSerializer(serializers.ModelSerializer):
+    """Serializer quản trị tài khoản cho Admin."""
+    doctor_profile = DoctorProfileSerializer(read_only=True)
+    patient_profile = PatientProfileSerializer(read_only=True)
+    full_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CustomUser
+        fields = [
+            'id', 'email', 'username', 'role',
+            'first_name', 'last_name', 'full_name',
+            'phone', 'avatar', 'is_active', 'is_verified',
+            'created_at', 'updated_at',
+            'doctor_profile', 'patient_profile'
+        ]
+
+    def get_full_name(self, obj):
+        return f"{obj.last_name or ''} {obj.first_name or ''}".strip() or obj.username
+

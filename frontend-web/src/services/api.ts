@@ -66,7 +66,28 @@ export const authAPI = {
     api.put('/api/auth/profile/', data),
   getDoctors: () =>
     api.get('/api/auth/doctors/'),
+  sendOTP: () =>
+    api.post('/api/auth/otp/send/'),
+  verifyOTP: (code: string) =>
+    api.post('/api/auth/otp/verify/', { code }),
+  forgotPassword: (email: string) =>
+    api.post('/api/auth/forgot-password/', { email }),
+  adminGetUsers: (params?: { role?: string; search?: string }) =>
+    api.get('/api/auth/admin/users/', { params }),
+  adminCreateUser: (data: any) =>
+    api.post('/api/auth/admin/users/', data),
+  adminUpdateUser: (id: number, data: any) =>
+    api.put(`/api/auth/admin/users/${id}/`, data),
+  adminDeleteUser: (id: number) =>
+    api.delete(`/api/auth/admin/users/${id}/`),
+  adminImportExcel: (formData: FormData) =>
+    api.post('/api/auth/admin/import-excel/', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  adminExportTemplate: () =>
+    api.get('/api/auth/admin/export-template/', { responseType: 'blob' }),
 }
+
 
 // Medical Records
 export const medicalRecordAPI = {

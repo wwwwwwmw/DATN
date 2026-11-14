@@ -553,8 +553,9 @@ export default function SmartBooking() {
                           {doc.specialization}
                         </div>
                         <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginTop: 2 }}>
-                          {doc.clinic_name || 'Bệnh viện Đa khoa MedTech'} &bull; {doc.experience_years || 10} {t('common.years_exp')}
+                          {doc.clinic_name || 'Bệnh viện Đa khoa MedTech'} &bull; Hành nghề từ năm {doc.experience_years >= 1950 ? doc.experience_years : (2026 - (doc.experience_years || 10))}
                         </div>
+
                       </div>
                     </div>
 
