@@ -10,7 +10,8 @@ import {
   MessageSquare, Shield, AlertTriangle, FileText,
   CheckCircle, Send, Search, PanelRightClose, PanelRightOpen,
   PanelLeftClose, PanelLeftOpen,
-  Volume2, UserCheck, Minimize2, Maximize2
+  Volume2, UserCheck, Minimize2, Maximize2,
+  RefreshCw
 } from 'lucide-react'
 
 function extractList(res: any): any[] {
@@ -61,13 +62,23 @@ export default function Telehealth() {
   const localVideoRef = useRef<HTMLVideoElement>(null)
   const remoteVideoRef = useRef<HTMLVideoElement>(null)
   const localStreamRef = useRef<MediaStream | null>(null)
+  const remoteStreamRef = useRef<MediaStream | null>(null)
   const peerConnRef = useRef<RTCPeerConnection | null>(null)
   const [hasRemoteStream, setHasRemoteStream] = useState(false)
+  const [localStreamReady, setLocalStreamReady] = useState(false)
+  const [iceState, setIceState] = useState<string>('new')
+  const [peerConnectionState, setPeerConnectionState] = useState<string>('new')
   const processedOfferRef = useRef<string | null>(null)
   const processedAnswerRef = useRef<string | null>(null)
-  const processedIceCountRef = useRef<number>(0)
+  const processedIceSetRef = useRef<Set<string>>(new Set())
+  const pendingIceCandidatesRef = useRef<any[]>([])
+  const iceBatchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const isPatientUser = user?.role === 'PATIENT'
+  // Camera devices & OBS detection
+  const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([])
+  const [selectedCameraId, setSelectedCameraId] = useState<string>('')
+
+  const isPatientUser = user?.role === 'PATIENT' || (roomState?.patient_id ? user?.id === roomState.patient_id : false)
 
   const loadAppointments = async (silent = false) => {
     if (!silent) setLoading(true)
@@ -164,79 +175,300 @@ export default function Telehealth() {
     return () => { if (interval) clearInterval(interval) }
   }, [isInCall, roomState?.started_at])
 
-  useEffect(() => {
-    if (isInCall && isCallModalOpen && localVideoRef.current && localStreamRef.current) {
-      localVideoRef.current.srcObject = localStreamRef.current
-    }
-  }, [isInCall, isCallModalOpen, isVideoOn, isCallMinimized])
-
-  const startLocalMedia = async (withVideo = true) => {
-    setCameraError(null)
+  const loadAvailableDevices = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: withVideo, audio: true })
-      localStreamRef.current = stream
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = stream
-      }
-      return stream
-    } catch {
-      try {
-        const audioOnly = await navigator.mediaDevices.getUserMedia({ video: false, audio: true })
-        localStreamRef.current = audioOnly
-        if (withVideo) {
-          setCameraError('Camera đang được sử dụng bởi cửa sổ khác — Đã bật chế độ Âm thanh + Khung hình trực tuyến.')
-        }
-        return audioOnly
-      } catch {
-        setCameraError('Không tìm thấy thiết bị Camera/Mic vật lý — Đã kích hoạt kết nối kỹ thuật số và Chat trực tiếp.')
-        return null
-      }
+      if (!navigator.mediaDevices?.enumerateDevices) return []
+      const devices = await navigator.mediaDevices.enumerateDevices()
+      const videoInputs = devices.filter(d => d.kind === 'videoinput')
+      setAvailableCameras(videoInputs)
+      return videoInputs
+    } catch (err) {
+      console.warn('Enumerate devices error:', err)
+      return []
     }
   }
 
+  // Auto-detect connected cameras (including OBS Virtual Cam)
+  useEffect(() => {
+    loadAvailableDevices()
+    const handleDeviceChange = () => { loadAvailableDevices() }
+    navigator.mediaDevices?.addEventListener('devicechange', handleDeviceChange)
+    return () => {
+      navigator.mediaDevices?.removeEventListener('devicechange', handleDeviceChange)
+    }
+  }, [])
+
+  // Keep local video element synced to localStream
+  useEffect(() => {
+    if (localVideoRef.current && localStreamRef.current) {
+      if (localVideoRef.current.srcObject !== localStreamRef.current) {
+        localVideoRef.current.srcObject = localStreamRef.current
+      }
+      localVideoRef.current.play().catch(() => {})
+    }
+  }, [localStreamReady, isVideoOn, isInCall, isCallModalOpen, isCallMinimized])
+
+  // Keep remote video element synced to remoteStream
+  useEffect(() => {
+    if (remoteVideoRef.current && remoteStreamRef.current && remoteStreamRef.current.getTracks().length > 0) {
+      if (remoteVideoRef.current.srcObject !== remoteStreamRef.current) {
+        remoteVideoRef.current.srcObject = remoteStreamRef.current
+      }
+      remoteVideoRef.current.play().catch(e => console.debug('Remote video play:', e))
+    }
+  }, [hasRemoteStream, roomState, isCallModalOpen, isCallMinimized])
+
+  const syncLocalTracksToPC = (pc: RTCPeerConnection, stream: MediaStream) => {
+    const transceivers = pc.getTransceivers()
+    stream.getTracks().forEach(track => {
+      const transceiver = transceivers.find(t =>
+        (t.sender.track && t.sender.track.kind === track.kind) ||
+        (t.receiver.track && t.receiver.track.kind === track.kind)
+      )
+      if (transceiver && transceiver.sender) {
+        if (transceiver.sender.track !== track) {
+          transceiver.sender.replaceTrack(track).catch(err => console.warn('replaceTrack error:', err))
+        }
+        if (transceiver.direction === 'recvonly') {
+          transceiver.direction = 'sendrecv'
+        }
+      } else {
+        const senders = pc.getSenders()
+        const sender = senders.find(s => s.track && s.track.kind === track.kind)
+        if (sender) {
+          sender.replaceTrack(track).catch(err => console.warn('replaceTrack error:', err))
+        } else {
+          try {
+            pc.addTrack(track, stream)
+          } catch (err) {
+            console.warn('addTrack error:', err)
+          }
+        }
+      }
+    })
+  }
+
+  const startLocalMedia = async (withVideo = true, preferredCameraId?: string) => {
+    setCameraError(null)
+
+    // Check currently available cameras
+    let currentCams = availableCameras
+    if (currentCams.length === 0) {
+      currentCams = await loadAvailableDevices()
+    }
+
+    // Auto-detect camera: Prioritize physical hardware cameras, fallback to OBS Virtual Camera
+    let targetCamId = preferredCameraId || selectedCameraId
+    if (!targetCamId && currentCams.length > 0) {
+      const physicalCam = currentCams.find(c => {
+        const lbl = (c.label || '').toLowerCase()
+        return !lbl.includes('obs') && !lbl.includes('virtual')
+      })
+      if (physicalCam) {
+        targetCamId = physicalCam.deviceId
+        setSelectedCameraId(physicalCam.deviceId)
+      } else {
+        // Fallback for machines without physical webcam (e.g. MiniPC using OBS Virtual Camera)
+        targetCamId = currentCams[0].deviceId
+        setSelectedCameraId(targetCamId)
+      }
+    }
+
+    let vTrack: MediaStreamTrack | null = null
+    let aTrack: MediaStreamTrack | null = null
+
+    // 1. Try to get Video independently (supports OBS Virtual Cam & standard webcams)
+    if (withVideo) {
+      try {
+        const vConstraints: MediaStreamConstraints = {
+          video: targetCamId
+            ? { deviceId: { exact: targetCamId }, width: { ideal: 1280 }, height: { ideal: 720 } }
+            : { width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false,
+        }
+        const vStream = await navigator.mediaDevices.getUserMedia(vConstraints)
+        vTrack = vStream.getVideoTracks()[0] || null
+        if (vTrack) {
+          loadAvailableDevices()
+        }
+      } catch (vErr) {
+        console.warn('Failed video with ideal constraints, trying basic video: true', vErr)
+        try {
+          const vStreamBasic = await navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+          vTrack = vStreamBasic.getVideoTracks()[0] || null
+          if (vTrack) loadAvailableDevices()
+        } catch (vErr2) {
+          console.warn('All video acquisition failed:', vErr2)
+          setCameraError('Không thể mở Camera / OBS Virtual Camera. Hãy chắc chắn bạn đã nhấn "Start Virtual Camera" trong phần mềm OBS Studio.')
+        }
+      }
+    }
+
+    // 2. Try to get Audio independently (MiniPC may not have a physical microphone)
+    try {
+      const aStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true })
+      aTrack = aStream.getAudioTracks()[0] || null
+      setIsMicOn(true)
+    } catch (aErr) {
+      console.info('No audio input device detected or microphone permission denied (MiniPC):', aErr)
+      setIsMicOn(false)
+    }
+
+    // 3. Combine whatever tracks succeeded
+    const tracks: MediaStreamTrack[] = []
+    if (vTrack) tracks.push(vTrack)
+    if (aTrack) tracks.push(aTrack)
+
+    if (tracks.length > 0) {
+      const combined = new MediaStream(tracks)
+      localStreamRef.current = combined
+      setLocalStreamReady(true)
+
+      if (vTrack) {
+        setIsVideoOn(true)
+        setCameraError(null)
+      } else if (withVideo) {
+        setIsVideoOn(false)
+      }
+
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = combined
+        localVideoRef.current.play().catch(() => {})
+      }
+
+      if (peerConnRef.current) {
+        syncLocalTracksToPC(peerConnRef.current, combined)
+      }
+      return combined
+    } else {
+      localStreamRef.current = null
+      setLocalStreamReady(false)
+      setIsVideoOn(false)
+      setIsMicOn(false)
+      setCameraError('Không tìm thấy thiết bị Camera / Mic. Nếu dùng OBS, vui lòng bật "Start Virtual Camera" rồi bấm Thử lại.')
+      return null
+    }
+  }
+
+
+  const flushIceCandidates = (apptId: number) => {
+    if (pendingIceCandidatesRef.current.length === 0) return
+    const batch = [...pendingIceCandidatesRef.current]
+    pendingIceCandidatesRef.current = []
+    appointmentAPI.updateTelehealthRoom(apptId, {
+      action: 'webrtc_signal',
+      signal_type: 'ice_batch',
+      signal_data: batch,
+      participant_role: isPatientUser ? 'PATIENT' : 'DOCTOR',
+    }).catch(err => console.warn('Flush ICE batch error:', err))
+  }
+
   const stopLocalMedia = () => {
+    if (iceBatchTimeoutRef.current) {
+      clearTimeout(iceBatchTimeoutRef.current)
+      iceBatchTimeoutRef.current = null
+    }
+    pendingIceCandidatesRef.current = []
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach(t => t.stop())
       localStreamRef.current = null
+    }
+    if (remoteStreamRef.current) {
+      remoteStreamRef.current.getTracks().forEach(t => t.stop())
+      remoteStreamRef.current = null
     }
     if (peerConnRef.current) {
       peerConnRef.current.close()
       peerConnRef.current = null
     }
     setHasRemoteStream(false)
+    setLocalStreamReady(false)
+    setIceState('new')
+    setPeerConnectionState('new')
     processedOfferRef.current = null
     processedAnswerRef.current = null
-    processedIceCountRef.current = 0
+    processedIceSetRef.current.clear()
   }
 
   const ensurePeerConnection = (apptId: number) => {
-    if (peerConnRef.current) return peerConnRef.current
+    if (peerConnRef.current && peerConnRef.current.signalingState !== 'closed') {
+      return peerConnRef.current
+    }
     const pc = new RTCPeerConnection({
-      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+      iceServers: [
+        {
+          urls: [
+            'turns:global.relay.metered.ca:443?transport=tcp',
+            'turn:global.relay.metered.ca:443?transport=tcp',
+            'turn:global.relay.metered.ca:80?transport=tcp',
+          ],
+          username: '7f27ef410e8ff9439e474323',
+          credential: 'MS5zleUbEp9n0qKQ',
+        },
+        {
+          urls: [
+            'turn:global.relay.metered.ca:80',
+            'turn:global.relay.metered.ca:443',
+          ],
+          username: '7f27ef410e8ff9439e474323',
+          credential: 'MS5zleUbEp9n0qKQ',
+        },
+        { urls: 'stun:stun.relay.metered.ca:80' },
+        { urls: 'stun:stun.l.google.com:19302' },
+      ],
+      iceCandidatePoolSize: 10,
     })
 
     if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(track => {
-        pc.addTrack(track, localStreamRef.current!)
-      })
+      syncLocalTracksToPC(pc, localStreamRef.current)
     }
 
     pc.onicecandidate = (event) => {
       if (event.candidate) {
-        appointmentAPI.updateTelehealthRoom(apptId, {
-          action: 'webrtc_signal',
-          signal_type: 'ice',
-          signal_data: event.candidate.toJSON(),
-        }).catch(() => {})
+        pendingIceCandidatesRef.current.push(event.candidate.toJSON())
+        if (iceBatchTimeoutRef.current) clearTimeout(iceBatchTimeoutRef.current)
+        iceBatchTimeoutRef.current = setTimeout(() => {
+          flushIceCandidates(apptId)
+        }, 150)
+      } else {
+        flushIceCandidates(apptId)
       }
     }
 
     pc.ontrack = (event) => {
-      if (event.streams && event.streams[0]) {
-        setHasRemoteStream(true)
-        if (remoteVideoRef.current) {
-          remoteVideoRef.current.srcObject = event.streams[0]
+      console.log('[WebRTC] Received remote track:', event.track.kind, event.track.id)
+      if (!remoteStreamRef.current) {
+        remoteStreamRef.current = new MediaStream()
+      }
+      const existing = remoteStreamRef.current.getTracks().filter(t => t.kind === event.track.kind)
+      existing.forEach(t => remoteStreamRef.current?.removeTrack(t))
+      remoteStreamRef.current.addTrack(event.track)
+
+      setHasRemoteStream(true)
+      if (remoteVideoRef.current) {
+        if (remoteVideoRef.current.srcObject !== remoteStreamRef.current) {
+          remoteVideoRef.current.srcObject = remoteStreamRef.current
         }
+        remoteVideoRef.current.play().catch(e => console.debug('Remote video play err:', e))
+      }
+    }
+
+    pc.oniceconnectionstatechange = () => {
+      console.log('[WebRTC] ICE Connection State:', pc.iceConnectionState)
+      setIceState(pc.iceConnectionState)
+      if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+        setHasRemoteStream(true)
+      } else if (pc.iceConnectionState === 'failed') {
+        console.warn('[WebRTC] ICE Connection Failed, attempting restart...')
+        pc.restartIce()
+      }
+    }
+
+    pc.onconnectionstatechange = () => {
+      console.log('[WebRTC] Peer Connection State:', pc.connectionState)
+      setPeerConnectionState(pc.connectionState)
+      if (pc.connectionState === 'connected') {
+        setHasRemoteStream(true)
       }
     }
 
@@ -244,13 +476,49 @@ export default function Telehealth() {
     return pc
   }
 
+  const handleRetryWebRTC = async () => {
+    if (!selectedApptId) return
+    console.log('[WebRTC] Manual reconnection requested...')
+    if (peerConnRef.current) {
+      peerConnRef.current.close()
+      peerConnRef.current = null
+    }
+    setHasRemoteStream(false)
+    processedOfferRef.current = null
+    processedAnswerRef.current = null
+    processedIceSetRef.current.clear()
+
+    // Reset signaling room state in backend so both peers start fresh
+    await appointmentAPI.updateTelehealthRoom(selectedApptId, {
+      action: 'webrtc_signal',
+      signal_type: 'offer',
+      signal_data: null,
+      participant_role: isPatientUser ? 'PATIENT' : 'DOCTOR',
+    }).catch(() => {})
+
+    const pc = ensurePeerConnection(selectedApptId)
+    if (localStreamRef.current) {
+      syncLocalTracksToPC(pc, localStreamRef.current)
+    }
+    if (roomState) {
+      await handleWebRTCSync(selectedApptId, roomState)
+    }
+  }
+
   const handleWebRTCSync = async (apptId: number, data: any) => {
     if (!data.doctor_in_room || !data.patient_in_room) return
     const pc = ensurePeerConnection(apptId)
 
+    // Sync any newly added tracks to peer connection
+    if (localStreamRef.current) {
+      syncLocalTracksToPC(pc, localStreamRef.current)
+    }
+
     try {
       if (!isPatientUser) {
-        if (!data.webrtc_offer && pc.signalingState === 'stable') {
+        // DOCTOR: Creates Offer if this local PeerConnection hasn't created one yet
+        if (!processedOfferRef.current && pc.signalingState === 'stable') {
+          console.log('[WebRTC] Doctor generating fresh offer...')
           const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true })
           await pc.setLocalDescription(offer)
           processedOfferRef.current = JSON.stringify(offer)
@@ -258,46 +526,65 @@ export default function Telehealth() {
             action: 'webrtc_signal',
             signal_type: 'offer',
             signal_data: { type: offer.type, sdp: offer.sdp },
+            participant_role: 'DOCTOR',
           })
+          setTimeout(() => flushIceCandidates(apptId), 250)
         } else if (data.webrtc_answer) {
           const ansStr = JSON.stringify(data.webrtc_answer)
           if (processedAnswerRef.current !== ansStr && pc.signalingState === 'have-local-offer') {
             processedAnswerRef.current = ansStr
             await pc.setRemoteDescription(new RTCSessionDescription(data.webrtc_answer))
+            console.log('[WebRTC] Doctor successfully setRemoteDescription with Answer')
           }
         }
         const remoteCands = data.patient_ice_candidates || []
-        if (pc.remoteDescription && remoteCands.length > processedIceCountRef.current) {
-          for (let i = processedIceCountRef.current; i < remoteCands.length; i++) {
-            await pc.addIceCandidate(new RTCIceCandidate(remoteCands[i])).catch(() => {})
+        if (pc.remoteDescription && Array.isArray(remoteCands)) {
+          for (const cand of remoteCands) {
+            if (!cand || !cand.candidate || !cand.candidate.trim()) continue
+            const key = cand.candidate || JSON.stringify(cand)
+            if (!processedIceSetRef.current.has(key)) {
+              processedIceSetRef.current.add(key)
+              await pc.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {})
+            }
           }
-          processedIceCountRef.current = remoteCands.length
         }
       } else {
+        // PATIENT: Receives Offer, Creates Answer
         if (data.webrtc_offer) {
           const offStr = JSON.stringify(data.webrtc_offer)
-          if (processedOfferRef.current !== offStr && pc.signalingState === 'stable') {
+          if (processedOfferRef.current !== offStr) {
             processedOfferRef.current = offStr
+            if (pc.signalingState !== 'stable') {
+              console.log('[WebRTC] Patient resetting PeerConnection to receive new Offer')
+            }
             await pc.setRemoteDescription(new RTCSessionDescription(data.webrtc_offer))
+            console.log('[WebRTC] Patient successfully setRemoteDescription with Offer')
             const answer = await pc.createAnswer()
             await pc.setLocalDescription(answer)
+            processedAnswerRef.current = JSON.stringify(answer)
             await appointmentAPI.updateTelehealthRoom(apptId, {
               action: 'webrtc_signal',
               signal_type: 'answer',
               signal_data: { type: answer.type, sdp: answer.sdp },
+              participant_role: 'PATIENT',
             })
+            setTimeout(() => flushIceCandidates(apptId), 250)
           }
         }
         const remoteCands = data.doctor_ice_candidates || []
-        if (pc.remoteDescription && remoteCands.length > processedIceCountRef.current) {
-          for (let i = processedIceCountRef.current; i < remoteCands.length; i++) {
-            await pc.addIceCandidate(new RTCIceCandidate(remoteCands[i])).catch(() => {})
+        if (pc.remoteDescription && Array.isArray(remoteCands)) {
+          for (const cand of remoteCands) {
+            if (!cand || !cand.candidate || !cand.candidate.trim()) continue
+            const key = cand.candidate || JSON.stringify(cand)
+            if (!processedIceSetRef.current.has(key)) {
+              processedIceSetRef.current.add(key)
+              await pc.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {})
+            }
           }
-          processedIceCountRef.current = remoteCands.length
         }
       }
     } catch (err) {
-      console.warn('WebRTC negotiation step:', err)
+      console.warn('[WebRTC] Negotiation step warning:', err)
     }
   }
 
@@ -312,12 +599,20 @@ export default function Telehealth() {
     setIsVideoOn(videoMode)
     setIsCallModalOpen(true)
     setIsCallMinimized(false)
-    await startLocalMedia(videoMode)
+    const stream = await startLocalMedia(videoMode)
     setIsInCall(true)
+
+    const pc = ensurePeerConnection(apptId)
+    if (stream) {
+      syncLocalTracksToPC(pc, stream)
+    }
+
+    const actualHasVideo = Boolean(stream && stream.getVideoTracks().length > 0)
     const res = await appointmentAPI.updateTelehealthRoom(apptId, {
       action: 'join',
       mic: isMicOn,
-      video: videoMode,
+      video: actualHasVideo,
+      participant_role: isPatientUser ? 'PATIENT' : 'DOCTOR',
     })
     const data = res.data?.data || res.data
     setRoomState(data)
@@ -334,6 +629,7 @@ export default function Telehealth() {
     if (!selectedApptId) return
     const res = await appointmentAPI.updateTelehealthRoom(selectedApptId, {
       action: 'leave',
+      participant_role: isPatientUser ? 'PATIENT' : 'DOCTOR',
     })
     setRoomState(res.data?.data || res.data)
     loadAppointments(true)
@@ -359,7 +655,14 @@ export default function Telehealth() {
     const nextVid = !isVideoOn
     setIsVideoOn(nextVid)
     if (localStreamRef.current) {
-      localStreamRef.current.getVideoTracks().forEach(t => { t.enabled = nextVid })
+      const vTracks = localStreamRef.current.getVideoTracks()
+      if (vTracks.length > 0) {
+        vTracks.forEach(t => { t.enabled = nextVid })
+      } else if (nextVid) {
+        await startLocalMedia(true, selectedCameraId)
+      }
+    } else if (nextVid) {
+      await startLocalMedia(true, selectedCameraId)
     }
     if (selectedApptId && isInCall) {
       const res = await appointmentAPI.updateTelehealthRoom(selectedApptId, {
@@ -420,6 +723,10 @@ export default function Telehealth() {
   useCallRingtone({ isInCall, bothConnected, otherPartyInRoom, isCallModalOpen })
   const otherPartyMicOn = isPatientUser ? (roomState?.doctor_mic ?? true) : (roomState?.patient_mic ?? true)
   const otherPartyVideoOn = isPatientUser ? (roomState?.doctor_video ?? true) : (roomState?.patient_video ?? true)
+  const isP2PConnected = iceState === 'connected' || iceState === 'completed' || peerConnectionState === 'connected'
+  const isRemoteVideoActive = hasRemoteStream && isP2PConnected && (
+    otherPartyVideoOn || (remoteStreamRef.current ? remoteStreamRef.current.getVideoTracks().some(t => t.readyState === 'live' && t.enabled) : false)
+  )
   const otherPartyName = activeAppt
     ? (isPatientUser ? `BS. ${activeAppt.doctor_name}` : `BN. ${activeAppt.patient_name}`)
     : ''
@@ -1152,14 +1459,39 @@ export default function Telehealth() {
                     </span>
                   )}
 
+                  {bothConnected && (
+                    <span
+                      className={`badge ${isP2PConnected ? 'badge-success' : 'badge-warning'}`}
+                      style={{ fontSize: '11px', padding: '4px 10px' }}
+                      title={`ICE: ${iceState} | Peer: ${peerConnectionState}`}
+                    >
+                      {isP2PConnected
+                        ? '⚡ P2P Trực Tiếp Hoạt Động'
+                        : iceState === 'failed' || peerConnectionState === 'failed'
+                          ? '⚠️ Lỗi kênh P2P'
+                          : '🔄 Đang trao đổi gói P2P...'}
+                    </span>
+                  )}
+
+                  {(iceState === 'failed' || peerConnectionState === 'failed') && (
+                    <button
+                      className="btn btn-sm btn-danger"
+                      onClick={handleRetryWebRTC}
+                      style={{ padding: '3px 8px', fontSize: '11px', borderRadius: 'var(--radius-sm)' }}
+                      title="Bấm để tái tạo kênh kết nối WebRTC giữa 2 máy"
+                    >
+                      <RefreshCw size={12} style={{ marginRight: 4 }} /> Kết nối lại P2P
+                    </button>
+                  )}
+
                   {bothConnected && !otherPartyMicOn && (
                     <span className="badge badge-emergency" style={{ fontSize: '11px', padding: '4px 10px' }}>
                       <MicOff size={12} style={{ marginRight: 4 }} /> {otherPartyName} đang tắt/hỏng Mic — Hãy dùng khung Chat bên phải
                     </span>
                   )}
                   {cameraError && (
-                    <span className="badge badge-neutral" style={{ fontSize: '10px', padding: '4px 8px' }}>
-                      ℹ️ {cameraError}
+                    <span className="badge badge-emergency" style={{ fontSize: '11px', padding: '4px 10px', background: 'rgba(239,68,68,0.2)', border: '1px solid #ef4444', color: '#fca5a5' }}>
+                      ⚠️ {cameraError}
                     </span>
                   )}
                 </div>
@@ -1174,19 +1506,21 @@ export default function Telehealth() {
                 </button>
               </div>
 
-              {/* Remote Participant Stream / Avatar */}
-              {bothConnected ? (
+              {/* Remote Participant Stream */}
+              <video
+                ref={remoteVideoRef}
+                autoPlay
+                playsInline
+                style={{
+                  width: '100%', height: '100%', objectFit: 'cover',
+                  display: bothConnected && isRemoteVideoActive ? 'block' : 'none',
+                }}
+              />
+
+              {/* Waiting or Audio-only Fallback */}
+              {(!bothConnected || !isRemoteVideoActive) && (
                 <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <video
-                    ref={remoteVideoRef}
-                    autoPlay
-                    playsInline
-                    style={{
-                      width: '100%', height: '100%', objectFit: 'cover',
-                      display: hasRemoteStream && otherPartyVideoOn ? 'block' : 'none',
-                    }}
-                  />
-                  {(!hasRemoteStream || !otherPartyVideoOn) && (
+                  {bothConnected ? (
                     <div style={{ textAlign: 'center', color: 'white', padding: 24 }}>
                       <div style={{
                         width: 110, height: 110, borderRadius: '50%',
@@ -1202,23 +1536,23 @@ export default function Telehealth() {
                         <Volume2 size={16} /> Đang kết nối trực tiếp trong cuộc gọi ({formatTime(callTime)})
                       </p>
                     </div>
+                  ) : (
+                    <div style={{ textAlign: 'center', color: 'white', padding: 24 }}>
+                      <div style={{
+                        width: 104, height: 104, borderRadius: '50%',
+                        background: '#0068ff', color: 'white',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        margin: '0 auto 16px', fontSize: '32px', fontWeight: 'bold',
+                        boxShadow: '0 0 0 12px rgba(0, 104, 255, 0.25)',
+                      }}>
+                        {getInitials(isPatientUser ? activeAppt?.doctor_name : activeAppt?.patient_name)}
+                      </div>
+                      <h2 style={{ color: 'white', marginBottom: 6 }}>Đang gọi cho {otherPartyName}...</h2>
+                      <p style={{ fontSize: 'var(--text-sm)', color: 'rgba(255,255,255,0.7)', maxWidth: 420, margin: '0 auto' }}>
+                        Hệ thống đã gửi thông báo cuộc gọi đến <strong>{otherPartyName}</strong>. Bạn cũng có thể nhắn tin ở khung bên phải trong lúc chờ.
+                      </p>
+                    </div>
                   )}
-                </div>
-              ) : (
-                <div style={{ textAlign: 'center', color: 'white', padding: 24 }}>
-                  <div style={{
-                    width: 104, height: 104, borderRadius: '50%',
-                    background: '#0068ff', color: 'white',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    margin: '0 auto 16px', fontSize: '32px', fontWeight: 'bold',
-                    boxShadow: '0 0 0 12px rgba(0, 104, 255, 0.25)',
-                  }}>
-                    {getInitials(isPatientUser ? activeAppt.doctor_name : activeAppt.patient_name)}
-                  </div>
-                  <h2 style={{ color: 'white', marginBottom: 6 }}>Đang gọi cho {otherPartyName}...</h2>
-                  <p style={{ fontSize: 'var(--text-sm)', color: 'rgba(255,255,255,0.7)', maxWidth: 420, margin: '0 auto' }}>
-                    Hệ thống đã gửi thông báo cuộc gọi đến <strong>{otherPartyName}</strong>. Bạn cũng có thể nhắn tin ở khung bên phải trong lúc chờ.
-                  </p>
                 </div>
               )}
 
@@ -1257,7 +1591,7 @@ export default function Telehealth() {
                 position: 'absolute', bottom: 0, left: 0, right: 0,
                 padding: '16px',
                 background: 'linear-gradient(transparent, rgba(0,0,0,0.85))',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '14px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', flexWrap: 'wrap',
               }}>
                 <button
                   className={`btn ${isMicOn ? 'btn-secondary' : 'btn-danger'}`}
@@ -1276,6 +1610,17 @@ export default function Telehealth() {
                   {isVideoOn ? <Video size={18} /> : <VideoOff size={18} />}
                   <span>{isVideoOn ? 'Tắt Camera' : 'Bật Camera'}</span>
                 </button>
+
+                {cameraError && (
+                  <button
+                    className="btn btn-warning"
+                    onClick={() => startLocalMedia(true, selectedCameraId)}
+                    style={{ borderRadius: 'var(--radius-full)', height: 46, padding: '0 16px', fontSize: '12px' }}
+                    title="Bấm để thử kết nối lại Camera / OBS sau khi đã bật 'Start Virtual Camera'"
+                  >
+                    <RefreshCw size={14} style={{ marginRight: 6 }} /> Thử lại Camera / OBS
+                  </button>
+                )}
 
                 <button
                   className={`btn ${showInCallChat ? 'btn-primary' : 'btn-secondary'}`}

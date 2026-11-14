@@ -1,17 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
-import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
 import { authAPI } from '../services/api'
-import InfoTooltip from '../components/InfoTooltip'
 import {
-  User, Shield, Mail, CheckCircle, Download,
+  Shield, Mail, CheckCircle, Download,
   Lock, KeyRound, Edit, Trash2, Plus, Search,
   Camera, X, AlertCircle, FileSpreadsheet, Upload,
   Users, Stethoscope, UserCheck, ShieldAlert
 } from 'lucide-react'
 
 export default function Settings() {
-  const { t, i18n } = useTranslation()
   const { user } = useAuth()
   const isAdmin = user?.role === 'ADMIN'
 
@@ -1019,6 +1016,15 @@ export default function Settings() {
   // GIAO DIỆN HỒ SƠ CÁ NHÂN (ROLE: DOCTOR HOẶC PATIENT)
   // Đã bỏ Sidebar bên trái, bỏ mã định danh y tế, bỏ nút làm mới từ Database
   // =========================================================================
+  if (loading) {
+    return (
+      <div style={{ padding: 60, textAlign: 'center', color: 'var(--color-text-secondary)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+        <span className="loading-spinner" />
+        <div>Đang tải thông tin hồ sơ người dùng...</div>
+      </div>
+    )
+  }
+
   const initials = getInitials(firstName, lastName)
 
   return (

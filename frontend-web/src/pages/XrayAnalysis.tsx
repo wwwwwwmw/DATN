@@ -29,7 +29,7 @@ import {
   X,
 } from 'lucide-react'
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_BASE = import.meta.env.VITE_API_URL || ''
 
 function resolveMediaUrl(url?: string): string {
   if (!url) return ''

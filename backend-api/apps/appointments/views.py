@@ -440,6 +440,7 @@ class TelehealthRoomView(APIView):
     (Bác sĩ <-> Bệnh nhân), tín hiệu WebRTC (Offer/Answer/ICE), và tin nhắn Chat trong cuộc gọi.
     """
     permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = []  # Không giới hạn rate-limit cho tín hiệu WebRTC (Offer/Answer/ICE) và polling thời gian thực
 
     def _get_authorized_appointment(self, request, pk):
         user = request.user
@@ -514,8 +515,10 @@ class TelehealthRoomView(APIView):
         room, _ = TelehealthRoom.objects.get_or_create(appointment=appointment)
         user = request.user
         action = request.data.get('action', '')
-        acting_as_patient = (user.role == 'PATIENT') or (
-            user.role == 'ADMIN' and request.data.get('participant_role') == 'PATIENT'
+        acting_as_patient = (
+            user.role == 'PATIENT'
+            or (user.id == appointment.patient_id)
+            or (user.role == 'ADMIN' and request.data.get('participant_role') == 'PATIENT')
         )
 
         if action == 'join':
@@ -524,6 +527,11 @@ class TelehealthRoomView(APIView):
                 room.patient_in_room = True
                 room.patient_mic = bool(request.data.get('mic', True))
                 room.patient_video = bool(request.data.get('video', True))
+                if not was_in_room and not room.doctor_in_room:
+                    room.webrtc_offer = None
+                    room.webrtc_answer = None
+                    room.doctor_ice_candidates = []
+                    room.patient_ice_candidates = []
                 if room.doctor_in_room and not room.started_at:
                     room.started_at = timezone.now()
                 room.save()
@@ -543,6 +551,11 @@ class TelehealthRoomView(APIView):
                 room.doctor_in_room = True
                 room.doctor_mic = bool(request.data.get('mic', True))
                 room.doctor_video = bool(request.data.get('video', True))
+                if not was_in_room and not room.patient_in_room:
+                    room.webrtc_offer = None
+                    room.webrtc_answer = None
+                    room.doctor_ice_candidates = []
+                    room.patient_ice_candidates = []
                 if room.patient_in_room and not room.started_at:
                     room.started_at = timezone.now()
                 room.save()
@@ -563,7 +576,7 @@ class TelehealthRoomView(APIView):
                 room.patient_in_room = False
             else:
                 room.doctor_in_room = False
-            if not (room.doctor_in_room and room.patient_in_room):
+            if not room.doctor_in_room and not room.patient_in_room:
                 room.started_at = None
                 room.webrtc_offer = None
                 room.webrtc_answer = None
@@ -610,15 +623,16 @@ class TelehealthRoomView(APIView):
             elif sig_type == 'answer':
                 room.webrtc_answer = sig_data
                 room.save()
-            elif sig_type == 'ice' and sig_data:
+            elif sig_type in ('ice', 'ice_batch') and sig_data:
+                items = sig_data if isinstance(sig_data, list) else [sig_data]
                 if acting_as_patient:
                     cands = list(room.patient_ice_candidates or [])
-                    cands.append(sig_data)
-                    room.patient_ice_candidates = cands[-25:]
+                    cands.extend(items)
+                    room.patient_ice_candidates = cands[-150:]
                 else:
                     cands = list(room.doctor_ice_candidates or [])
-                    cands.append(sig_data)
-                    room.doctor_ice_candidates = cands[-25:]
+                    cands.extend(items)
+                    room.doctor_ice_candidates = cands[-150:]
                 room.save()
 
         return Response({
