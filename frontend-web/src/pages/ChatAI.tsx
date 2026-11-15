@@ -1,11 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { chatAPI } from '../services/api'
 import InfoTooltip from '../components/InfoTooltip'
 import {
-  Send, Bot, AlertTriangle, BookOpen, Shield,
-  Paperclip, Mic, Calendar, Video, ThumbsUp, Copy,
-  ChevronRight, PhoneCall, Sparkles, CheckCircle2
+  Send, Bot, Shield,
+  Paperclip, Mic, ThumbsUp, Copy,
+  Sparkles, CheckCircle2
 } from 'lucide-react'
 
 interface Message {
@@ -15,6 +14,15 @@ interface Message {
   urgency?: string
   specialties?: string[]
   timestamp?: string
+}
+
+// Hàm chuẩn hóa nội dung: Bỏ icon tam giác cảnh báo (⚠️, ▲), chỉ để lại chữ Lưu ý
+function cleanContent(text: string): string {
+  if (!text) return ''
+  return text
+    .replace(/^[⚠️▲]\s*\*?Lưu ý/gm, '*Lưu ý')
+    .replace(/[⚠️▲]\s*\*?Lưu ý/g, '*Lưu ý')
+    .replace(/[⚠️▲]\s*/g, '')
 }
 
 // Client-side fallback engine in case network is disconnected
@@ -34,16 +42,16 @@ function localMedicalFallback(text: string = ''): { answer: string; urgency: str
     return {
       answer: `Xin lỗi, tôi chưa hiểu rõ nội dung bạn vừa nhập: "${raw}". Có vẻ như đây là chuỗi ký tự ngẫu nhiên hoặc gõ nhầm trên bàn phím.\n\nĐể tôi có thể tư vấn sức khỏe chuẩn xác cho bạn, vui lòng cung cấp thêm:\n• 🩺 Triệu chứng cụ thể (ví dụ: đau đầu, sốt, đau ngực, khó thở, đau dạ dày...)\n• 💊 Tên thuốc cần tra cứu công dụng và liều dùng\n• 📅 Hoặc yêu cầu hướng dẫn đặt lịch khám với Bác sĩ chuyên khoa.`,
       urgency: 'NORMAL',
-      specialties: ['Đa khoa']
+      specialties: ['Đa khoa & Nội Tổng quát']
     }
   }
 
   // 2. Misspelled Medication Check
   if (lower.includes('asprin') || lower.includes('aspirine') || lower.includes('aspirn') || lower.includes('apirin')) {
     return {
-      answer: `💡 Có phải bạn đang muốn hỏi về thuốc **Aspirin (Acid acetylsalicylic)** không?\n\n• **Nhóm dược lý**: Thuốc chống viêm không steroid (NSAID), ức chế kết tập tiểu cầu.\n• **Công dụng**: Dự phòng biến cố huyết khối tim mạch (nhồi máu cơ tim, đột quỵ); Hạ sốt, giảm đau ở liều cao.\n• **Liều dùng tham khảo**: 81mg - 100mg/ngày (uống sau ăn no).\n• **Lưu ý**: Chống chỉ định cho người có tiền sử loét dạ dày - tá tràng tiến triển hoặc rối loạn đông máu.\n\n⚠️ Khuyến cáo: Luôn sử dụng theo chỉ định của Bác sĩ hoặc Dược sĩ.`,
+      answer: `💡 Có phải bạn đang muốn hỏi về thuốc **Aspirin (Acid acetylsalicylic)** không?\n\n• **Nhóm dược lý**: Thuốc chống viêm không steroid (NSAID), ức chế kết tập tiểu cầu.\n• **Công dụng**: Dự phòng biến cố huyết khối tim mạch (nhồi máu cơ tim, đột quỵ); Hạ sốt, giảm đau ở liều cao.\n• **Liều dùng tham khảo**: 81mg - 100mg/ngày (uống sau ăn no).\n• **Lưu ý**: Chống chỉ định cho người có tiền sử loét dạ dày - tá tràng tiến triển hoặc rối loạn đông máu.\n\n*Lưu ý: Luôn sử dụng theo chỉ định của Bác sĩ hoặc Dược sĩ.*`,
       urgency: 'NORMAL',
-      specialties: ['Tim mạch', 'Nội tổng quát']
+      specialties: ['Nội Tim mạch', 'Đa khoa & Nội Tổng quát']
     }
   }
 
@@ -51,29 +59,36 @@ function localMedicalFallback(text: string = ''): { answer: string; urgency: str
     return {
       answer: `💡 Có phải bạn đang muốn hỏi về thuốc **Paracetamol (Acetaminophen / Panadol / Efferalgan)** không?\n\n• **Công dụng**: Hạ sốt và giảm đau nhẹ đến vừa (đau đầu, đau nhức cơ khớp, đau răng).\n• **Liều dùng an toàn**: Người lớn: 500mg - 1000mg/lần, cách nhau 4 - 6 giờ (tối đa không quá 4g/ngày).\n• **Lưu ý an toàn**: Tránh uống rượu bia khi dùng thuốc; không dùng quá liều quy định để bảo vệ chức năng gan.`,
       urgency: 'NORMAL',
-      specialties: ['Nội tổng quát']
+      specialties: ['Đa khoa & Nội Tổng quát']
     }
   }
 
   // 3. Emergency Cardio
   if (lower.includes('dau nguc') || lower.includes('that nguc') || lower.includes('kho tho')) {
     return {
-      answer: `🚨 **CẢNH BÁO: NGUY CƠ HỘI CHỨNG VÀNH HOẶC KHÓ THỞ CẤP**\n\nCác triệu chứng bạn mô tả cần được theo dõi đặc biệt:\n1. **Nghỉ ngơi ngay**: Ngồi tựa lưng ở nơi thoáng gió, nới lỏng áo ngực.\n2. **Liên hệ Bác sĩ**: Gọi ngay hotline cấp cứu **1900 6868** hoặc đến phòng cấp cứu gần nhất nếu cơn đau kéo dài trên 10 phút.`,
+      answer: `🚨 **CẢNH BÁO: NGUY CƠ HỘI CHỨNG VÀNH HOẶC KHÓ THỞ CẤP**\n\nCác triệu chứng bạn mô tả cần được theo dõi đặc biệt:\n1. **Nghỉ ngơi ngay**: Ngồi tựa lưng ở nơi thoáng gió, nới lỏng áo ngực.\n2. **Liên hệ Bác sĩ**: Gọi ngay số cấp cứu **115** hoặc đến phòng cấp cứu gần nhất nếu cơn đau kéo dài trên 10 phút.`,
       urgency: 'EMERGENCY',
-      specialties: ['Cấp cứu Tim mạch', 'Tim mạch Can thiệp']
+      specialties: ['Cấp cứu Tim mạch', 'Nội Tim mạch']
+    }
+  }
+
+  // 4. Tai Mũi Họng / Hô hấp / Lở miệng
+  if (lower.includes('ho') || lower.includes('lo mieng') || lower.includes('hong') || lower.includes('nhiet mieng')) {
+    return {
+      answer: `Chào bạn, triệu chứng ho và lở miệng thường gặp trong các đợt cảm lạnh, viêm đường hô hấp trên hoặc viêm loét niêm mạc miệng họng do virus, suy giảm miễn dịch hoặc thiếu vitamin.\n\nBạn nên đặt lịch khám tại **chuyên khoa Tai Mũi Họng & Hô hấp** để được bác sĩ kiểm tra tổn thương niêm mạc và chỉ định thuốc điều trị thích hợp.\n\n*Lưu ý: Thông tin tư vấn chỉ mang tính tham khảo ban đầu.*`,
+      urgency: 'NORMAL',
+      specialties: ['Tai Mũi Họng & Hô hấp']
     }
   }
 
   return {
-    answer: `Cảm ơn bạn đã đặt câu hỏi: "${raw}".\n\nHệ thống khuyến nghị bạn theo dõi sát các diễn biến sức khỏe. Để được chẩn đoán và điều trị chính xác, bạn có thể nhấn nút "Đặt lịch Bác sĩ Chuyên khoa" ngay trên màn hình.\n\n⚠️ Lưu ý: Thông tin tư vấn chỉ mang tính tham khảo và không thay thế cho chẩn đoán của Bác sĩ chuyên khoa.`,
+    answer: `Cảm ơn bạn đã đặt câu hỏi: "${raw}".\n\nHệ thống khuyến nghị bạn theo dõi sát các diễn biến sức khỏe. Để được chẩn đoán và điều trị chính xác, bạn nên đến cơ sở y tế để được thăm khám trực tiếp.\n\n*Lưu ý: Thông tin tư vấn chỉ mang tính tham khảo và không thay thế cho chẩn đoán của Bác sĩ chuyên khoa.*`,
     urgency: 'NORMAL',
-    specialties: ['Đa khoa']
+    specialties: ['Đa khoa & Nội Tổng quát']
   }
 }
 
 export default function ChatAI() {
-  const navigate = useNavigate()
-
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -142,7 +157,7 @@ export default function ChatAI() {
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 'var(--space-4)', height: 'calc(100vh - var(--header-height) - var(--space-12))' }}>
       {/* Main Chat Area */}
       <div className="card" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        {/* Session Header (Vital Signs bar removed as requested) */}
+        {/* Session Header */}
         <div className="card-header" style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
             <span className="badge badge-success">
@@ -218,20 +233,7 @@ export default function ChatAI() {
                     <Shield size={13} /> Trợ lý Y tế Lâm sàng MedTech AI
                   </div>
                 )}
-                <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
-
-                {msg.sources && msg.sources.length > 0 && (
-                  <div style={{ marginTop: 'var(--space-3)', padding: 'var(--space-2) var(--space-3)', background: 'var(--color-neutral-bg)', borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-xs)' }}>
-                    <div style={{ fontWeight: 'var(--font-semibold)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <BookOpen size={12} /> Nguồn dữ liệu tham chiếu:
-                    </div>
-                    {msg.sources.map((s: any, j: number) => (
-                      <div key={j} style={{ color: 'var(--color-text-secondary)' }}>
-                        • <strong>{s.title}</strong> {s.content && `— ${s.content.slice(0, 90)}...`}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <div style={{ whiteSpace: 'pre-wrap' }}>{cleanContent(msg.content)}</div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginTop: 'var(--space-2)' }}>
                   <span style={{ fontSize: '11px', color: msg.role === 'user' ? 'rgba(255,255,255,0.7)' : 'var(--color-text-tertiary)' }}>
@@ -284,8 +286,7 @@ export default function ChatAI() {
               Gửi tin nhắn <Send size={14} />
             </button>
           </div>
-          <div style={{ marginTop: 'var(--space-2)', fontSize: '11px', color: 'var(--color-text-tertiary)', display: 'flex', alignItems: 'center', gap: 4 }}>
-            <AlertTriangle size={12} color="var(--color-warning)" />
+          <div style={{ marginTop: 'var(--space-2)', fontSize: '11px', color: 'var(--color-text-tertiary)' }}>
             Lưu ý: Thông tin tư vấn chỉ mang tính tham khảo và không thay thế cho chẩn đoán y khoa của Bác sĩ.
           </div>
         </div>
@@ -320,7 +321,7 @@ export default function ChatAI() {
             </div>
             <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', margin: 0, lineHeight: 1.5 }}>
               {currentUrgency === 'EMERGENCY'
-                ? 'Phát hiện dấu hiệu đau thắt ngực hoặc khó thở cấp tính. Đề nghị gọi cấp cứu 1900 6868 hoặc vào phòng khám ngay!'
+                ? 'Phát hiện dấu hiệu đau thắt ngực hoặc khó thở cấp tính. Đề nghị gọi cấp cứu 115 hoặc vào phòng khám ngay!'
                 : currentUrgency === 'HIGH'
                   ? 'Triệu chứng có nguy cơ diễn tiến nặng, nên đặt lịch khám sớm với Bác sĩ chuyên khoa.'
                   : currentUrgency === 'NORMAL'
@@ -356,50 +357,6 @@ export default function ChatAI() {
                 Gợi ý chuyên khoa sẽ tự động hiển thị sau khi hệ thống phân tích triệu chứng lâm sàng của bạn.
               </p>
             )}
-          </div>
-        </div>
-
-        {/* Quick Action Navigation Buttons */}
-        <div className="card">
-          <div className="card-header">
-            <h4 className="card-title" style={{ fontSize: 'var(--text-sm)' }}>Khuyến nghị Hành động</h4>
-          </div>
-          <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-            <button
-              className="btn btn-primary btn-sm"
-              style={{ width: '100%', justifyContent: 'space-between' }}
-              onClick={() => navigate('/booking')}
-            >
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Calendar size={14} /> Đặt lịch Bác sĩ Chuyên khoa
-              </span>
-              <ChevronRight size={14} />
-            </button>
-            <button
-              className="btn btn-secondary btn-sm"
-              style={{ width: '100%', justifyContent: 'space-between' }}
-              onClick={() => navigate('/telehealth')}
-            >
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Video size={14} /> Khám cấp cứu Video Telehealth
-              </span>
-              <ChevronRight size={14} />
-            </button>
-          </div>
-        </div>
-
-        {/* Emergency Contact */}
-        <div className="card" style={{ background: 'var(--color-emergency-bg)', borderColor: 'var(--color-emergency-border)' }}>
-          <div className="card-body" style={{ textAlign: 'center' }}>
-            <div style={{ fontWeight: 'var(--font-semibold)', color: 'var(--color-emergency-text)', marginBottom: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 'var(--text-xs)' }}>
-              <PhoneCall size={14} /> ĐƯỜNG DÂY NÓNG CẤP CỨU Y TẾ 24/7
-            </div>
-            <div className="tabular-nums" style={{ fontSize: 'var(--text-xl)', fontWeight: 'var(--font-bold)', color: 'var(--color-emergency)' }}>
-              1900 6868
-            </div>
-            <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: 2 }}>
-              Miễn phí cước gọi từ mọi mạng viễn thông
-            </div>
           </div>
         </div>
       </div>

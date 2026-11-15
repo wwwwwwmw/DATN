@@ -172,7 +172,27 @@ class CreateAppointmentView(APIView):
         serializer.is_valid(raise_exception=True)
 
         slot_id = serializer.validated_data['time_slot_id']
-        slot = TimeSlot.objects.select_related('doctor', 'clinic').get(id=slot_id)
+        try:
+            slot = TimeSlot.objects.select_related('doctor', 'clinic').get(id=slot_id)
+        except TimeSlot.DoesNotExist:
+            return Response({
+                'status': 'error',
+                'message': 'Khung giờ khám không tồn tại.'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        from django.utils import timezone
+        now = timezone.localtime()
+        if slot.date < now.date() or (slot.date == now.date() and slot.start_time <= now.time()):
+            return Response({
+                'status': 'error',
+                'message': 'Ca khám này đã qua thời gian bắt đầu. Vui lòng chọn ca khám khác.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if not slot.is_available or slot.is_full:
+            return Response({
+                'status': 'error',
+                'message': 'Ca khám này đã hết chỗ hoặc không còn khả dụng.'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         with transaction.atomic():
             # Create or update appointment if same patient & slot exists

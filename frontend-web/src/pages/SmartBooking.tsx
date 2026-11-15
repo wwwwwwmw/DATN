@@ -54,13 +54,92 @@ function extractList(res: any): any[] {
   return []
 }
 
+// Hàm lấy ngày hôm nay dạng YYYY-MM-DD theo giờ địa phương
+function getTodayStr(): string {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+// Hàm lấy giờ hiện tại dạng HH:MM
+function getCurrentTimeStr(): string {
+  const now = new Date()
+  const hours = String(now.getHours()).padStart(2, '0')
+  const minutes = String(now.getMinutes()).padStart(2, '0')
+  return `${hours}:${minutes}`
+}
+
+// Kiểm tra ca khám có hợp lệ trong tương lai (dựa vào thời gian thực tế)
+// Nếu đã qua thời gian bắt đầu của ca thì ẩn ca đó (không cho chọn)
+function isValidFutureSlot(slot: any): boolean {
+  if (!slot || !slot.date || !slot.start_time) return false
+  if (slot.is_available === false) return false
+  const todayStr = getTodayStr()
+  const currentTimeStr = getCurrentTimeStr()
+
+  if (slot.date < todayStr) return false
+  const startTime = slot.start_time.slice(0, 5)
+  if (slot.date === todayStr && startTime <= currentTimeStr) return false
+  return true
+}
+
+// Định dạng ngày hiển thị VN DD/MM/YYYY
+function formatDateVN(dateStr: string): string {
+  if (!dateStr) return ''
+  const parts = dateStr.split('-')
+  if (parts.length === 3) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`
+  }
+  return dateStr
+}
+
+// Tạo danh sách các ngày để người dùng chọn nhanh (gồm 7 ngày tới + các ngày bác sĩ có lịch)
+function getQuickDates(slots: any[] = []): { date: string; label: string; count: number }[] {
+  const dates: { date: string; label: string; count: number }[] = []
+  const now = new Date()
+
+  for (let i = 0; i < 7; i++) {
+    const d = new Date()
+    d.setDate(now.getDate() + i)
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    const dateStr = `${y}-${m}-${day}`
+
+    let label = `${day}/${m}`
+    if (i === 0) label = `Hôm nay (${day}/${m})`
+    else if (i === 1) label = `Ngày mai (${day}/${m})`
+    else {
+      const dayOfWeek = d.getDay()
+      const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']
+      label = `${dayNames[dayOfWeek]} (${day}/${m})`
+    }
+
+    const count = slots.filter((s: any) => s.date === dateStr && isValidFutureSlot(s)).length
+    dates.push({ date: dateStr, label, count })
+  }
+
+  // Bổ sung các ngày xa hơn nếu bác sĩ có ca trực
+  const futureSlotDates = Array.from(new Set(slots.filter(isValidFutureSlot).map((s: any) => s.date))).sort() as string[]
+  futureSlotDates.forEach((fDate) => {
+    if (!dates.some(d => d.date === fDate)) {
+      const parts = fDate.split('-')
+      const count = slots.filter((s: any) => s.date === fDate && isValidFutureSlot(s)).length
+      dates.push({ date: fDate, label: `${parts[2]}/${parts[1]}`, count })
+    }
+  })
+
+  return dates
+}
+
 export default function SmartBooking() {
   const { t } = useTranslation()
   const { user } = useAuth()
 
   const [symptoms, setSymptoms] = useState('')
   const [specialty, setSpecialty] = useState('')
-  const [radius, setRadius] = useState(15) // Bán kính km mặc định
 
   // Tọa độ bệnh nhân (mặc định trung tâm Quận 1, TP.HCM: 10.7769, 106.7009)
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number }>({ lat: 10.7769, lng: 106.7009 })
@@ -71,7 +150,6 @@ export default function SmartBooking() {
   const aiDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [doctors, setDoctors] = useState<any[]>([])
-  const [myAppointments, setMyAppointments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [bookingLoading, setBookingLoading] = useState(false)
   const [bookingMessage, setBookingMessage] = useState<string | null>(null)
@@ -83,6 +161,7 @@ export default function SmartBooking() {
   const [patientNameInput, setPatientNameInput] = useState('')
   const [symptomInput, setSymptomInput] = useState('')
   const [slotInModal, setSlotInModal] = useState<any | null>(null)
+  const [selectedBookingDate, setSelectedBookingDate] = useState<string>('')
 
   // Lấy vị trí thực tế của người dùng qua trình duyệt nếu được cấp quyền
   useEffect(() => {
@@ -231,13 +310,9 @@ export default function SmartBooking() {
   const loadBookingData = async (silent = false) => {
     if (!silent) setLoading(true)
     try {
-      const [docRes, appRes] = await Promise.all([
-        authAPI.getDoctors().catch(() => null),
-        appointmentAPI.list().catch(() => null),
-      ])
+      const docRes = await authAPI.getDoctors().catch(() => null)
       const docList = extractList(docRes)
       setDoctors(docList)
-      setMyAppointments(extractList(appRes))
     } finally {
       if (!silent) setLoading(false)
     }
@@ -264,7 +339,7 @@ export default function SmartBooking() {
     }
   })
 
-  // Lọc theo Chuyên khoa thông minh và Khoảng cách tối đa (radius km)
+  // Lọc theo Chuyên khoa thông minh
   const filteredDoctors = doctorsWithDistance.filter(doc => {
     // 1. Lọc theo chuyên khoa (Fuzzy Match hỗ trợ mọi biến thể)
     if (specialty) {
@@ -293,11 +368,6 @@ export default function SmartBooking() {
       }
     }
 
-    // 2. Lọc theo khoảng cách tối đa
-    if (doc.distanceKm > radius) {
-      return false
-    }
-
     return true
   }).sort((a, b) => a.distanceKm - b.distanceKm) // Bác sĩ gần nhất xếp lên trước
 
@@ -307,13 +377,39 @@ export default function SmartBooking() {
     setBookerNameInput(defaultName)
     setPatientNameInput(defaultName)
     setSymptomInput(symptoms || '')
-    const slots = doc.available_slots || []
-    setSlotInModal(slots[0] || null)
+
+    const todayStr = getTodayStr()
+    const validSlots = (doc.available_slots || []).filter(isValidFutureSlot)
+    const datesWithSlots = Array.from(new Set(validSlots.map((s: any) => s.date))).sort() as string[]
+
+    // Nếu hôm nay có ca khả dụng trong tương lai thì chọn hôm nay, ngược lại chọn ngày sớm nhất có ca
+    let initialDate = todayStr
+    if (datesWithSlots.includes(todayStr)) {
+      initialDate = todayStr
+    } else if (datesWithSlots.length > 0) {
+      initialDate = datesWithSlots[0]
+    }
+    setSelectedBookingDate(initialDate)
+
+    const initialDaySlots = validSlots.filter((s: any) => s.date === initialDate)
+    setSlotInModal(initialDaySlots[0] || null)
     setIsBookingModalOpen(true)
+  }
+
+  const handleSelectBookingDate = (dateStr: string) => {
+    setSelectedBookingDate(dateStr)
+    const validSlots = (bookingDocForModal?.available_slots || []).filter(isValidFutureSlot)
+    const daySlots = validSlots.filter((s: any) => s.date === dateStr)
+    setSlotInModal(daySlots[0] || null)
   }
 
   const handleConfirmModalBooking = async () => {
     if (!slotInModal) return
+
+    if (!window.confirm(`Cảnh báo xác nhận: Bạn có chắc chắn muốn đặt lịch khám với BS. ${bookingDocForModal?.user?.last_name || ''} ${bookingDocForModal?.user?.first_name || ''} vào lúc ${slotInModal.start_time} - ${slotInModal.end_time} ngày ${formatDateVN(slotInModal.date)} cho bệnh nhân "${patientNameInput.trim()}" không?`)) {
+      return
+    }
+
     setBookingLoading(true)
     setBookingMessage(null)
     try {
@@ -322,7 +418,7 @@ export default function SmartBooking() {
         reason: symptomInput.trim() || `Khám chuyên khoa ${bookingDocForModal?.specialization || 'Nội khoa'}`,
         notes: `Người đặt lịch: ${bookerNameInput.trim()} • Bệnh nhân: ${patientNameInput.trim()} (Tài khoản: ${user?.email})`,
       })
-      setBookingMessage(`Đặt lịch khám thành công với BS. ${bookingDocForModal?.user?.last_name || ''} ${bookingDocForModal?.user?.first_name || ''}! Bệnh nhân: ${patientNameInput.trim()} • Khung giờ: ${slotInModal.start_time} - ${slotInModal.end_time} ngày ${slotInModal.date}.`)
+      setBookingMessage(`Đặt lịch khám thành công với BS. ${bookingDocForModal?.user?.last_name || ''} ${bookingDocForModal?.user?.first_name || ''}! Bệnh nhân: ${patientNameInput.trim()} • Khung giờ: ${slotInModal.start_time} - ${slotInModal.end_time} ngày ${formatDateVN(slotInModal.date)}.`)
       setIsBookingModalOpen(false)
       await loadBookingData()
     } catch (err: any) {
@@ -366,8 +462,8 @@ export default function SmartBooking() {
       {/* Bộ lọc Thông minh: Triệu chứng AI & Khoảng cách */}
       <div className="card">
         <div className="card-body" style={{ display: 'flex', gap: 'var(--space-4)', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-          {/* Ô nhập triệu chứng tích hợp AI Chatbot */}
-          <div className="form-group" style={{ flex: 2, minWidth: 280 }}>
+          {/* Ô nhập triệu chứng tích hợp AI Chatbot (kéo dài chạm chuyên khoa khám) */}
+          <div className="form-group" style={{ flex: 1, minWidth: 0, margin: 0 }}>
             <label className="form-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 {t('booking.symptom_label')}
@@ -382,6 +478,7 @@ export default function SmartBooking() {
             <div style={{ position: 'relative' }}>
               <input
                 className="form-input"
+                style={{ width: '100%' }}
                 placeholder="Nhập triệu chứng (ví dụ: nhức đầu, ăn không ngon, tức ngực, đau lưng, nghẹt mũi...)"
                 value={symptoms}
                 onChange={e => setSymptoms(e.target.value)}
@@ -411,7 +508,7 @@ export default function SmartBooking() {
           </div>
 
           {/* Chọn chuyên khoa (Đầy đủ 10 chuyên khoa lâm sàng) */}
-          <div className="form-group" style={{ flex: 1.2, minWidth: 220 }}>
+          <div className="form-group" style={{ width: 340, flexShrink: 0, margin: 0 }}>
             <label className="form-label">{t('booking.specialty_label')}</label>
             <select
               className="form-input"
@@ -434,41 +531,6 @@ export default function SmartBooking() {
               <option value="Chẩn đoán hình ảnh">Chẩn đoán hình ảnh (X-quang, CT, MRI)</option>
             </select>
           </div>
-
-          {/* Thanh trượt Khoảng cách tối đa */}
-          <div className="form-group" style={{ width: 230, flexShrink: 0 }}>
-            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <Navigation size={13} color="var(--color-primary)" />
-              {t('booking.max_distance')}
-              <InfoTooltip content="Kéo để mở rộng hoặc thu hẹp khoảng cách tìm kiếm bác sĩ quanh khu vực bạn ở." />
-            </label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-              <input
-                type="range"
-                min={1}
-                max={30}
-                value={radius}
-                onChange={e => setRadius(Number(e.target.value))}
-                style={{ flex: 1, minWidth: 90 }}
-              />
-              <span className="tabular-nums" style={{ fontWeight: 'var(--font-bold)', color: 'var(--color-primary)', whiteSpace: 'nowrap', minWidth: 55 }}>
-                ≤ {radius} km
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div className="card-footer" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            Tiêu chí sắp xếp: <strong>Gần bạn nhất</strong> &bull; <strong>Lịch khám sớm</strong> &bull; <strong>Bác sĩ giàu kinh nghiệm</strong>
-            <InfoTooltip
-              title="Cách xếp hạng bác sĩ"
-              content="Hệ thống tự động so sánh quãng đường đi lại, thời gian chờ và chuyên môn của bác sĩ để bạn có lịch khám thuận tiện nhất."
-            />
-          </span>
-          <span style={{ fontSize: '11px', color: 'var(--color-text-tertiary)' }}>
-            📍 Vị trí của bạn: TP. Hồ Chí Minh
-          </span>
         </div>
       </div>
 
@@ -480,11 +542,11 @@ export default function SmartBooking() {
         </div>
       )}
 
-      {/* Danh sách Bác sĩ (Bố cục chiếm trọn chiều rộng - Đã bỏ lưới khung giờ bên phải) */}
+      {/* Danh sách Bác sĩ */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h3 style={{ margin: 0 }}>
-            {t('booking.sa_results_title')} ({filteredDoctors.length} Bác sĩ phù hợp trong bán kính ≤ {radius} km)
+            Danh sách bác sĩ
           </h3>
           {specialty && (
             <span className="badge badge-primary">
@@ -497,9 +559,9 @@ export default function SmartBooking() {
           <div className="card">
             <div className="card-body" style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--color-text-secondary)' }}>
               <Navigation size={36} style={{ color: 'var(--color-text-tertiary)', marginBottom: 12 }} />
-              <div style={{ fontWeight: 'bold', fontSize: '15px' }}>Không tìm thấy bác sĩ trong bán kính {radius} km</div>
+              <div style={{ fontWeight: 'bold', fontSize: '15px' }}>Không tìm thấy bác sĩ phù hợp</div>
               <p style={{ fontSize: '13px', color: 'var(--color-text-tertiary)', marginTop: 4 }}>
-                Hãy thử kéo tăng khoảng cách tối đa lên (ví dụ: 10 km - 30 km) hoặc chọn chuyên khoa khác.
+                Hãy thử chọn chuyên khoa khác hoặc xóa bớt triệu chứng mô tả.
               </p>
             </div>
           </div>
@@ -509,8 +571,9 @@ export default function SmartBooking() {
             const rawName = `${doc.user?.last_name || ''} ${doc.user?.first_name || ''}`.trim()
             const initials = `${doc.user?.first_name?.[0] || 'B'}${doc.user?.last_name?.[0] || 'S'}`
             const avatarUrl = doc.user?.avatar || DOCTOR_AVATARS[rawName] || DOCTOR_AVATARS[fullName.replace('BS. ', '')]
-            const nextSlotObj = (doc.available_slots || [])[0]
-            const nextSlotStr = nextSlotObj ? `${nextSlotObj.start_time} (ngày ${nextSlotObj.date})` : 'Liên hệ'
+            const validSlots = (doc.available_slots || []).filter(isValidFutureSlot)
+            const nextSlotObj = validSlots[0]
+            const nextSlotStr = nextSlotObj ? `${nextSlotObj.start_time} (ngày ${formatDateVN(nextSlotObj.date)})` : 'Liên hệ'
 
             return (
               <div
@@ -585,56 +648,12 @@ export default function SmartBooking() {
                     <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                       <Shield size={13} color="var(--color-text-tertiary)" /> CCHN: {doc.license_number}
                     </span>
-                    <span className="badge badge-neutral" style={{ marginLeft: 'auto' }}>
-                      {(doc.available_slots || []).length} khung giờ trống tháng 11/2026
-                    </span>
                   </div>
                 </div>
               </div>
             )
           })
         )}
-      </div>
-
-      {/* Role-Scoped Appointments List from Database */}
-      <div className="card">
-        <div className="card-header">
-          <h3 className="card-title">
-            <Calendar size={16} /> Danh sách lịch hẹn trong Cơ sở dữ liệu ({user?.role === 'PATIENT' ? 'Của cá nhân bạn' : user?.role === 'DOCTOR' ? 'Của bệnh nhân bác sĩ phụ trách' : 'Toàn viện - ADMIN'}) — {myAppointments.length} lịch hẹn
-          </h3>
-        </div>
-        <div className="card-body" style={{ padding: 0, overflowX: 'auto' }}>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Mã hẹn</th>
-                <th>Bệnh nhân</th>
-                <th>Bác sĩ phụ trách</th>
-                <th>Cơ sở y tế</th>
-                <th>Thời gian</th>
-                <th>Lý do khám</th>
-                <th>Trạng thái</th>
-              </tr>
-            </thead>
-            <tbody>
-              {myAppointments.map(app => (
-                <tr key={app.id}>
-                  <td className="font-mono">#BA-{1000 + app.id}</td>
-                  <td><strong>{app.patient_name}</strong> ({app.patient_code})</td>
-                  <td>BS. {app.doctor_name} ({app.doctor_specialization})</td>
-                  <td>{app.clinic_name}</td>
-                  <td className="tabular-nums">{app.date} • {String(app.start_time || '').slice(0, 5)}</td>
-                  <td>{app.reason}</td>
-                  <td>
-                    <span className={`badge ${app.status === 'COMPLETED' ? 'badge-success' : app.status === 'CONFIRMED' ? 'badge-primary' : 'badge-warning'}`}>
-                      {app.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
       </div>
 
       {/* MODAL FORM ĐẶT LỊCH KHÁM THỜI GIAN THỰC */}
@@ -778,73 +797,179 @@ export default function SmartBooking() {
                 />
               </div>
 
-              {/* Khung giờ khám (Được cải tiến giao diện to rõ, chia ngày giờ rõ ràng) */}
+              {/* PHẦN 1: CHỌN NGÀY KHÁM */}
               <div>
-                <label className="form-label" style={{ fontWeight: 600, fontSize: '13px', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span>
-                    Chọn khung giờ khám (Cập nhật thời gian thực tế) <span style={{ color: 'red' }}>*</span>
-                  </span>
-                  <span style={{ fontSize: '11px', color: 'var(--color-text-tertiary)' }}>
-                    {(bookingDocForModal.available_slots || []).length} suất khám khả dụng
-                  </span>
-                </label>
+                <div style={{ marginBottom: 8 }}>
+                  <label className="form-label" style={{ fontWeight: 600, fontSize: '13px', margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Calendar size={15} color="var(--color-primary)" />
+                    <span>Chọn ngày khám</span> <span style={{ color: 'red' }}>*</span>
+                  </label>
+                </div>
 
-                {(bookingDocForModal.available_slots || []).length === 0 ? (
-                  <div style={{ padding: 16, textAlign: 'center', color: 'var(--color-text-tertiary)', fontSize: '13px', background: '#f8fafc', borderRadius: 8 }}>
-                    Bác sĩ hiện chưa có khung giờ khám khả dụng. Vui lòng chọn bác sĩ khác.
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <input
+                      type="date"
+                      className="form-input"
+                      style={{ fontSize: '13px', width: 'auto', minWidth: 165, padding: '6px 12px' }}
+                      min={getTodayStr()}
+                      value={selectedBookingDate}
+                      onChange={(e) => handleSelectBookingDate(e.target.value)}
+                    />
                   </div>
-                ) : (
+
+                  {/* Thanh chọn nhanh ngày (Quick Date Selector) */}
                   <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(3, 1fr)',
-                    gap: 10,
-                    maxHeight: 220,
-                    overflowY: 'auto',
-                    padding: 4,
+                    display: 'flex',
+                    gap: 6,
+                    overflowX: 'auto',
+                    paddingBottom: 4,
                   }}>
-                    {(bookingDocForModal.available_slots || []).map((slot: any) => {
-                      const isSelected = slotInModal?.id === slot.id
+                    {getQuickDates(bookingDocForModal.available_slots || []).map(item => {
+                      const isSelected = selectedBookingDate === item.date
                       return (
                         <button
-                          key={`modal-slot-${slot.id}`}
+                          key={item.date}
                           type="button"
-                          className="btn btn-sm"
+                          onClick={() => handleSelectBookingDate(item.date)}
                           style={{
-                            background: isSelected ? 'var(--color-primary)' : '#f8fafc',
-                            color: isSelected ? 'white' : 'var(--color-text-primary)',
+                            padding: '6px 10px',
+                            borderRadius: 8,
+                            fontSize: '12px',
+                            fontWeight: isSelected ? 600 : 400,
                             border: isSelected ? '2px solid var(--color-primary)' : '1px solid #e2e8f0',
-                            borderRadius: 'var(--radius-md)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            padding: '10px 8px',
-                            minHeight: 58,
+                            background: isSelected ? '#eff6ff' : '#ffffff',
+                            color: isSelected ? 'var(--color-primary)' : '#475569',
                             cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 5,
                             transition: 'all 0.15s ease',
-                            boxShadow: isSelected ? '0 2px 6px rgba(0, 104, 255, 0.25)' : 'none',
                           }}
-                          onClick={() => setSlotInModal(slot)}
                         >
-                          <strong style={{ fontSize: '13px', color: isSelected ? 'white' : '#0f172a', letterSpacing: '0.2px' }}>
-                            {slot.start_time} - {slot.end_time}
-                          </strong>
+                          <span>{item.label}</span>
                           <span style={{
-                            fontSize: '11px',
-                            marginTop: 4,
-                            color: isSelected ? '#dbeafe' : '#64748b',
-                            fontWeight: 500,
+                            fontSize: '10px',
+                            padding: '1px 5px',
+                            borderRadius: 8,
+                            background: item.count > 0 ? (isSelected ? 'var(--color-primary)' : '#e2e8f0') : '#f1f5f9',
+                            color: item.count > 0 ? (isSelected ? '#ffffff' : '#334155') : '#94a3b8',
+                            fontWeight: 'bold',
                           }}>
-                            📅 {slot.date}
+                            {item.count}
                           </span>
                         </button>
                       )
                     })}
                   </div>
-                )}
+                </div>
               </div>
 
-              {slotInModal && (
+              {/* PHẦN 2: CHỌN KHUNG GIỜ KHÁM CỦA NGÀY ĐÃ CHỌN (ĐÃ LỌC THỜI GIAN THỰC TẾ) */}
+              <div>
+                {(() => {
+                  const allValidSlots = (bookingDocForModal.available_slots || []).filter(isValidFutureSlot)
+                  const daySlots = allValidSlots.filter((s: any) => s.date === selectedBookingDate)
+                  const nextAvailableDate = allValidSlots.find((s: any) => s.date > selectedBookingDate)?.date
+
+                  return (
+                    <>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <label className="form-label" style={{ fontWeight: 600, fontSize: '13px', margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <Clock size={15} color="var(--color-primary)" />
+                          <span>Khung giờ khám ngày {formatDateVN(selectedBookingDate)}</span> <span style={{ color: 'red' }}>*</span>
+                        </label>
+                        <span style={{ fontSize: '11px', color: 'var(--color-text-tertiary)' }}>
+                          {daySlots.length} ca trực khả dụng
+                        </span>
+                      </div>
+
+                      {daySlots.length === 0 ? (
+                        <div style={{
+                          padding: '16px',
+                          textAlign: 'center',
+                          background: '#f8fafc',
+                          borderRadius: 8,
+                          border: '1px dashed #cbd5e1',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: 8,
+                        }}>
+                          <Clock size={22} color="#94a3b8" />
+                          <div style={{ fontSize: '13px', color: '#475569' }}>
+                            {selectedBookingDate === getTodayStr()
+                              ? 'Các ca khám của ngày hôm nay đã kết thúc hoặc đã qua giờ bắt đầu.'
+                              : `Bác sĩ chưa có ca khám khả dụng vào ngày ${formatDateVN(selectedBookingDate)}.`}
+                          </div>
+                          {nextAvailableDate && (
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-primary"
+                              onClick={() => handleSelectBookingDate(nextAvailableDate)}
+                              style={{ fontSize: '12px', marginTop: 2, display: 'flex', alignItems: 'center', gap: 5 }}
+                            >
+                              <Calendar size={13} />
+                              Chuyển sang ngày tiếp theo có ca ({formatDateVN(nextAvailableDate)})
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(3, 1fr)',
+                          gap: 10,
+                          maxHeight: 200,
+                          overflowY: 'auto',
+                          padding: 2,
+                        }}>
+                          {daySlots.map((slot: any) => {
+                            const isSelected = slotInModal?.id === slot.id
+                            return (
+                              <button
+                                key={`modal-slot-${slot.id}`}
+                                type="button"
+                                className="btn btn-sm"
+                                style={{
+                                  background: isSelected ? 'var(--color-primary)' : '#ffffff',
+                                  color: isSelected ? 'white' : 'var(--color-text-primary)',
+                                  border: isSelected ? '2px solid var(--color-primary)' : '1px solid #cbd5e1',
+                                  borderRadius: 'var(--radius-md)',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  padding: '10px 8px',
+                                  minHeight: 56,
+                                  cursor: 'pointer',
+                                  transition: 'all 0.15s ease',
+                                  boxShadow: isSelected ? '0 2px 8px rgba(0, 104, 255, 0.25)' : 'none',
+                                }}
+                                onClick={() => setSlotInModal(slot)}
+                              >
+                                <strong style={{ fontSize: '13px', color: isSelected ? 'white' : '#0f172a', letterSpacing: '0.2px' }}>
+                                  {slot.start_time} - {slot.end_time}
+                                </strong>
+                                <span style={{
+                                  fontSize: '11px',
+                                  marginTop: 3,
+                                  color: isSelected ? '#dbeafe' : '#15803d',
+                                  fontWeight: 500,
+                                }}>
+                                  Còn {slot.remaining_slots || 3} suất
+                                </span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </>
+                  )
+                })()}
+              </div>
+
+              {slotInModal && isValidFutureSlot(slotInModal) && slotInModal.date === selectedBookingDate && (
                 <div style={{
                   padding: '10px 14px',
                   background: '#f0fdf4',
@@ -858,7 +983,7 @@ export default function SmartBooking() {
                 }}>
                   <CheckCircle size={15} />
                   <span>
-                    Đã chọn: <strong>{slotInModal.start_time} - {slotInModal.end_time}</strong> ngày <strong>{slotInModal.date}</strong> (Còn {slotInModal.remaining_slots || 3} suất khám)
+                    Đã chọn: <strong>{slotInModal.start_time} - {slotInModal.end_time}</strong> ngày <strong>{formatDateVN(slotInModal.date)}</strong> (Còn {slotInModal.remaining_slots || 3} suất khám)
                   </span>
                 </div>
               )}
@@ -884,7 +1009,7 @@ export default function SmartBooking() {
                 className="btn btn-primary btn-sm"
                 style={{ background: 'var(--color-primary)', borderColor: 'var(--color-primary)', padding: '0 20px', fontWeight: 'bold' }}
                 onClick={handleConfirmModalBooking}
-                disabled={bookingLoading || !slotInModal || !patientNameInput.trim()}
+                disabled={bookingLoading || !slotInModal || !patientNameInput.trim() || !isValidFutureSlot(slotInModal) || slotInModal.date !== selectedBookingDate}
               >
                 <CheckCircle size={15} />
                 {bookingLoading ? 'Đang xác nhận...' : 'Xác Nhận Đặt Lịch'}

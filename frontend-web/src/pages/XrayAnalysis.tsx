@@ -495,7 +495,7 @@ export default function XrayAnalysis() {
       ? `BS. ${activeCase.reviewed_by_name}`
       : activeCase.attending_doctor_name
       ? `BS. ${activeCase.attending_doctor_name}`
-      : 'BS. Sarah Jenkins'
+      : 'BS. Marc Lindqvist'
 
     try {
       const resp = await fetch(
@@ -2006,7 +2006,7 @@ export default function XrayAnalysis() {
                     ? `BS. ${activeCase.reviewed_by_name}`
                     : activeCase.attending_doctor_name
                     ? `BS. ${activeCase.attending_doctor_name}`
-                    : 'BS. Sarah Jenkins'}
+                    : 'BS. Marc Lindqvist'}
                 </div>
               </div>
             </div>

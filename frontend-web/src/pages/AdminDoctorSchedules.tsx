@@ -32,6 +32,39 @@ function formatVietnameseDate(dateStr: string): string {
   }
 }
 
+const modalBackdropStyle: React.CSSProperties = {
+  position: 'fixed',
+  inset: 0,
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  width: '100vw',
+  height: '100vh',
+  backgroundColor: 'rgba(15, 23, 42, 0.75)',
+  backdropFilter: 'blur(4px)',
+  zIndex: 99999,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: 16,
+  boxSizing: 'border-box',
+}
+
+const modalContentStyle = (maxWidth = 600): React.CSSProperties => ({
+  background: '#ffffff',
+  borderRadius: 16,
+  width: '100%',
+  maxWidth,
+  maxHeight: '90vh',
+  overflowY: 'auto',
+  boxShadow: '0 25px 60px rgba(0, 0, 0, 0.5)',
+  position: 'relative',
+  zIndex: 100000,
+  display: 'flex',
+  flexDirection: 'column',
+})
+
 export default function AdminDoctorSchedules() {
   // Dữ liệu chính
   const [doctors, setDoctors] = useState<any[]>([])
@@ -235,6 +268,10 @@ export default function AdminDoctorSchedules() {
   // Lưu phân công Bệnh viện cho Bác sĩ
   const handleSaveAssignedClinic = async () => {
     if (!selectedDoctor) return
+    const clinicName = clinics.find((c) => String(c.id) === String(assignedClinicId))?.name || 'Chưa gán'
+    if (!window.confirm(`Xác nhận thay đổi: Bạn có chắc chắn muốn cập nhật cơ sở công tác của BS. ${selectedDoctor.user?.last_name} ${selectedDoctor.user?.first_name} thành "${clinicName}" không?`)) {
+      return
+    }
     setSavingClinic(true)
     try {
       const cid = assignedClinicId ? Number(assignedClinicId) : null
@@ -266,6 +303,10 @@ export default function AdminDoctorSchedules() {
       return
     }
 
+    if (!window.confirm(`Xác nhận: Bạn có chắc chắn muốn thêm ca trực ngày ${singleDate} (${singleStart} - ${singleEnd}) cho BS. ${selectedDoctor.user?.last_name} ${selectedDoctor.user?.first_name} không?`)) {
+      return
+    }
+
     setSingleSaving(true)
     try {
       await doctorScheduleAPI.createTimeSlot({
@@ -293,6 +334,10 @@ export default function AdminDoctorSchedules() {
     if (!selectedDoctor) return
     if (bulkWeekdays.length === 0) {
       alert('Vui lòng chọn ít nhất 1 ngày trong tuần.')
+      return
+    }
+
+    if (!window.confirm(`Cảnh báo xác nhận: Bạn có chắc chắn muốn sinh tự động toàn bộ ca trực trong tháng ${bulkMonth}/${bulkYear} cho BS. ${selectedDoctor.user?.last_name} ${selectedDoctor.user?.first_name} không?`)) {
       return
     }
 
@@ -330,6 +375,10 @@ export default function AdminDoctorSchedules() {
       return
     }
 
+    if (!window.confirm(`Xác nhận nhập file: Bạn có chắc chắn muốn nạp toàn bộ ca trực từ file Excel "${excelFile.name}" vào hệ thống không?`)) {
+      return
+    }
+
     setExcelImporting(true)
     setExcelResult(null)
     try {
@@ -354,6 +403,9 @@ export default function AdminDoctorSchedules() {
   // Xử lý Xóa ca trực
   const handleConfirmDeleteSlot = async () => {
     if (!deleteSlotTarget) return
+    if (!window.confirm(`Cảnh báo: Bạn có chắc chắn muốn xóa ca trực ngày ${deleteSlotTarget.date} (${deleteSlotTarget.start_time} - ${deleteSlotTarget.end_time}) không?`)) {
+      return
+    }
     setDeletingSlot(true)
     try {
       await doctorScheduleAPI.deleteTimeSlot(deleteSlotTarget.id)
@@ -396,6 +448,10 @@ export default function AdminDoctorSchedules() {
     e.preventDefault()
     if (!newDocEmail.trim() || !newDocFirstName.trim() || !newDocLastName.trim()) {
       alert('Vui lòng điền đầy đủ Họ, Tên và Email bác sĩ.')
+      return
+    }
+
+    if (!window.confirm(`Xác nhận: Bạn có chắc chắn muốn tạo tài khoản bác sĩ mới BS. ${newDocLastName} ${newDocFirstName} (${newDocEmail}) không?`)) {
       return
     }
 
@@ -454,6 +510,10 @@ export default function AdminDoctorSchedules() {
       return
     }
 
+    if (!window.confirm(`Xác nhận thay đổi: Bạn có chắc chắn muốn lưu các cập nhật cho hồ sơ BS. ${editDocLastName} ${editDocFirstName} không?`)) {
+      return
+    }
+
     setUpdatingDoctor(true)
     try {
       const payload: any = {
@@ -502,6 +562,9 @@ export default function AdminDoctorSchedules() {
   // Xử lý xác nhận Xóa Bác sĩ
   const handleConfirmDeleteDoctor = async () => {
     if (!deleteDoctorTarget) return
+    if (!window.confirm(`CẢNH BÁO NGUY HIỂM: Bạn có chắc chắn muốn xóa vĩnh viễn bác sĩ BS. ${deleteDoctorTarget.user?.last_name} ${deleteDoctorTarget.user?.first_name} (${deleteDoctorTarget.user?.email}) khỏi hệ thống không? Toàn bộ ca trực và tài khoản sẽ bị xóa hoàn toàn!`)) {
+      return
+    }
     setDeletingDoctor(true)
     try {
       const res = await doctorScheduleAPI.deleteDoctor(deleteDoctorTarget.id)
@@ -537,6 +600,10 @@ export default function AdminDoctorSchedules() {
   const handleUpdateSlot = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!editingSlotTarget) return
+
+    if (!window.confirm(`Xác nhận thay đổi: Bạn có chắc chắn muốn lưu các cập nhật cho ca trực ngày ${editSlotDate} (${editSlotStart} - ${editSlotEnd}) không?`)) {
+      return
+    }
 
     setUpdatingSlot(true)
     try {
@@ -1433,8 +1500,14 @@ export default function AdminDoctorSchedules() {
       {/* MODAL 1: THÊM CA TRỰC THỦ CÔNG (LẺ) CHO BÁC SĨ */}
       {/* ========================================================================= */}
       {showSingleModal && selectedDoctor && (
-        <div className="modal-backdrop">
-          <div className="modal-card" style={{ maxWidth: 500 }}>
+        <div
+          className="modal-backdrop"
+          style={modalBackdropStyle}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowSingleModal(false)
+          }}
+        >
+          <div className="modal-card" style={modalContentStyle(520)}>
             <div className="modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Plus size={18} color="#0068ff" />
@@ -1533,8 +1606,14 @@ export default function AdminDoctorSchedules() {
       {/* MODAL 2: SINH CA TRỰC THEO THÁNG (BULK MONTH GENERATION) */}
       {/* ========================================================================= */}
       {showBulkMonthModal && selectedDoctor && (
-        <div className="modal-backdrop">
-          <div className="modal-card" style={{ maxWidth: 580 }}>
+        <div
+          className="modal-backdrop"
+          style={modalBackdropStyle}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowBulkMonthModal(false)
+          }}
+        >
+          <div className="modal-card" style={modalContentStyle(580)}>
             <div className="modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Calendar size={18} color="#4f46e5" />
@@ -1726,8 +1805,14 @@ export default function AdminDoctorSchedules() {
       {/* MODAL 3: NHẬP CA TRỰC BẰNG FILE EXCEL */}
       {/* ========================================================================= */}
       {showExcelModal && (
-        <div className="modal-backdrop">
-          <div className="modal-card" style={{ maxWidth: 540 }}>
+        <div
+          className="modal-backdrop"
+          style={modalBackdropStyle}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowExcelModal(false)
+          }}
+        >
+          <div className="modal-card" style={modalContentStyle(540)}>
             <div className="modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <FileSpreadsheet size={20} color="#059669" />
@@ -1832,8 +1917,14 @@ export default function AdminDoctorSchedules() {
       {/* MODAL 4: XÁC NHẬN XÓA CA TRỰC */}
       {/* ========================================================================= */}
       {deleteSlotTarget && (
-        <div className="modal-backdrop">
-          <div className="modal-card" style={{ maxWidth: 420 }}>
+        <div
+          className="modal-backdrop"
+          style={modalBackdropStyle}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setDeleteSlotTarget(null)
+          }}
+        >
+          <div className="modal-card" style={modalContentStyle(420)}>
             <div className="modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <AlertTriangle size={20} color="#dc2626" />
@@ -1869,8 +1960,14 @@ export default function AdminDoctorSchedules() {
       {/* MODAL 5: THÊM BÁC SĨ MỚI (CREATE DOCTOR) */}
       {/* ========================================================================= */}
       {showCreateDoctorModal && (
-        <div className="modal-backdrop">
-          <div className="modal-card" style={{ maxWidth: 640 }}>
+        <div
+          className="modal-backdrop"
+          style={modalBackdropStyle}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowCreateDoctorModal(false)
+          }}
+        >
+          <div className="modal-card" style={modalContentStyle(640)}>
             <div className="modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <UserPlus size={20} color="#0068ff" />
@@ -2055,8 +2152,14 @@ export default function AdminDoctorSchedules() {
       {/* MODAL 6: CHỈNH SỬA HỒ SƠ BÁC SĨ (UPDATE DOCTOR) */}
       {/* ========================================================================= */}
       {showEditDoctorModal && editingDoctorTarget && (
-        <div className="modal-backdrop">
-          <div className="modal-card" style={{ maxWidth: 640 }}>
+        <div
+          className="modal-backdrop"
+          style={modalBackdropStyle}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowEditDoctorModal(false)
+          }}
+        >
+          <div className="modal-card" style={modalContentStyle(640)}>
             <div className="modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Edit size={20} color="#0284c7" />
@@ -2225,8 +2328,14 @@ export default function AdminDoctorSchedules() {
       {/* MODAL 7: XÁC NHẬN XÓA BÁC SĨ (DELETE DOCTOR) */}
       {/* ========================================================================= */}
       {deleteDoctorTarget && (
-        <div className="modal-backdrop">
-          <div className="modal-card" style={{ maxWidth: 440 }}>
+        <div
+          className="modal-backdrop"
+          style={modalBackdropStyle}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setDeleteDoctorTarget(null)
+          }}
+        >
+          <div className="modal-card" style={modalContentStyle(440)}>
             <div className="modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <AlertTriangle size={20} color="#dc2626" />
@@ -2265,8 +2374,14 @@ export default function AdminDoctorSchedules() {
       {/* MODAL 8: CHỈNH SỬA CA TRỰC (UPDATE TIMESLOT) */}
       {/* ========================================================================= */}
       {showEditSlotModal && editingSlotTarget && (
-        <div className="modal-backdrop">
-          <div className="modal-card" style={{ maxWidth: 500 }}>
+        <div
+          className="modal-backdrop"
+          style={modalBackdropStyle}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowEditSlotModal(false)
+          }}
+        >
+          <div className="modal-card" style={modalContentStyle(500)}>
             <div className="modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Edit size={18} color="#0284c7" />

@@ -4,7 +4,6 @@ Tự động phân loại triệu chứng, sửa lỗi tên thuốc, phát hiệ
 """
 import logging
 from rest_framework import generics, status
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -23,7 +22,6 @@ class ChatView(APIView):
     Tư vấn y khoa thông minh: tự xử lý triệu chứng, nhận diện thuốc gõ sai,
     phát hiện từ vô nghĩa, gợi ý chuyên khoa và mức độ khẩn cấp.
     """
-    permission_classes = [AllowAny]
 
     def post(self, request):
         message = request.data.get('message', '').strip()
@@ -37,23 +35,23 @@ class ChatView(APIView):
 
         # Get or create session
         user = request.user if request.user.is_authenticated else None
-        if not user:
-            from apps.accounts.models import CustomUser
-            user = CustomUser.objects.filter(role='PATIENT').first() or CustomUser.objects.first()
-
-        session = None
         if session_id:
-            session = ChatSession.objects.filter(id=session_id).first()
-            if session and user and not session.patient:
-                session.patient = user
-                session.save(update_fields=['patient'])
-
-        if not session:
+            try:
+                if user:
+                    session = ChatSession.objects.get(id=session_id, patient=user)
+                else:
+                    session = ChatSession.objects.get(id=session_id)
+            except ChatSession.DoesNotExist:
+                session = ChatSession.objects.create(patient=user, title=message[:100])
+        else:
             session = ChatSession.objects.create(patient=user, title=message[:100])
 
-        # Get prior conversation history for multi-turn context (most recent 10 messages)
-        history_qs = ChatMessage.objects.filter(session=session).order_by('-created_at')[:10]
-        history = list(reversed(list(history_qs.values('role', 'content'))))
+        # Get prior conversation history for multi-turn context
+        history = list(
+            ChatMessage.objects.filter(session=session)
+            .order_by('created_at')
+            .values('role', 'content')[:12]
+        )
 
         # Save user message
         ChatMessage.objects.create(session=session, role='user', content=message)
@@ -88,7 +86,7 @@ class ChatView(APIView):
                 'suggested_specialties': suggested_specialties,
                 'urgency_level': urgency,
                 'session_id': session.id,
-                'disclaimer': '⚠️ Kết quả tư vấn chỉ mang tính chất tham khảo, KHÔNG thay thế cho việc khám bệnh trực tiếp.'
+                'disclaimer': '*Lưu ý: Kết quả tư vấn chỉ mang tính chất tham khảo, KHÔNG thay thế cho việc khám bệnh trực tiếp.*'
             }
         })
 

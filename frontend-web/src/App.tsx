@@ -69,7 +69,11 @@ function AppRoutes() {
           <Route path="/telehealth" element={<Telehealth />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/admin/clinics" element={<AdminClinics />} />
+          <Route path="/clinics" element={<Navigate to="/admin/clinics" replace />} />
           <Route path="/admin/doctor-schedules" element={<AdminDoctorSchedules />} />
+          <Route path="/admin/doctors" element={<Navigate to="/admin/doctor-schedules" replace />} />
+          <Route path="/doctor-schedules" element={<Navigate to="/admin/doctor-schedules" replace />} />
+          <Route path="/schedules" element={<Navigate to="/admin/doctor-schedules" replace />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" />} />

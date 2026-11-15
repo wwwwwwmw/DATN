@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { notificationAPI } from '../services/api'
 import { useRealtimeSync } from '../utils/realtime'
 import {
-  Search, Bell, LogOut, Globe, CheckCheck,
+  Bell, LogOut, Globe, CheckCheck,
   Calendar, Brain, AlertTriangle, Shield, Video, Info
 } from 'lucide-react'
 
@@ -132,11 +132,6 @@ export default function Header() {
 
   return (
     <header className="app-header">
-      <div className="header-search">
-        <Search size={16} className="header-search-icon" />
-        <input type="text" placeholder={t('actions.search')} />
-      </div>
-
       <div className="header-actions">
         {/* Language Switch Button */}
         <button
@@ -254,7 +249,21 @@ export default function Header() {
               {user?.role === 'DOCTOR' ? t('auth.doctor') : user?.role === 'PATIENT' ? t('auth.patient') : user?.role}
             </span>
           </div>
-          <div className="header-avatar">{initials}</div>
+          {user?.avatar ? (
+            <img
+              src={user.avatar}
+              alt={user.first_name || 'Avatar'}
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: '50%',
+                objectFit: 'cover',
+                border: '2px solid #0068ff',
+              }}
+            />
+          ) : (
+            <div className="header-avatar">{initials}</div>
+          )}
         </div>
 
         {/* Logout */}

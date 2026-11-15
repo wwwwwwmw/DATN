@@ -174,6 +174,32 @@ def generate_gradcam_and_predictions_from_image(image_bytes: bytes, existing_pre
     return heatmap_bytes, existing_preds
 
 
+def assign_radiologist_for_xray():
+    """
+    Thuật toán phân công thông minh (Smart Radiology Workload Balancing):
+    1. Lấy danh sách tất cả Bác sĩ thuộc chuyên khoa Chẩn đoán hình ảnh.
+    2. Đếm số lượng ca X-quang đang chờ duyệt của từng bác sĩ.
+    3. Tự động giao cho bác sĩ đang có ít ca chờ nhất để cân bằng tải, không dồn việc cho 1 người.
+    """
+    radiologists = list(
+        DoctorProfile.objects.filter(specialization__icontains='hình ảnh').select_related('user')
+    )
+    if not radiologists:
+        return DoctorProfile.objects.first()
+
+    counts = {
+        doc.id: XrayAnalysisResult.objects.filter(
+            reviewed_by=doc,
+            digital_signature=''
+        ).count()
+        for doc in radiologists
+    }
+
+    # Chọn bác sĩ có số ca chờ duyệt thấp nhất (least loaded)
+    least_loaded_doc = min(radiologists, key=lambda d: counts.get(d.id, 0))
+    return least_loaded_doc
+
+
 class XrayAnalyzeView(APIView):
     """
     POST /api/xray/analyze/
@@ -224,10 +250,14 @@ class XrayAnalyzeView(APIView):
         safe_ext = ext if ext in ['.jpg', '.jpeg', '.png', '.webp'] else '.png'
         orig_filename = f"{image_code}{safe_ext}"
 
+        # Tự động phân công Bác sĩ Chẩn đoán hình ảnh theo thuật toán cân bằng tải
+        assigned_doc = assign_radiologist_for_xray()
+
         result = XrayAnalysisResult(
             xray_code=xray_code,
             image_code=image_code,
             patient=target_patient,
+            reviewed_by=assigned_doc,
         )
         result.original_image.save(orig_filename, ContentFile(raw_image_bytes), save=False)
 

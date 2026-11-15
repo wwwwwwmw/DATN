@@ -261,14 +261,19 @@ class ProfileView(generics.RetrieveUpdateAPIView):
         user.phone = phone
         user.email = email
 
-        # Cập nhật Avatar (nếu người dùng upload ảnh hoặc gửi link ảnh)
+        # Cập nhật Avatar (lưu trực tiếp base64 hoặc URL vào database để xuất file database chuyển máy dùng được ngay)
         if 'avatar' in request.data:
             avatar_val = request.data['avatar']
-            if hasattr(avatar_val, 'read'):  # File upload
-                user.avatar = avatar_val
-            elif isinstance(avatar_val, str) and avatar_val.strip():
-                # Lưu đường dẫn ảnh hoặc avatar URL
+            if hasattr(avatar_val, 'read'):  # File upload (multipart)
+                import base64
+                content_type = getattr(avatar_val, 'content_type', 'image/jpeg') or 'image/jpeg'
+                file_bytes = avatar_val.read()
+                b64_str = base64.b64encode(file_bytes).decode('utf-8')
+                user.avatar = f"data:{content_type};base64,{b64_str}"
+            elif isinstance(avatar_val, str):
                 user.avatar = avatar_val.strip()
+            elif avatar_val is None:
+                user.avatar = ''
 
         user.save()
 
@@ -317,6 +322,15 @@ class ChangePasswordView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         user = request.user
+
+        # Với DOCTOR và PATIENT: Yêu cầu xác thực OTP trước khi đổi mật khẩu
+        if user.role in ['DOCTOR', 'PATIENT']:
+            if not is_user_otp_verified(user):
+                return Response({
+                    'status': 'error',
+                    'message': 'Bảo mật Y tế: Bạn cần xác thực mã OTP qua email trước khi đổi mật khẩu.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
         if not user.check_password(serializer.validated_data['old_password']):
             return Response({
                 'status': 'error',

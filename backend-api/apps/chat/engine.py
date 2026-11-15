@@ -30,7 +30,8 @@ QUY TẮC BẮT BUỘC:
 7. SỬA TÊN THUỐC SAI: Nếu người bệnh viết sai (asprin, parasetamon...), ân cần hỏi: "Có phải bạn đang muốn hỏi về thuốc [Tên đúng] không?" rồi tư vấn công dụng, liều dùng, cách uống.
 8. CẤP CỨU: Nếu phát hiện triệu chứng nguy hiểm (đau thắt ngực cấp, khó thở cấp, ngất, co giật), mở đầu bằng "🚨 CẢNH BÁO KHẨN CẤP" và hướng dẫn gọi 115 ngay.
 9. VỀ THUỐC: Chỉ cung cấp thông tin chung. KHÔNG kê đơn. Luôn nhắc: "Việc sử dụng thuốc cần có chỉ định của bác sĩ."
-10. GỢI Ý CHUYÊN KHOA: Cuối mỗi câu trả lời, đề xuất chuyên khoa phù hợp (VD: "Bạn nên đặt lịch khám khoa Tim mạch")."""
+10. GỢI Ý CHUYÊN KHOA: BẮT BUỘC chỉ đề xuất đúng chuyên khoa được hệ thống chỉ định trong [CHUYÊN KHOA ĐỀ XUẤT]. TUYỆT ĐỐI không đề xuất sai lệch hoặc tự ý thêm các chuyên khoa không liên quan (ví dụ: bị ho, viêm họng, lở miệng thì chỉ đề xuất khoa Tai Mũi Họng & Hô hấp, tuyệt đối KHÔNG đề xuất khoa Thần kinh).
+11. ĐỊNH DẠNG LƯU Ý: Không dùng icon tam giác cảnh báo (⚠️), chỉ dùng chữ "*Lưu ý:*" khi đưa ra khuyến nghị tham khảo."""
 
 def normalize_text(text: str) -> str:
     return re.sub(r'\s+', ' ', text.strip().lower())
@@ -198,7 +199,7 @@ def query_ollama_chat(message: str, history: list = None, system_prompt: str = O
             role = 'user' if h.get('role') == 'user' else 'assistant'
             content = h.get('content', '').strip()
             # Remove repeated disclaimers from history to keep context clean
-            content = content.replace("⚠️ Lưu ý: Kết quả tư vấn chỉ mang tính chất tham khảo, không thay thế cho việc khám và chỉ định điều trị của Bác sĩ chuyên khoa.", "").strip()
+            content = content.replace("⚠️", "").replace("Lưu ý: Kết quả tư vấn chỉ mang tính chất tham khảo, không thay thế cho việc khám và chỉ định điều trị của Bác sĩ chuyên khoa.", "").strip()
             if content:
                 messages.append({"role": role, "content": content})
 
@@ -300,7 +301,7 @@ def process_consultation_message(message: str, history: list = None) -> dict:
         urgency = 'HIGH' if urgency != 'EMERGENCY' else urgency
     elif any(k in stripped_text for k in ['an khong ngon', 'chan an', 'da day', 'bao tu', 'o chua', 'trao nguoc', 'thuong vi', 'tieu hoa', 'dau bung', 'day bung', 'buon non', 'non', 'tieu chay', 'tao bon']):
         suggested_specs = ['Tiêu hóa - Gan mật']
-    elif any(k in stripped_text for k in ['ho', 'kho tho', 'viem phoi', 'phe quan', 'dom', 'viem hong', 'dau hong', 'nghet mui', 'so mui', 'viem xoang', 'amidan', 'tai mui hong']):
+    elif any(k in stripped_text for k in ['ho', 'kho tho', 'viem phoi', 'phe quan', 'dom', 'viem hong', 'dau hong', 'nghet mui', 'so mui', 'viem xoang', 'amidan', 'tai mui hong', 'lo mieng', 'nhiet mieng', 'lo loet mieng']):
         suggested_specs = ['Tai Mũi Họng & Hô hấp']
         if 'kho tho' in stripped_text:
             urgency = 'HIGH'
@@ -318,27 +319,42 @@ def process_consultation_message(message: str, history: list = None) -> dict:
         suggested_specs = ['Đa khoa & Nội Tổng quát']
 
     # 4. Generate dynamic response with Ollama Multi-turn Memory
+    # Chỉ định rõ chuyên khoa đề xuất để nội dung phản hồi 100% khớp với chuyên khoa đề xuất
+    spec_text = " hoặc ".join(suggested_specs)
+    specialty_instruction = (
+        f"[CHUYÊN KHOA ĐỀ XUẤT BẮT BUỘC]: Chuyên khoa đã được xác định chuẩn là: '{spec_text}'. "
+        f"Trong phần khuyến nghị đặt lịch khám, bạn BẮT BUỘC phải khuyên bệnh nhân đặt lịch tại '{spec_text}'. "
+        f"TUYỆT ĐỐI KHÔNG tự ý đề xuất các khoa không phù hợp (ví dụ: không được đề xuất khoa Thần kinh khi bệnh nhân bị ho, đau họng, lở miệng; không đề xuất Mắt khi bệnh nhân đau dạ dày...). Đảm bảo nội dung trả lời 100% khớp với chuyên khoa đề xuất."
+    )
+    combined_extra_instruction = f"{extra_med_instruction}\n\n{specialty_instruction}".strip()
+
     llm_answer = query_ollama_chat(
         message=raw_text,
         history=history,
-        extra_instruction=extra_med_instruction
+        extra_instruction=combined_extra_instruction
     )
 
     if llm_answer:
         # Sanitize any Chinese character strictly
         llm_answer = sanitize_text(llm_answer)
 
-        if "⚠️" not in llm_answer and "tham khảo" not in llm_answer:
-            llm_answer += "\n\n⚠️ *Lưu ý: Kết quả tư vấn chỉ mang tính chất tham khảo, không thay thế cho việc khám và chỉ định điều trị của Bác sĩ chuyên khoa.*"
+        # Xóa bỏ icon tam giác cảnh báo (⚠️, ▲) theo yêu cầu, chỉ giữ chữ Lưu ý
+        llm_answer = llm_answer.replace("⚠️", "").replace("▲", "").strip()
+
+        # Đồng bộ và chuẩn hóa nếu mô hình đề xuất lệch chuyên khoa
+        if 'Tai Mũi Họng & Hô hấp' in suggested_specs:
+            llm_answer = re.sub(r'khoa Thần kinh\s*(hoặc|,)?\s*', '', llm_answer, flags=re.IGNORECASE)
+            llm_answer = re.sub(r'Khoa Họng', 'khoa Tai Mũi Họng & Hô hấp', llm_answer, flags=re.IGNORECASE)
+            llm_answer = re.sub(r'khoa Họng', 'khoa Tai Mũi Họng & Hô hấp', llm_answer, flags=re.IGNORECASE)
+
+        if "Lưu ý:" not in llm_answer and "tham khảo" not in llm_answer:
+            llm_answer += "\n\n*Lưu ý: Kết quả tư vấn chỉ mang tính chất tham khảo, không thay thế cho việc khám và chỉ định điều trị của Bác sĩ chuyên khoa.*"
 
         return {
             'answer': llm_answer,
             'urgency_level': urgency,
             'suggested_specialties': suggested_specs,
-            'sources': [
-                {"title": "Hệ thống Trợ lý Y tế MedTech AI (Clinical Medical Engine)", "content": "Tư vấn động dựa trên lý luận lâm sàng và hội thoại đa bước."},
-                {"title": "Dược thư Quốc gia Việt Nam & Phác đồ Bộ Y tế", "content": "Nguyên tắc sử dụng thuốc và phân luồng tiếp đón bệnh nhân."}
-            ]
+            'sources': []
         }
 
     # 5. Fallback if Ollama timeout/offline
@@ -356,11 +372,11 @@ def process_consultation_message(message: str, history: list = None) -> dict:
                 f"• **Công dụng điều trị**: {med['indication']}.\n"
                 f"• **Liều dùng tham khảo**: {med['dosage']}.\n"
                 f"• **Chống chỉ định & Lưu ý quan trọng**: {med['cautions']}.\n\n"
-                f"⚠️ *Khuyến cáo: Luôn sử dụng thuốc theo đơn và chỉ định cụ thể của Bác sĩ điều trị.*"
+                f"*Lưu ý: Luôn sử dụng thuốc theo đơn và chỉ định cụ thể của Bác sĩ điều trị.*"
             ),
             'urgency_level': med['urgency'],
             'suggested_specialties': med['specialties'],
-            'sources': [{"title": f"Dược thư Quốc gia — {med['correct_name']}", "content": med['indication']}]
+            'sources': []
         }
 
     if urgency == 'EMERGENCY':
@@ -370,22 +386,23 @@ def process_consultation_message(message: str, history: list = None) -> dict:
                 "Các triệu chứng bạn vừa mô tả là dấu hiệu cảnh báo nghiêm trọng của tình trạng thiếu máu cơ tim hoặc nhồi máu cơ tim cấp.\n\n"
                 "**HƯỚNG DẪN XỬ TRÍ NGAY LẬP TỨC:**\n"
                 "1. **Nghỉ ngơi tuyệt đối**: Ngồi tựa lưng ở nơi thoáng khí, nới lỏng áo ngực. Không gắng sức.\n"
-                "2. **Gọi cấp cứu khẩn cấp**: Liên hệ ngay đường dây nóng **1900 6868** hoặc gọi **115**.\n"
-                "3. Nhờ người nhà mang theo hồ sơ bệnh án đến bệnh viện gần nhất."
+                "2. **Gọi cấp cứu khẩn cấp**: Hãy gọi ngay số **115** hoặc đến bệnh viện gần nhất.\n"
+                "3. Nhờ người nhà mang theo hồ sơ bệnh án đến bệnh viện gần nhất.\n\n"
+                "*Lưu ý: Đây là tình huống y tế khẩn cấp, bạn cần được hỗ trợ y tế chuyên khoa ngay.*"
             ),
             'urgency_level': 'EMERGENCY',
-            'suggested_specialties': ['Cấp cứu Tim mạch', 'Tim mạch Can thiệp'],
-            'sources': [{"title": "Phác đồ Cấp cứu Tim mạch — Bộ Y tế", "content": "Quy trình xử trí ban đầu đau thắt ngực cấp."}]
+            'suggested_specialties': ['Cấp cứu Tim mạch', 'Nội Tim mạch'],
+            'sources': []
         }
 
     return {
         'answer': (
             f"Chào bạn, tôi đã tiếp nhận thông tin: \"{raw_text}\".\n\n"
-            "Dựa trên các dấu hiệu bạn chia sẻ, hệ thống ghi nhận và đề xuất bạn nên theo dõi kỹ mức độ và thời gian xuất hiện của triệu chứng. "
-            "Nếu triệu chứng tăng dần hoặc gây khó chịu, bạn nên đặt lịch khám sớm với Bác sĩ chuyên khoa để được chẩn đoán toàn diện.\n\n"
-            "⚠️ *Lưu ý: Thông tin tư vấn chỉ mang tính tham khảo ban đầu.*"
+            f"Dựa trên các dấu hiệu bạn chia sẻ, hệ thống ghi nhận và đề xuất bạn nên theo dõi kỹ mức độ và thời gian xuất hiện của triệu chứng. "
+            f"Nếu triệu chứng kéo dài hoặc gây khó chịu, bạn nên đặt lịch khám sớm tại **chuyên khoa {', '.join(suggested_specs)}** để được chẩn đoán toàn diện.\n\n"
+            f"*Lưu ý: Thông tin tư vấn chỉ mang tính tham khảo ban đầu và không thay thế cho chẩn đoán của Bác sĩ chuyên khoa.*"
         ),
         'urgency_level': urgency,
         'suggested_specialties': suggested_specs,
-        'sources': [{"title": "Cơ sở Dữ liệu Y tế MedTech", "content": "Tư vấn sức khỏe ban đầu."}]
+        'sources': []
     }

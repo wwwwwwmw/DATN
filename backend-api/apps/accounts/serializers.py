@@ -118,22 +118,33 @@ class DoctorProfileSerializer(serializers.ModelSerializer):
 
     def get_available_slots(self, obj):
         from django.utils import timezone
-        today = timezone.now().date()
+        now = timezone.localtime()
+        today = now.date()
+        current_time = now.time()
+
         slots = obj.time_slots.filter(
             is_available=True,
             date__gte=today
-        ).order_by('date', 'start_time')[:60]
-        return [
-            {
+        ).order_by('date', 'start_time')
+
+        valid_slots = []
+        for s in slots:
+            if s.is_full:
+                continue
+            # Nếu ca vào ngày hôm nay nhưng giờ bắt đầu <= giờ hiện tại thì bỏ qua (đã qua giờ bắt đầu)
+            if s.date == today and s.start_time <= current_time:
+                continue
+            valid_slots.append({
                 'id': s.id,
                 'date': str(s.date),
                 'start_time': s.start_time.strftime('%H:%M'),
                 'end_time': s.end_time.strftime('%H:%M'),
                 'is_available': s.is_available and not s.is_full,
                 'remaining_slots': s.remaining_slots,
-            }
-            for s in slots
-        ]
+            })
+            if len(valid_slots) >= 120:
+                break
+        return valid_slots
 
 
 class PatientProfileSerializer(serializers.ModelSerializer):

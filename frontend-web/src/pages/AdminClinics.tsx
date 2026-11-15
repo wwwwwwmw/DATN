@@ -97,6 +97,12 @@ export default function AdminClinics() {
 
   // Đổi nhanh trạng thái Mở / Đóng cửa
   const handleToggleStatus = async (clinic: any) => {
+    const currentOpen = clinic.is_open ?? clinic.is_active ?? true
+    const targetStatusText = currentOpen ? 'ĐÃ ĐÓNG CỬA' : 'MỞ CỬA TIẾP NHẬN'
+    if (!window.confirm(`Xác nhận thay đổi: Bạn có chắc chắn muốn chuyển trạng thái của cơ sở y tế "${clinic.name}" sang "${targetStatusText}" không?`)) {
+      return
+    }
+
     try {
       const res = await clinicAPI.toggleStatus(clinic.id)
       const newStatus = res.data?.is_open
@@ -159,6 +165,13 @@ export default function AdminClinics() {
       return
     }
 
+    const confirmText = isEditing
+      ? `Cảnh báo xác nhận: Bạn có chắc chắn muốn lưu các thay đổi cho cơ sở y tế "${formName}" không?`
+      : `Cảnh báo xác nhận: Bạn có chắc chắn muốn thêm mới cơ sở y tế "${formName}" vào hệ thống không?`
+    if (!window.confirm(confirmText)) {
+      return
+    }
+
     setModalSaving(true)
     try {
       const payload = {
@@ -196,6 +209,9 @@ export default function AdminClinics() {
 
   const handleConfirmDelete = async () => {
     if (!deleteClinicTarget) return
+    if (!window.confirm(`CẢNH BÁO QUAN TRỌNG: Bạn có chắc chắn muốn xóa vĩnh viễn cơ sở y tế "${deleteClinicTarget.name}" không? Hành động này sẽ không thể khôi phục!`)) {
+      return
+    }
     setDeleting(true)
     try {
       await clinicAPI.delete(deleteClinicTarget.id)
@@ -641,8 +657,40 @@ export default function AdminClinics() {
 
       {/* MODAL THÊM / CHỈNH SỬA BỆNH VIỆN */}
       {showModal && (
-        <div className="modal-backdrop">
-          <div className="modal-card" style={{ maxWidth: 620 }}>
+        <div
+          className="modal-backdrop"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(15, 23, 42, 0.75)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 99999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+            boxSizing: 'border-box',
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowModal(false)
+          }}
+        >
+          <div
+            className="modal-card"
+            style={{
+              background: '#ffffff',
+              borderRadius: 16,
+              width: '100%',
+              maxWidth: 620,
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.5)',
+              position: 'relative',
+              zIndex: 100000,
+            }}
+          >
             <div className="modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Building2 size={20} color="#0068ff" />
@@ -823,8 +871,38 @@ export default function AdminClinics() {
 
       {/* MODAL XÁC NHẬN XÓA BỆNH VIỆN */}
       {deleteClinicTarget && (
-        <div className="modal-backdrop">
-          <div className="modal-card" style={{ maxWidth: 440 }}>
+        <div
+          className="modal-backdrop"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(15, 23, 42, 0.75)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 99999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+            boxSizing: 'border-box',
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setDeleteClinicTarget(null)
+          }}
+        >
+          <div
+            className="modal-card"
+            style={{
+              background: '#ffffff',
+              borderRadius: 16,
+              width: '100%',
+              maxWidth: 440,
+              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.5)',
+              position: 'relative',
+              zIndex: 100000,
+            }}
+          >
             <div className="modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <AlertTriangle size={20} color="#dc2626" />

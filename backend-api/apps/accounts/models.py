@@ -24,7 +24,7 @@ class CustomUser(AbstractUser):
     email = models.EmailField(unique=True)
     role = models.CharField(max_length=10, choices=Role.choices, default=Role.PATIENT)
     phone = models.CharField(max_length=15, blank=True, default='')
-    avatar = models.ImageField(upload_to='avatars/', blank=True, default='')
+    avatar = models.TextField(blank=True, default='')
     is_verified = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -5,7 +5,8 @@ import {
   Shield, Mail, CheckCircle, Download,
   Lock, KeyRound, Edit, Trash2, Plus, Search,
   Camera, X, AlertCircle, FileSpreadsheet, Upload,
-  Users, Stethoscope, UserCheck, ShieldAlert
+  Users, Stethoscope, UserCheck, ShieldAlert,
+  RefreshCw, Check
 } from 'lucide-react'
 
 export default function Settings() {
@@ -51,9 +52,16 @@ export default function Settings() {
   const [otpSentMessage, setOtpSentMessage] = useState<string | null>(null)
   const [otpCountdown, setOtpCountdown] = useState(0)
 
-  // Modal avatar URL
+  // Modal avatar state & Camera controls
   const [showAvatarModal, setShowAvatarModal] = useState(false)
   const [newAvatarUrl, setNewAvatarUrl] = useState('')
+  const [avatarTab, setAvatarTab] = useState<'camera' | 'upload'>('camera')
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null)
+  const [cameraError, setCameraError] = useState<string | null>(null)
+  const [isCameraActive, setIsCameraActive] = useState(false)
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const avatarFileInputRef = useRef<HTMLInputElement | null>(null)
 
   // ==========================================
   // STATE CHO QUẢN TRỊ VIÊN (ADMIN)
@@ -106,6 +114,11 @@ export default function Settings() {
     e.preventDefault()
     setPwdError('')
     setPwdSuccess('')
+
+    if (!isAdmin && !isOtpVerified) {
+      setPwdError('Bảo mật Y tế: Bạn cần xác thực mã OTP qua Email trước khi đổi mật khẩu.')
+      return
+    }
 
     if (!pwdOld) {
       setPwdError('Vui lòng nhập mật khẩu hiện tại.')
@@ -228,6 +241,81 @@ export default function Settings() {
   }, [otpCountdown])
 
   // ==========================================
+  // CAMERA & AVATAR HANDLERS
+  // ==========================================
+  const startCamera = async () => {
+    setCameraError(null)
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setCameraError('Trình duyệt không hỗ trợ mở camera trực tiếp. Vui lòng chọn tải ảnh từ máy tính.')
+      return
+    }
+    try {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(t => t.stop())
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 640 } },
+        audio: false
+      })
+      setCameraStream(stream)
+      setIsCameraActive(true)
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        videoRef.current.play().catch(e => console.log('Video play error:', e))
+      }
+    } catch (err: any) {
+      console.error('Camera access error:', err)
+      setCameraError('Không thể mở Camera. Vui lòng cho phép quyền truy cập máy ảnh hoặc chuyển sang tải ảnh từ máy tính.')
+      setIsCameraActive(false)
+    }
+  }
+
+  const stopCamera = () => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop())
+      setCameraStream(null)
+    }
+    setIsCameraActive(false)
+  }
+
+  const handleCapturePhoto = () => {
+    if (!videoRef.current || !canvasRef.current) return
+    const video = videoRef.current
+    const canvas = canvasRef.current
+    const width = video.videoWidth || 480
+    const height = video.videoHeight || 480
+    canvas.width = width
+    canvas.height = height
+    const ctx = canvas.getContext('2d')
+    if (ctx) {
+      ctx.drawImage(video, 0, 0, width, height)
+      const base64Data = canvas.toDataURL('image/jpeg', 0.88)
+      setNewAvatarUrl(base64Data)
+      stopCamera()
+    }
+  }
+
+  const handleCloseAvatarModal = () => {
+    stopCamera()
+    setShowAvatarModal(false)
+  }
+
+  // Kết nối stream vào thẻ video khi cameraStream thay đổi
+  useEffect(() => {
+    if (videoRef.current && cameraStream) {
+      videoRef.current.srcObject = cameraStream
+      videoRef.current.play().catch(e => console.log('Video play error:', e))
+    }
+  }, [cameraStream])
+
+  // Dọn dẹp stream khi component unmount
+  useEffect(() => {
+    return () => {
+      stopCamera()
+    }
+  }, [])
+
+  // ==========================================
   // OTP HANDLERS
   // ==========================================
   const handleSendOtp = async () => {
@@ -273,6 +361,10 @@ export default function Settings() {
   const handleSaveProfile = async () => {
     setErrorMessage(null)
     setSaveMessage(null)
+
+    if (!window.confirm('Cảnh báo xác nhận: Bạn có chắc chắn muốn cập nhật và lưu thay đổi cho hồ sơ cá nhân này không?')) {
+      return
+    }
 
     // 1. Kiểm tra OTP
     if (!isOtpVerified) {
@@ -352,6 +444,9 @@ export default function Settings() {
 
   const handleAdminSaveUser = async () => {
     if (!selectedUserForEdit) return
+    if (!window.confirm(`Cảnh báo xác nhận: Bạn có chắc chắn muốn lưu các thay đổi cho tài khoản "${selectedUserForEdit.full_name} (${selectedUserForEdit.email})"?`)) {
+      return
+    }
     setEditSaving(true)
     try {
       const payload: any = {
@@ -471,6 +566,31 @@ export default function Settings() {
   // Modal Đổi Mật Khẩu Dùng Chung (Admin / Doctor / Patient)
   const renderPasswordModal = () => {
     if (!showPasswordModal) return null
+
+    // Với Bác sĩ và Bệnh nhân: Yêu cầu xác thực OTP trước
+    if (!isAdmin && !isOtpVerified) {
+      return (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: 'white', borderRadius: 12, maxWidth: 440, width: '100%', padding: 24, textAlign: 'center', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+            <div style={{ width: 52, height: 52, borderRadius: '50%', background: '#fef2f2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+              <Lock size={26} />
+            </div>
+            <h3 style={{ margin: '0 0 8px', fontSize: 17, color: '#1e293b', fontWeight: 700 }}>Yêu Cầu Xác Thực OTP</h3>
+            <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 20px', lineHeight: 1.6 }}>
+              Để bảo mật tài khoản y tế, bạn cần gửi và xác thực mã OTP qua Email ở giao diện Cài đặt trước mới được sử dụng tính năng đổi mật khẩu.
+            </p>
+            <button
+              className="btn btn-primary"
+              onClick={() => setShowPasswordModal(false)}
+              style={{ background: '#0068ff', borderColor: '#0068ff', padding: '8px 22px' }}
+            >
+              Đã hiểu & Quay lại xác thực OTP
+            </button>
+          </div>
+        </div>
+      )
+    }
+
     return (
       <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
         <div style={{ background: 'white', borderRadius: 12, maxWidth: 460, width: '100%', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
@@ -1043,24 +1163,29 @@ export default function Settings() {
 
       {/* Profile Header & Avatar Card */}
       <div className="card">
-        <div className="card-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+        <div className="card-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
             <div style={{ position: 'relative' }}>
               {avatar ? (
                 <img
                   src={avatar}
                   alt={firstName}
-                  style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', border: '3px solid #0068ff', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}
+                  style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', border: '3px solid #0068ff', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}
                 />
               ) : (
-                <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'linear-gradient(135deg, #0068ff 0%, #0052cc 100%)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 'bold', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
+                <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'linear-gradient(135deg, #0068ff 0%, #0052cc 100%)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 'bold', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
                   {initials}
                 </div>
               )}
               <button
                 type="button"
-                onClick={() => { setShowAvatarModal(true); setNewAvatarUrl(avatar) }}
-                title="Thay đổi ảnh đại diện"
+                onClick={() => {
+                  setNewAvatarUrl(avatar)
+                  setAvatarTab('camera')
+                  setShowAvatarModal(true)
+                  startCamera()
+                }}
+                title="Thay đổi ảnh đại diện (Chụp từ Camera hoặc Tải ảnh)"
                 style={{
                   position: 'absolute',
                   bottom: -2,
@@ -1068,8 +1193,8 @@ export default function Settings() {
                   background: 'white',
                   border: '1px solid #cbd5e1',
                   borderRadius: '50%',
-                  width: 28,
-                  height: 28,
+                  width: 26,
+                  height: 26,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1078,59 +1203,95 @@ export default function Settings() {
                   boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                 }}
               >
-                <Camera size={14} />
+                <Camera size={13} />
               </button>
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <h2 style={{ margin: 0, fontSize: 20 }}>{lastName} {firstName}</h2>
+                <h2 style={{ margin: 0, fontSize: 19 }}>{lastName} {firstName}</h2>
                 <span className="badge badge-primary">{role === 'DOCTOR' ? 'BÁC SĨ' : 'BỆNH NHÂN'}</span>
               </div>
               <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', marginTop: 4 }}>
                 {email} &bull; {phone || 'Chưa cập nhật SĐT'}
               </div>
-              <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginTop: 2 }}>
-                Tài khoản y tế MedTech AI &bull; Bảo mật dữ liệu chuẩn Bộ Y Tế
-              </div>
             </div>
           </div>
 
-          <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+            {isOtpVerified ? (
+              <span className="badge badge-success" style={{ fontSize: 12, padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                <CheckCircle size={14} /> Đã xác thực OTP
+              </span>
+            ) : (
+              <span className="badge badge-warning" style={{ fontSize: 12, padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                <Lock size={13} /> Cần mã OTP
+              </span>
+            )}
             <button
               type="button"
               className="btn btn-secondary btn-sm"
-              onClick={() => { setShowPasswordModal(true); setPwdError(''); setPwdSuccess('') }}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, borderColor: '#cbd5e1', fontWeight: 600 }}
+              disabled={!isOtpVerified}
+              onClick={() => {
+                if (!isOtpVerified) {
+                  setErrorMessage('Bảo mật Y tế: Bạn cần xác thực mã OTP qua Email trước khi đổi mật khẩu.')
+                  return
+                }
+                setShowPasswordModal(true)
+                setPwdError('')
+                setPwdSuccess('')
+              }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                borderColor: isOtpVerified ? '#0068ff' : '#cbd5e1',
+                fontWeight: 600,
+                opacity: isOtpVerified ? 1 : 0.6,
+                cursor: isOtpVerified ? 'pointer' : 'not-allowed',
+                color: isOtpVerified ? '#0068ff' : '#64748b'
+              }}
+              title={isOtpVerified ? 'Đổi mật khẩu tài khoản' : 'Yêu cầu xác thực OTP trước khi đổi mật khẩu'}
             >
-              <KeyRound size={14} color="#0068ff" /> Đổi Mật Khẩu
+              <KeyRound size={14} color={isOtpVerified ? '#0068ff' : '#94a3b8'} /> Đổi Mật Khẩu
             </button>
-            {isOtpVerified ? (
-              <span className="badge badge-success" style={{ fontSize: 12, padding: '6px 12px' }}>
-                <CheckCircle size={14} style={{ display: 'inline', marginRight: 4 }} /> Đã xác thực OTP (Được quyền chỉnh sửa)
-              </span>
-            ) : (
-              <span className="badge badge-warning" style={{ fontSize: 12, padding: '6px 12px' }}>
-                <Lock size={13} style={{ display: 'inline', marginRight: 4 }} /> Cần mã OTP để mở khóa chỉnh sửa
-              </span>
-            )}
           </div>
         </div>
       </div>
 
       {/* Khối Xác thực bảo mật qua Email OTP */}
-      <div className="card" style={{ borderLeft: '4px solid #0068ff', background: isOtpVerified ? '#f0fdf4' : '#f8fafc' }}>
-        <div className="card-body">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-            <div>
-              <strong style={{ fontSize: 14, display: 'flex', alignItems: 'center', gap: 6, color: '#0068ff' }}>
-                <Mail size={16} /> Phương Thức Xác Thực: Mã OTP Qua Email (Hiệu lực 120s)
-              </strong>
-              <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 4 }}>
-                Để bảo vệ thông tin hồ sơ y tế, hệ thống yêu cầu xác thực mã OTP gửi về email <strong>{email}</strong> trước khi bạn chỉnh sửa và lưu hồ sơ. Mã OTP có hiệu lực tối đa 120 giây.
+      {isOtpVerified ? (
+        <div style={{
+          background: '#f0fdf4',
+          border: '1px solid #bbf7d0',
+          borderRadius: 8,
+          padding: '12px 18px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          color: '#15803d',
+          fontSize: 13,
+          fontWeight: 600
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <CheckCircle size={18} /> Đã xác thực OTP thành công
+          </div>
+          <span style={{ fontSize: 12, fontWeight: 400, color: '#16a34a' }}>
+            Hồ sơ y tế & tính năng đổi mật khẩu đã sẵn sàng chỉnh sửa
+          </span>
+        </div>
+      ) : (
+        <div className="card" style={{ borderLeft: '4px solid #0068ff', background: '#f8fafc' }}>
+          <div className="card-body">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+              <div>
+                <strong style={{ fontSize: 14, display: 'flex', alignItems: 'center', gap: 6, color: '#0068ff' }}>
+                  <Mail size={16} /> Xác Thực OTP Qua Email
+                </strong>
+                <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 4 }}>
+                  Mã OTP sẽ được gửi về email <strong>{email}</strong> (hiệu lực 120s).
+                </div>
               </div>
-            </div>
 
-            {!isOtpVerified ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <button
                   type="button"
@@ -1140,19 +1301,19 @@ export default function Settings() {
                   style={{ background: '#0068ff', display: 'flex', alignItems: 'center', gap: 6 }}
                 >
                   <KeyRound size={14} />
-                  {sendingOtp ? 'Đang gửi...' : (otpCountdown > 0 ? `Gửi lại sau (${otpCountdown}s)` : 'Gửi mã OTP qua Email')}
+                  {sendingOtp ? 'Đang gửi...' : (otpCountdown > 0 ? `Gửi lại sau (${otpCountdown}s)` : 'Gửi mã OTP')}
                 </button>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <input
                     className="form-input"
-                    style={{ width: 120, padding: '6px 10px', fontSize: 13, textAlign: 'center', letterSpacing: 2, fontWeight: 'bold' }}
+                    style={{ width: 110, padding: '6px 10px', fontSize: 13, textAlign: 'center', letterSpacing: 2, fontWeight: 'bold' }}
                     placeholder="Mã 6 số"
                     maxLength={6}
                     value={otpCode}
                     onChange={e => setOtpCode(e.target.value)}
                   />
                   {otpCountdown > 0 && (
-                    <span style={{ fontSize: 12, color: otpCountdown <= 30 ? '#dc2626' : '#0068ff', fontWeight: 600, minWidth: 40 }}>
+                    <span style={{ fontSize: 12, color: otpCountdown <= 30 ? '#dc2626' : '#0068ff', fontWeight: 600, minWidth: 38 }}>
                       ⏱️ {otpCountdown}s
                     </span>
                   )}
@@ -1166,302 +1327,470 @@ export default function Settings() {
                   </button>
                 </div>
               </div>
-            ) : (
-              <div style={{ color: '#15803d', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <CheckCircle size={16} /> Đã xác thực thành công. Bạn có thể thay đổi thông tin bên dưới!
+            </div>
+            {otpSentMessage && (
+              <div style={{ marginTop: 8, fontSize: 12, color: '#0068ff', fontWeight: 500 }}>
+                ℹ️ {otpSentMessage}
               </div>
             )}
           </div>
-          {otpSentMessage && (
-            <div style={{ marginTop: 8, fontSize: 12, color: '#0068ff', fontWeight: 500 }}>
-              ℹ️ {otpSentMessage}
-            </div>
-          )}
         </div>
-      </div>
+      )}
 
-      {/* Form Cập nhật thông tin chi tiết */}
-      <div className="card">
-        <div className="card-header">
-          <h3 className="card-title">Hồ Sơ Cá Nhân & Thông Tin Liên Hệ</h3>
-          <span style={{ fontSize: 12, color: 'var(--color-text-tertiary)' }}>Các mục có dấu (<span style={{ color: 'red' }}>*</span>) là bắt buộc</span>
+      {/* Khối Thông Tin Hồ Sơ & Đổi Mật Khẩu: Ẩn đi khi chưa xác thực OTP, chỉ hiện sau khi nhập đúng OTP */}
+      {!isOtpVerified ? (
+        <div className="card" style={{ textAlign: 'center', padding: '48px 24px', background: '#f8fafc', border: '1px dashed #cbd5e1' }}>
+          <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#eff6ff', color: '#0068ff', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+            <Lock size={28} />
+          </div>
+          <h3 style={{ fontSize: 17, fontWeight: 700, margin: '0 0 8px', color: '#1e293b' }}>
+            Hồ Sơ Cá Nhân & Tính Năng Đổi Mật Khẩu Đang Được Bảo Mật
+          </h3>
+          <p style={{ fontSize: 13, color: '#64748b', maxWidth: 520, margin: '0 auto', lineHeight: 1.6 }}>
+            Để bảo vệ an toàn thông tin y tế, toàn bộ dữ liệu hồ sơ cá nhân và tính năng đổi mật khẩu đã được tạm ẩn.
+            Vui lòng nhấn <strong>"Gửi mã OTP qua Email"</strong> và nhập mã xác thực 6 số vào ô bên trên để hiển thị thông tin, chỉnh sửa hồ sơ và đổi mật khẩu.
+          </p>
         </div>
-        <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-            <div className="form-group">
-              <label className="form-label" style={{ fontWeight: 600 }}>
-                Họ và đệm <span style={{ color: 'red' }}>*</span>
-              </label>
-              <input
-                className="form-input"
-                disabled={!isOtpVerified}
-                value={lastName}
-                onChange={e => setLastName(e.target.value)}
-                placeholder="Ví dụ: Nguyễn Văn"
-              />
+      ) : (
+        <>
+          {/* Form Cập nhật thông tin chi tiết */}
+          <div className="card">
+            <div className="card-header">
+              <h3 className="card-title">Hồ Sơ Cá Nhân & Thông Tin Liên Hệ</h3>
+              <span style={{ fontSize: 12, color: 'var(--color-text-tertiary)' }}>Các mục có dấu (<span style={{ color: 'red' }}>*</span>) là bắt buộc</span>
             </div>
-            <div className="form-group">
-              <label className="form-label" style={{ fontWeight: 600 }}>
-                Tên <span style={{ color: 'red' }}>*</span>
-              </label>
-              <input
-                className="form-input"
-                disabled={!isOtpVerified}
-                value={firstName}
-                onChange={e => setFirstName(e.target.value)}
-                placeholder="Ví dụ: An"
-              />
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-            <div className="form-group">
-              <label className="form-label" style={{ fontWeight: 600 }}>
-                Email đăng nhập <span style={{ color: 'red' }}>*</span>
-              </label>
-              <input
-                className="form-input"
-                disabled={!isOtpVerified}
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="email@medtech.ai"
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label" style={{ fontWeight: 600 }}>
-                Số điện thoại liên hệ <span style={{ color: 'red' }}>*</span>
-              </label>
-              <input
-                className="form-input"
-                disabled={!isOtpVerified}
-                value={phone}
-                onChange={e => setPhone(e.target.value)}
-                placeholder="0912345678"
-              />
-            </div>
-          </div>
-
-          {/* Dành riêng cho Bệnh nhân (PATIENT) */}
-          {role === 'PATIENT' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, borderTop: '1px solid var(--color-border-light)', paddingTop: 14 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
-                <div className="form-group">
-                  <label className="form-label">Ngày sinh</label>
-                  <input
-                    className="form-input"
-                    type="date"
-                    disabled={!isOtpVerified}
-                    value={dob}
-                    onChange={e => setDob(e.target.value)}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Giới tính</label>
-                  <select
-                    className="form-input"
-                    disabled={!isOtpVerified}
-                    value={gender}
-                    onChange={e => setGender(e.target.value)}
-                  >
-                    <option value="M">Nam</option>
-                    <option value="F">Nữ</option>
-                    <option value="OTHER">Khác</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Nhóm máu</label>
-                  <input
-                    className="form-input"
-                    disabled={!isOtpVerified}
-                    value={bloodType}
-                    onChange={e => setBloodType(e.target.value)}
-                    placeholder="A, B, AB, O (Rh+)"
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
+            <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                 <div className="form-group">
                   <label className="form-label" style={{ fontWeight: 600 }}>
-                    Địa chỉ thường trú <span style={{ color: 'red' }}>*</span>
+                    Họ và đệm <span style={{ color: 'red' }}>*</span>
                   </label>
                   <input
                     className="form-input"
-                    disabled={!isOtpVerified}
-                    value={address}
-                    onChange={e => setAddress(e.target.value)}
-                    placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/TP"
+                    value={lastName}
+                    onChange={e => setLastName(e.target.value)}
+                    placeholder="Ví dụ: Nguyễn Văn"
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">SĐT Liên hệ khẩn cấp</label>
+                  <label className="form-label" style={{ fontWeight: 600 }}>
+                    Tên <span style={{ color: 'red' }}>*</span>
+                  </label>
                   <input
                     className="form-input"
-                    disabled={!isOtpVerified}
-                    value={emergencyContact}
-                    onChange={e => setEmergencyContact(e.target.value)}
-                    placeholder="SĐT người thân"
+                    value={firstName}
+                    onChange={e => setFirstName(e.target.value)}
+                    placeholder="Ví dụ: An"
                   />
                 </div>
               </div>
 
-              <div className="form-group">
-                <label className="form-label">Tiền sử bệnh lý & Dị ứng thuốc</label>
-                <textarea
-                  className="form-input"
-                  rows={2}
-                  disabled={!isOtpVerified}
-                  value={medicalHistory}
-                  onChange={e => setMedicalHistory(e.target.value)}
-                  placeholder="Ví dụ: Dị ứng Penicillin, có tiền sử tăng huyết áp..."
-                />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <div className="form-group">
+                  <label className="form-label" style={{ fontWeight: 600 }}>
+                    Email đăng nhập <span style={{ color: 'red' }}>*</span>
+                  </label>
+                  <input
+                    className="form-input"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="email@medtech.ai"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label" style={{ fontWeight: 600 }}>
+                    Số điện thoại liên hệ <span style={{ color: 'red' }}>*</span>
+                  </label>
+                  <input
+                    className="form-input"
+                    value={phone}
+                    onChange={e => setPhone(e.target.value)}
+                    placeholder="0912345678"
+                  />
+                </div>
+              </div>
+
+              {/* Dành riêng cho Bệnh nhân (PATIENT) */}
+              {role === 'PATIENT' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14, borderTop: '1px solid var(--color-border-light)', paddingTop: 14 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
+                    <div className="form-group">
+                      <label className="form-label">Ngày sinh</label>
+                      <input
+                        className="form-input"
+                        type="date"
+                        value={dob}
+                        onChange={e => setDob(e.target.value)}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Giới tính</label>
+                      <select
+                        className="form-input"
+                        value={gender}
+                        onChange={e => setGender(e.target.value)}
+                      >
+                        <option value="M">Nam</option>
+                        <option value="F">Nữ</option>
+                        <option value="OTHER">Khác</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Nhóm máu</label>
+                      <input
+                        className="form-input"
+                        value={bloodType}
+                        onChange={e => setBloodType(e.target.value)}
+                        placeholder="A, B, AB, O (Rh+)"
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
+                    <div className="form-group">
+                      <label className="form-label" style={{ fontWeight: 600 }}>
+                        Địa chỉ thường trú <span style={{ color: 'red' }}>*</span>
+                      </label>
+                      <input
+                        className="form-input"
+                        value={address}
+                        onChange={e => setAddress(e.target.value)}
+                        placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/TP"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">SĐT Liên hệ khẩn cấp</label>
+                      <input
+                        className="form-input"
+                        value={emergencyContact}
+                        onChange={e => setEmergencyContact(e.target.value)}
+                        placeholder="SĐT người thân"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Tiền sử bệnh lý & Dị ứng thuốc</label>
+                    <textarea
+                      className="form-input"
+                      rows={2}
+                      value={medicalHistory}
+                      onChange={e => setMedicalHistory(e.target.value)}
+                      placeholder="Ví dụ: Dị ứng Penicillin, có tiền sử tăng huyết áp..."
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Dành riêng cho Bác sĩ (DOCTOR) */}
+              {role === 'DOCTOR' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14, borderTop: '1px solid var(--color-border-light)', paddingTop: 14 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
+                    <div className="form-group">
+                      <label className="form-label">Chuyên khoa khám chữa bệnh</label>
+                      <input
+                        className="form-input"
+                        value={specialization}
+                        onChange={e => setSpecialization(e.target.value)}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Số Chứng chỉ hành nghề (CCHN)</label>
+                      <input
+                        className="form-input"
+                        value={licenseNumber}
+                        onChange={e => setLicenseNumber(e.target.value)}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Năm bắt đầu hành nghề</label>
+                      <input
+                        className="form-input"
+                        type="number"
+                        placeholder="Ví dụ: 2015"
+                        value={experienceYears}
+                        onChange={e => setExperienceYears(Number(e.target.value))}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Tiểu sử chuyên môn & Cơ sở công tác ({clinicName})</label>
+                    <textarea
+                      className="form-input"
+                      rows={2}
+                      value={bio}
+                      onChange={e => setBio(e.target.value)}
+                      placeholder="Mô tả quá trình đào tạo và kinh nghiệm lâm sàng..."
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Nút lưu hồ sơ */}
+            <div className="card-footer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ fontSize: 12, color: '#15803d', fontWeight: 600 }}>
+                ✅ Đã xác thực OTP: Bạn có thể cập nhật thông tin và bấm Lưu.
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleSaveProfile}
+                  disabled={saving}
+                  style={{ background: '#0068ff', borderColor: '#0068ff', padding: '8px 24px', fontWeight: 'bold' }}
+                >
+                  <CheckCircle size={15} /> {saving ? 'Đang lưu vào Database...' : 'Lưu Hồ Sơ'}
+                </button>
               </div>
             </div>
-          )}
+          </div>
 
-          {/* Dành riêng cho Bác sĩ (DOCTOR) */}
-          {role === 'DOCTOR' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, borderTop: '1px solid var(--color-border-light)', paddingTop: 14 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
-                <div className="form-group">
-                  <label className="form-label">Chuyên khoa khám chữa bệnh</label>
-                  <input
-                    className="form-input"
-                    disabled={!isOtpVerified}
-                    value={specialization}
-                    onChange={e => setSpecialization(e.target.value)}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Số Chứng chỉ hành nghề (CCHN)</label>
-                  <input
-                    className="form-input"
-                    disabled={!isOtpVerified}
-                    value={licenseNumber}
-                    onChange={e => setLicenseNumber(e.target.value)}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Năm bắt đầu hành nghề</label>
-                  <input
-                    className="form-input"
-                    type="number"
-                    placeholder="Ví dụ: 2015"
-                    disabled={!isOtpVerified}
-                    value={experienceYears}
-                    onChange={e => setExperienceYears(Number(e.target.value))}
-                  />
-                </div>
-
+          {/* KHỐI BẢO MẬT & ĐỔI MẬT KHẨU TÀI KHOẢN (Chỉ hiển thị sau khi xác thực OTP) */}
+          <div className="card">
+            <div className="card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <KeyRound size={18} style={{ color: '#0068ff' }} />
+                <strong style={{ fontSize: 15 }}>Bảo Mật & Đổi Mật Khẩu Cá Nhân</strong>
               </div>
-
-              <div className="form-group">
-                <label className="form-label">Tiểu sử chuyên môn & Cơ sở công tác ({clinicName})</label>
-                <textarea
-                  className="form-input"
-                  rows={2}
-                  disabled={!isOtpVerified}
-                  value={bio}
-                  onChange={e => setBio(e.target.value)}
-                  placeholder="Mô tả quá trình đào tạo và kinh nghiệm lâm sàng..."
-                />
-              </div>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => { setShowPasswordModal(true); setPwdError(''); setPwdSuccess('') }}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, borderColor: '#0068ff', color: '#0068ff', fontWeight: 600 }}
+              >
+                <KeyRound size={14} /> Thay đổi mật khẩu
+              </button>
             </div>
-          )}
-        </div>
-
-        {/* Nút lưu hồ sơ */}
-        <div className="card-footer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ fontSize: 12, color: 'var(--color-text-tertiary)' }}>
-            {isOtpVerified ? '✅ Đã mở khóa: Bạn có thể bấm Lưu để đồng bộ thông tin.' : '🔒 Khóa chỉnh sửa: Vui lòng xác thực mã OTP trước khi lưu.'}
-          </div>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={handleSaveProfile}
-              disabled={saving || !isOtpVerified}
-              style={{ background: '#0068ff', borderColor: '#0068ff', padding: '8px 24px', fontWeight: 'bold' }}
-            >
-              <CheckCircle size={15} /> {saving ? 'Đang lưu vào Database...' : 'Lưu Hồ Sơ'}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* KHỐI BẢO MẬT & ĐỔI MẬT KHẨU TÀI KHOẢN */}
-      <div className="card">
-        <div className="card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <KeyRound size={18} style={{ color: '#0068ff' }} />
-            <strong style={{ fontSize: 15 }}>Bảo Mật & Đổi Mật Khẩu Cá Nhân</strong>
-          </div>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={() => { setShowPasswordModal(true); setPwdError(''); setPwdSuccess('') }}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, borderColor: '#0068ff', color: '#0068ff', fontWeight: 600 }}
-          >
-            <KeyRound size={14} /> Thay đổi mật khẩu
-          </button>
-        </div>
-        <div className="card-body" style={{ fontSize: 13, color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-          <div>
-            <div>Để đảm bảo an toàn cho tài khoản và hồ sơ y tế, bạn nên đổi mật khẩu định kỳ hoặc ngay sau khi sử dụng tính năng cấp lại mật khẩu.</div>
-            <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginTop: 4 }}>
-              Yêu cầu: Tối thiểu 8 ký tự, gồm ít nhất 1 chữ hoa (A-Z) và 1 ký tự đặc biệt (!@#$%...).
+            <div className="card-body" style={{ fontSize: 13, color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+              <div>
+                <div>Để đảm bảo an toàn cho tài khoản và hồ sơ y tế, bạn nên đổi mật khẩu định kỳ hoặc ngay sau khi sử dụng tính năng cấp lại mật khẩu.</div>
+                <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginTop: 4 }}>
+                  Yêu cầu: Tối thiểu 8 ký tự, gồm ít nhất 1 chữ hoa (A-Z) và 1 ký tự đặc biệt (!@#$%...).
+                </div>
+              </div>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={() => { setShowPasswordModal(true); setPwdError(''); setPwdSuccess('') }}
+                style={{ background: '#0068ff', borderColor: '#0068ff', display: 'flex', alignItems: 'center', gap: 6 }}
+              >
+                <KeyRound size={14} /> Đổi mật khẩu ngay
+              </button>
             </div>
           </div>
-          <button
-            type="button"
-            className="btn btn-primary btn-sm"
-            onClick={() => { setShowPasswordModal(true); setPwdError(''); setPwdSuccess('') }}
-            style={{ background: '#0068ff', borderColor: '#0068ff', display: 'flex', alignItems: 'center', gap: 6 }}
-          >
-            <KeyRound size={14} /> Đổi mật khẩu ngay
-          </button>
-        </div>
-      </div>
+        </>
+      )}
 
-      {/* MODAL CẬP NHẬT ẢNH AVATAR */}
+      {/* MODAL CẬP NHẬT ẢNH AVATAR (2 LỰA CHỌN: 1 LÀ MỞ CAM CHỤP ẢNH, 2 LÀ TẢI ẢNH LÊN) */}
       {showAvatarModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: 'white', borderRadius: 12, maxWidth: 440, width: '100%', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+          <div style={{ background: 'white', borderRadius: 12, maxWidth: 460, width: '100%', boxShadow: '0 20px 40px rgba(0,0,0,0.2)', overflow: 'hidden' }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <strong style={{ fontSize: 16 }}>Cập Nhật Ảnh Đại Diện</strong>
-              <button className="btn btn-ghost btn-sm" onClick={() => setShowAvatarModal(false)}><X size={16} /></button>
+              <button className="btn btn-ghost btn-sm" onClick={handleCloseAvatarModal}><X size={16} /></button>
             </div>
-            <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div style={{ textAlign: 'center' }}>
-                {newAvatarUrl ? (
-                  <img src={newAvatarUrl} alt="Preview" style={{ width: 90, height: 90, borderRadius: '50%', objectFit: 'cover', margin: '0 auto', border: '3px solid #0068ff' }} />
-                ) : (
-                  <div style={{ width: 90, height: 90, borderRadius: '50%', background: '#0068ff', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, margin: '0 auto' }}>
-                    {initials}
-                  </div>
-                )}
+
+            <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* 2 Lựa chọn theo yêu cầu */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, background: '#f1f5f9', padding: 4, borderRadius: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAvatarTab('camera')
+                    startCamera()
+                  }}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: 6,
+                    border: 'none',
+                    background: avatarTab === 'camera' ? '#ffffff' : 'transparent',
+                    color: avatarTab === 'camera' ? '#0068ff' : '#64748b',
+                    fontWeight: 600,
+                    fontSize: 13,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    boxShadow: avatarTab === 'camera' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  <Camera size={15} /> 1. Chụp từ Camera
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAvatarTab('upload')
+                    stopCamera()
+                  }}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: 6,
+                    border: 'none',
+                    background: avatarTab === 'upload' ? '#ffffff' : 'transparent',
+                    color: avatarTab === 'upload' ? '#0068ff' : '#64748b',
+                    fontWeight: 600,
+                    fontSize: 13,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    boxShadow: avatarTab === 'upload' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  <Upload size={15} /> 2. Tải ảnh từ thiết bị
+                </button>
               </div>
-              <div className="form-group">
-                <label className="form-label" style={{ fontWeight: 600 }}>Dán đường dẫn (URL) ảnh chân dung của bạn:</label>
-                <input
-                  className="form-input"
-                  placeholder="https://images.unsplash.com/photo-..."
-                  value={newAvatarUrl}
-                  onChange={e => setNewAvatarUrl(e.target.value)}
-                />
-              </div>
-              <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>
-                Nếu để trống, hệ thống sẽ sử dụng biểu tượng chữ cái viết tắt mặc định từ tên của bạn.
-              </div>
+
+              {/* Canvas ẩn dùng để snapshot từ video stream */}
+              <canvas ref={canvasRef} style={{ display: 'none' }} />
+
+              {/* LỰA CHỌN 1: MỞ CAMERA LÊN CHỤP ẢNH */}
+              {avatarTab === 'camera' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {isCameraActive ? (
+                    <div>
+                      <div style={{ position: 'relative', width: '100%', height: 260, borderRadius: 10, overflow: 'hidden', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <div style={{ position: 'absolute', inset: 0, border: '2px dashed rgba(255,255,255,0.45)', borderRadius: '50%', margin: '15px auto', width: 230, height: 230, pointerEvents: 'none' }} />
+                      </div>
+                      <div style={{ marginTop: 12 }}>
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          onClick={handleCapturePhoto}
+                          style={{ width: '100%', background: '#0068ff', borderColor: '#0068ff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 16px', fontWeight: 600 }}
+                        >
+                          <Camera size={16} /> Bấm Chụp Ảnh
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      {newAvatarUrl && newAvatarUrl.startsWith('data:image') ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+                          <img
+                            src={newAvatarUrl}
+                            alt="Captured"
+                            style={{ width: 130, height: 130, borderRadius: '50%', objectFit: 'cover', margin: '0 auto', border: '3px solid #16a34a', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                          />
+                          <div style={{ fontSize: 13, color: '#16a34a', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <Check size={14} /> Đã chụp ảnh thành công!
+                          </div>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            onClick={startCamera}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                          >
+                            <RefreshCw size={13} /> Chụp lại bằng Camera
+                          </button>
+                        </div>
+                      ) : (
+                        <div style={{ padding: '30px 16px', background: '#f8fafc', borderRadius: 10, border: '1px dashed #cbd5e1' }}>
+                          <Camera size={36} color="#0068ff" style={{ margin: '0 auto 10px' }} />
+                          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>Chụp ảnh trực tiếp từ webcam</div>
+                          <div style={{ fontSize: 12, color: '#64748b', marginBottom: 14 }}>Hệ thống sẽ chụp và tự động chuyển ảnh thành chuẩn Base64 lưu vào CSDL</div>
+                          <button
+                            type="button"
+                            className="btn btn-primary btn-sm"
+                            onClick={startCamera}
+                            style={{ background: '#0068ff', borderColor: '#0068ff', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                          >
+                            <Camera size={14} /> Mở Camera Ngay
+                          </button>
+                        </div>
+                      )}
+
+                      {cameraError && (
+                        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', padding: '10px 14px', borderRadius: 8, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <AlertCircle size={15} /> {cameraError}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* LỰA CHỌN 2: TẢI ẢNH LÊN TỪ MÁY TÍNH */}
+              {avatarTab === 'upload' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <input
+                    type="file"
+                    ref={avatarFileInputRef}
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    onChange={e => {
+                      const file = e.target.files?.[0]
+                      if (file) {
+                        if (file.size > 5 * 1024 * 1024) {
+                          alert('Kích thước ảnh tối đa là 5MB.')
+                          return
+                        }
+                        const reader = new FileReader()
+                        reader.onload = (uploadEvt) => {
+                          const b64 = uploadEvt.target?.result as string
+                          setNewAvatarUrl(b64)
+                        }
+                        reader.readAsDataURL(file)
+                      }
+                    }}
+                  />
+
+                  {newAvatarUrl ? (
+                    <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+                      <img
+                        src={newAvatarUrl}
+                        alt="Preview"
+                        style={{ width: 130, height: 130, borderRadius: '50%', objectFit: 'cover', margin: '0 auto', border: '3px solid #0068ff', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => avatarFileInputRef.current?.click()}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                      >
+                        <Upload size={13} /> Chọn ảnh khác từ thiết bị
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => avatarFileInputRef.current?.click()}
+                      style={{
+                        border: '2px dashed #0068ff',
+                        borderRadius: 10,
+                        padding: '36px 16px',
+                        textAlign: 'center',
+                        cursor: 'pointer',
+                        background: '#f8fafc',
+                      }}
+                    >
+                      <Upload size={34} color="#0068ff" style={{ margin: '0 auto 8px' }} />
+                      <div style={{ fontWeight: 600, fontSize: 14, color: '#1e293b' }}>Nhấp để chọn ảnh từ máy tính</div>
+                      <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>Hỗ trợ JPG, PNG, WEBP (Tối đa 5MB) &bull; Lưu thẳng vào Database</div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
+
             <div style={{ padding: '12px 20px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-              <button className="btn btn-secondary" onClick={() => setShowAvatarModal(false)}>Hủy</button>
+              <button className="btn btn-secondary" onClick={handleCloseAvatarModal}>Hủy</button>
               <button
                 className="btn btn-primary"
                 onClick={() => {
-                  setAvatar(newAvatarUrl.trim())
-                  setShowAvatarModal(false)
+                  if (newAvatarUrl) {
+                    setAvatar(newAvatarUrl.trim())
+                  }
+                  handleCloseAvatarModal()
                 }}
+                disabled={!newAvatarUrl}
+                style={{ background: '#0068ff', borderColor: '#0068ff' }}
               >
                 Áp Dụng
               </button>

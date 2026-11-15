@@ -193,13 +193,15 @@ class XrayAnalysisResultSerializer(serializers.ModelSerializer):
     def get_attending_doctor_name(self, obj):
         if obj.reviewed_by and obj.reviewed_by.user:
             return obj.reviewed_by.user.get_full_name()
-        latest_app = obj.patient.appointments.select_related('doctor__user').first()
-        if latest_app and latest_app.doctor:
-            return latest_app.doctor.user.get_full_name()
+        from apps.accounts.models import DoctorProfile
+        radiologist = DoctorProfile.objects.filter(specialization__icontains='hình ảnh').select_related('user').first()
+        if radiologist and radiologist.user:
+            return radiologist.user.get_full_name()
         return ''
 
     def get_reviewed_by_name(self, obj):
-        if obj.reviewed_by and obj.reviewed_by.user:
+        # Chỉ trả về khi bác sĩ đã chính thức ký số hoặc hoàn thành nhận xét
+        if obj.digital_signature and obj.reviewed_by and obj.reviewed_by.user:
             return obj.reviewed_by.user.get_full_name() or obj.reviewed_by.user.username
         return ''
 
