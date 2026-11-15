@@ -98,6 +98,9 @@ class DoctorProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     clinic_name = serializers.CharField(source='clinic.name', read_only=True, default='')
     clinic_address = serializers.CharField(source='clinic.address', read_only=True, default='')
+    clinic_latitude = serializers.FloatField(source='clinic.latitude', read_only=True, default=None)
+    clinic_longitude = serializers.FloatField(source='clinic.longitude', read_only=True, default=None)
+    clinic_is_open = serializers.BooleanField(source='clinic.is_open', read_only=True, default=True)
     queue_count = serializers.SerializerMethodField()
     available_slots = serializers.SerializerMethodField()
 
@@ -106,8 +109,8 @@ class DoctorProfileSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'user', 'specialization', 'license_number',
             'experience_years', 'bio', 'clinic', 'clinic_name',
-            'clinic_address', 'consultation_fee', 'queue_count',
-            'available_slots', 'created_at'
+            'clinic_address', 'clinic_latitude', 'clinic_longitude', 'clinic_is_open',
+            'consultation_fee', 'queue_count', 'available_slots', 'created_at'
         ]
 
     def get_queue_count(self, obj):
@@ -119,7 +122,7 @@ class DoctorProfileSerializer(serializers.ModelSerializer):
         slots = obj.time_slots.filter(
             is_available=True,
             date__gte=today
-        ).order_by('date', 'start_time')[:18]
+        ).order_by('date', 'start_time')[:60]
         return [
             {
                 'id': s.id,

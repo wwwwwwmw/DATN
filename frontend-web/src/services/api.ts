@@ -102,10 +102,48 @@ export const medicalRecordAPI = {
 
 // Clinics
 export const clinicAPI = {
-  list: (params?: { lat?: number; lng?: number }) => api.get('/api/clinics/', { params }),
+  list: (params?: { lat?: number; lng?: number; all?: boolean }) => api.get('/api/clinics/', { params }),
   nearby: (lat: number, lng: number, radius: number = 5000) =>
     api.get(`/api/clinics/nearby/?lat=${lat}&lng=${lng}&radius=${radius}`),
   detail: (id: number) => api.get(`/api/clinics/${id}/`),
+  create: (data: any) => api.post('/api/clinics/create/', data),
+  update: (id: number, data: any) => api.put(`/api/clinics/${id}/update/`, data),
+  delete: (id: number) => api.delete(`/api/clinics/${id}/delete/`),
+  toggleStatus: (id: number) => api.post(`/api/clinics/${id}/toggle-status/`),
+}
+
+// Doctor & Schedule Management (Admin)
+export const doctorScheduleAPI = {
+  // Doctor CRUD
+  createDoctor: (data: any) => api.post('/api/auth/doctors/create/', data),
+  updateDoctor: (id: number, data: any) => api.put(`/api/auth/doctors/${id}/`, data),
+  deleteDoctor: (id: number) => api.delete(`/api/auth/doctors/${id}/delete/`),
+
+  // Shifts / TimeSlots CRUD
+  listTimeSlots: (params?: {
+    doctor_id?: number | string
+    clinic_id?: number | string
+    date?: string
+    month?: number | string
+    year?: number | string
+    future_only?: boolean
+  }) => api.get('/api/appointments/time-slots/', { params }),
+  createTimeSlot: (data: any) => api.post('/api/appointments/time-slots/create/', data),
+  updateTimeSlot: (id: number, data: any) => api.put(`/api/appointments/time-slots/${id}/update/`, data),
+  deleteTimeSlot: (id: number) => api.delete(`/api/appointments/time-slots/${id}/delete/`),
+  bulkGenerateMonth: (data: {
+    doctor_id: number
+    clinic_id?: number
+    month: number
+    year: number
+    weekdays: number[]
+    shifts: Array<{ start_time: string; end_time: string; max_patients: number }>
+  }) => api.post('/api/appointments/time-slots/bulk-month/', data),
+  importExcel: (formData: FormData) =>
+    api.post('/api/appointments/time-slots/import-excel/', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  exportTemplateUrl: '/templates/Mau_Ca_Truc_Bac_Si.xlsx',
 }
 
 // Appointments

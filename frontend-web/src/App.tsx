@@ -15,6 +15,8 @@ const ClinicMap = lazy(() => import('./pages/ClinicMap'))
 const MedicalRecords = lazy(() => import('./pages/MedicalRecords'))
 const Telehealth = lazy(() => import('./pages/Telehealth'))
 const Settings = lazy(() => import('./pages/Settings'))
+const AdminClinics = lazy(() => import('./pages/AdminClinics'))
+const AdminDoctorSchedules = lazy(() => import('./pages/AdminDoctorSchedules'))
 
 function PageFallback() {
   return (
@@ -66,6 +68,8 @@ function AppRoutes() {
           <Route path="/records" element={<MedicalRecords />} />
           <Route path="/telehealth" element={<Telehealth />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/admin/clinics" element={<AdminClinics />} />
+          <Route path="/admin/doctor-schedules" element={<AdminDoctorSchedules />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" />} />

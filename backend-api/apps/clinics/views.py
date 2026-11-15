@@ -22,7 +22,12 @@ class ClinicListView(generics.ListAPIView):
     ordering_fields = ['rating', 'name', 'created_at']
 
     def get_queryset(self):
-        qs = Clinic.objects.filter(is_active=True)
+        include_all = self.request.query_params.get('all', '').lower() in ['true', '1']
+        if include_all:
+            qs = Clinic.objects.all()
+        else:
+            qs = Clinic.objects.filter(is_active=True)
+
         lat = self.request.query_params.get('lat')
         lng = self.request.query_params.get('lng')
         if lat and lng:
@@ -98,13 +103,52 @@ class NearbyClinicView(APIView):
 
 
 class ClinicCreateView(generics.CreateAPIView):
-    """POST /api/clinics/ — Tạo phòng khám mới (Admin)."""
+    """POST /api/clinics/create/ — Tạo phòng khám mới (Admin)."""
     serializer_class = ClinicCreateSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [permissions.AllowAny]
 
 
 class ClinicUpdateView(generics.UpdateAPIView):
-    """PUT /api/clinics/<id>/ — Cập nhật phòng khám (Admin)."""
+    """PUT /api/clinics/<id>/update/ — Cập nhật phòng khám (Admin)."""
     serializer_class = ClinicCreateSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [permissions.AllowAny]
     queryset = Clinic.objects.all()
+
+
+class ClinicDestroyView(generics.DestroyAPIView):
+    """DELETE /api/clinics/<id>/delete/ — Xóa phòng khám (Admin)."""
+    permission_classes = [permissions.AllowAny]
+    queryset = Clinic.objects.all()
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        name = instance.name
+        self.perform_destroy(instance)
+        return Response({
+            'status': 'success',
+            'message': f'Đã xóa cơ sở y tế "{name}" thành công.'
+        }, status=status.HTTP_200_OK)
+
+
+class ClinicToggleOpenView(APIView):
+    """POST /api/clinics/<id>/toggle-status/ — Đổi trạng thái Mở cửa / Đóng cửa (Admin)."""
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, pk):
+        try:
+            clinic = Clinic.objects.get(pk=pk)
+        except Clinic.DoesNotExist:
+            return Response({'status': 'error', 'message': 'Không tìm thấy bệnh viện.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Toggle is_open
+        clinic.is_open = not clinic.is_open
+        clinic.save(update_fields=['is_open', 'updated_at'])
+
+        status_label = 'Mở cửa' if clinic.is_open else 'Đã đóng cửa'
+        return Response({
+            'status': 'success',
+            'data': ClinicSerializer(clinic).data,
+            'is_open': clinic.is_open,
+            'message': f'Đã cập nhật trạng thái "{clinic.name}" thành: {status_label}.'
+        })
+

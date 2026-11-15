@@ -20,9 +20,11 @@ urlpatterns = [
     path('otp/send/', views.SendProfileOTPView.as_view(), name='otp_send'),
     path('otp/verify/', views.VerifyProfileOTPView.as_view(), name='otp_verify'),
 
-    # Doctors public directory
+    # Doctors public directory & CRUD
     path('doctors/', views.DoctorListView.as_view(), name='doctor_list'),
+    path('doctors/create/', views.DoctorCreateView.as_view(), name='doctor_create'),
     path('doctors/<int:pk>/', views.DoctorDetailView.as_view(), name='doctor_detail'),
+    path('doctors/<int:pk>/delete/', views.DoctorDetailView.as_view(), name='doctor_delete'),
 
     # Admin User Management & Excel Batch Import
     path('admin/users/', views.AdminUserListView.as_view(), name='admin_user_list'),

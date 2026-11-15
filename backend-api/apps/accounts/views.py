@@ -341,11 +341,131 @@ class DoctorListView(generics.ListAPIView):
     search_fields = ['user__first_name', 'user__last_name', 'specialization']
 
 
-class DoctorDetailView(generics.RetrieveAPIView):
-    """GET /api/auth/doctors/<id>/ — Chi tiết bác sĩ."""
+class DoctorDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """GET/PUT/PATCH/DELETE /api/auth/doctors/<id>/ — Xem, cập nhật thông tin, xóa bác sĩ (Admin)."""
     serializer_class = DoctorProfileSerializer
     permission_classes = [permissions.AllowAny]
     queryset = DoctorProfile.objects.select_related('user', 'clinic').all()
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        data = request.data
+        user = instance.user
+
+        # Cập nhật thông tin User
+        if 'first_name' in data:
+            user.first_name = data['first_name']
+        if 'last_name' in data:
+            user.last_name = data['last_name']
+        if 'phone' in data:
+            user.phone = data['phone']
+        if 'email' in data and data['email'] != user.email:
+            new_email = data['email'].strip().lower()
+            if not CustomUser.objects.filter(email__iexact=new_email).exclude(pk=user.pk).exists():
+                user.email = new_email
+        if 'password' in data and data['password']:
+            user.set_password(data['password'])
+        user.save()
+
+        # Cập nhật thông tin DoctorProfile
+        if 'clinic_id' in data:
+            cid = data['clinic_id']
+            if cid:
+                instance.clinic = Clinic.objects.filter(id=cid).first()
+            else:
+                instance.clinic = None
+        if 'specialization' in data:
+            instance.specialization = data['specialization']
+        if 'experience_years' in data:
+            try:
+                instance.experience_years = int(data['experience_years'])
+            except (ValueError, TypeError):
+                pass
+        if 'consultation_fee' in data:
+            try:
+                instance.consultation_fee = int(data['consultation_fee'])
+            except (ValueError, TypeError):
+                pass
+        if 'license_number' in data:
+            instance.license_number = data['license_number']
+        if 'bio' in data:
+            instance.bio = data['bio']
+        instance.save()
+
+        return Response({
+            'status': 'success',
+            'data': DoctorProfileSerializer(instance).data,
+            'message': f'Đã cập nhật thông tin cho BS. {instance.user.get_full_name()}.'
+        })
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        user = instance.user
+        full_name = user.get_full_name() or user.username
+        user.delete()  # Cascade xóa cả DoctorProfile và user
+        return Response({
+            'status': 'success',
+            'message': f'Đã xóa bác sĩ "{full_name}" khỏi hệ thống thành công.'
+        })
+
+
+class DoctorCreateView(APIView):
+    """POST /api/auth/doctors/create/ — Admin tạo Bác sĩ mới."""
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        data = request.data
+        email = (data.get('email') or '').strip().lower()
+        first_name = (data.get('first_name') or '').strip()
+        last_name = (data.get('last_name') or '').strip()
+        phone = (data.get('phone') or '').strip()
+        password = data.get('password') or 'Doctor@123'
+        specialization = (data.get('specialization') or 'Đa khoa & Nội Tổng quát').strip()
+        clinic_id = data.get('clinic_id')
+        license_number = (data.get('license_number') or '').strip()
+        exp_years = int(data.get('experience_years') or 5)
+
+        if not email:
+            return Response({'status': 'error', 'message': 'Email là bắt buộc.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if CustomUser.objects.filter(email__iexact=email).exists():
+            return Response({'status': 'error', 'message': f'Email {email} đã được sử dụng.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        username = email.split('@')[0]
+        user = CustomUser.objects.create(
+            email=email,
+            username=username,
+            first_name=first_name,
+            last_name=last_name,
+            phone=phone,
+            role='DOCTOR'
+        )
+        user.set_password(password)
+        user.save()
+
+        clinic = None
+        if clinic_id:
+            clinic = Clinic.objects.filter(id=clinic_id).first()
+        if not clinic:
+            clinic = Clinic.objects.first()
+
+        doc, _ = DoctorProfile.objects.get_or_create(user=user)
+        doc.specialization = specialization
+        doc.clinic = clinic
+        doc.experience_years = exp_years
+        doc.license_number = license_number or f'CCHN-{user.id:04d}-HCM'
+        try:
+            doc.consultation_fee = int(data.get('consultation_fee') or 300000)
+        except (ValueError, TypeError):
+            doc.consultation_fee = 300000
+        doc.bio = (data.get('bio') or '').strip() or f'Bác sĩ chuyên khoa {specialization} tại {clinic.name if clinic else "Bệnh viện MedTech"}.'
+        doc.save()
+
+        return Response({
+            'status': 'success',
+            'data': DoctorProfileSerializer(doc).data,
+            'message': f'Thêm mới bác sĩ BS. {user.get_full_name()} thành công!'
+        }, status=status.HTTP_201_CREATED)
 
 
 # =========================================================================

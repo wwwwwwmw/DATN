@@ -9,14 +9,17 @@ from apps.clinics.serializers import ClinicSerializer
 
 class TimeSlotSerializer(serializers.ModelSerializer):
     doctor_name = serializers.CharField(source='doctor.user.get_full_name', read_only=True)
+    doctor_email = serializers.CharField(source='doctor.user.email', read_only=True)
     doctor_specialization = serializers.CharField(source='doctor.specialization', read_only=True)
+    clinic_name = serializers.CharField(source='clinic.name', read_only=True)
+    clinic_address = serializers.CharField(source='clinic.address', read_only=True)
     remaining_slots = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = TimeSlot
         fields = [
-            'id', 'doctor', 'doctor_name', 'doctor_specialization',
-            'clinic', 'date', 'start_time', 'end_time',
+            'id', 'doctor', 'doctor_name', 'doctor_email', 'doctor_specialization',
+            'clinic', 'clinic_name', 'clinic_address', 'date', 'start_time', 'end_time',
             'is_available', 'max_patients', 'current_patients',
             'remaining_slots'
         ]

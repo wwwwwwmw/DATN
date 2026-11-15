@@ -9,4 +9,6 @@ urlpatterns = [
     path('create/', views.ClinicCreateView.as_view(), name='create'),
     path('<int:pk>/', views.ClinicDetailView.as_view(), name='detail'),
     path('<int:pk>/update/', views.ClinicUpdateView.as_view(), name='update'),
+    path('<int:pk>/delete/', views.ClinicDestroyView.as_view(), name='delete'),
+    path('<int:pk>/toggle-status/', views.ClinicToggleOpenView.as_view(), name='toggle_status'),
 ]

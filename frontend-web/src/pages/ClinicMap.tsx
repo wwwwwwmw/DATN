@@ -48,7 +48,7 @@ const userLocationIcon = L.divIcon({
   iconAnchor: [14, 14],
 })
 
-const createClinicIcon = (isSelected: boolean, index: number) =>
+const createClinicIcon = (isSelected: boolean, index: number, isOpen: boolean = true) =>
   L.divIcon({
     className: 'clinic-custom-marker',
     html: `
@@ -57,13 +57,13 @@ const createClinicIcon = (isSelected: boolean, index: number) =>
         width:${isSelected ? 36 : 30}px;height:${isSelected ? 36 : 30}px;
         border-radius:50% 50% 50% 4px;
         transform:rotate(-45deg);
-        background:${isSelected ? '#dc2626' : '#0f52ba'};
-        border:2.5px solid #ffffff;
+        background:${isSelected ? '#dc2626' : !isOpen ? '#64748b' : '#0f52ba'};
+        border:2.5px solid ${!isOpen ? '#f87171' : '#ffffff'};
         box-shadow:0 3px 10px rgba(0,0,0,${isSelected ? '0.45' : '0.28'});
         transition:all 0.2s ease;
       ">
         <span style="transform:rotate(45deg);color:#fff;font-weight:700;font-size:${isSelected ? 13 : 11}px;">
-          ${isSelected ? '★' : index}
+          ${isSelected ? '★' : !isOpen ? '✕' : index}
         </span>
       </div>
     `,
@@ -454,6 +454,8 @@ export default function ClinicMap() {
         // Ước tính thời gian lái xe trong đô thị (~22 km/h trung bình)
         const estMin = Math.max(4, Math.round((dist / 22) * 60))
 
+        const isOpen = c.is_open ?? c.is_active ?? true
+
         return {
           id: c.id,
           name: c.name,
@@ -466,12 +468,18 @@ export default function ClinicMap() {
           city,
           is24h,
           hasER,
-          status: c.is_active ? t('status.accepting') : 'Tạm ngưng',
+          is_open: isOpen,
+          status: !isOpen ? 'Đã đóng cửa' : (c.is_active ? t('status.accepting') : 'Tạm ngưng'),
           lat,
           lng,
         }
       })
-      .sort((a, b) => a.distance - b.distance)
+      .sort((a, b) => {
+        // Ưu tiên bệnh viện Mở cửa lên đầu, sau đó sắp theo khoảng cách gần nhất
+        if (a.is_open && !b.is_open) return -1
+        if (!a.is_open && b.is_open) return 1
+        return a.distance - b.distance
+      })
   }, [rawClinics, userPos, t])
 
   const displayClinics = useMemo(() => {
@@ -708,6 +716,10 @@ export default function ClinicMap() {
     () => routes.find((r) => r.id === selectedRouteId) || routes[0] || null,
     [routes, selectedRouteId]
   )
+
+  const nearestOpenClinic = useMemo(() => {
+    return clinics.find((c) => c.is_open && c.id !== selectedClinic?.id) || null
+  }, [clinics, selectedClinic])
 
   const mapBoundsPts = useMemo<[number, number][] | null>(() => {
     if (selectedClinic && activeRoute && activeRoute.coordinates.length > 1) {
@@ -965,6 +977,56 @@ export default function ClinicMap() {
                 <X size={15} />
               </button>
             </div>
+
+            {/* Cảnh báo Bệnh viện đóng cửa và Gợi ý Bệnh viện gần nhất đang mở cửa */}
+            {!selectedClinic.is_open && (
+              <div
+                style={{
+                  background: '#fef2f2',
+                  border: '1.5px solid #fecaca',
+                  borderRadius: 10,
+                  padding: '10px 12px',
+                  marginBottom: 10,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#dc2626', fontWeight: 700, fontSize: 13 }}>
+                  <AlertTriangle size={16} /> BỆNH VIỆN HIỆN ĐÃ ĐÓNG CỬA
+                </div>
+                <div style={{ fontSize: 12, color: '#991b1b', marginTop: 4 }}>
+                  Cơ sở này hiện đang tạm ngưng tiếp nhận. Bản đồ tự động đề xuất cơ sở y tế gần nhất đang mở cửa:
+                </div>
+                {nearestOpenClinic && (
+                  <div
+                    style={{
+                      marginTop: 8,
+                      padding: '8px 10px',
+                      background: '#ffffff',
+                      border: '1px solid #bfdbfe',
+                      borderRadius: 8,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 8,
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 12.5, color: '#0f172a' }}>{nearestOpenClinic.name}</div>
+                      <div style={{ fontSize: 11, color: '#16a34a', fontWeight: 700, marginTop: 2 }}>
+                        ● Đang mở cửa • Cách bạn {nearestOpenClinic.distance} km
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-primary"
+                      style={{ fontSize: 11, padding: '4px 10px', flexShrink: 0 }}
+                      onClick={() => calculateRoutesToClinic(nearestOpenClinic)}
+                    >
+                      Chuyển sang bệnh viện này
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
             {routingLoading ? (
               <div style={{ padding: '12px 0', fontSize: 13, color: '#475569', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1269,7 +1331,15 @@ export default function ClinicMap() {
                     <span style={{ fontSize: 12, color: '#475569', display: 'flex', alignItems: 'center', gap: 4 }}>
                       <Clock size={12} /> {clinic.phone}
                     </span>
-                    <span className="badge badge-success" style={{ fontSize: 10.5 }}>
+                    <span
+                      className={clinic.is_open ? 'badge badge-success' : 'badge badge-danger'}
+                      style={{
+                        fontSize: 10.5,
+                        ...(!clinic.is_open
+                          ? { background: '#fee2e2', color: '#b91c1c', border: '1px solid #f87171' }
+                          : {}),
+                      }}
+                    >
                       {clinic.status}
                     </span>
                   </div>
@@ -1630,7 +1700,7 @@ export default function ClinicMap() {
                 <Marker
                   key={clinic.id || i}
                   position={[clinic.lat, clinic.lng]}
-                  icon={createClinicIcon(isSelected, i + 1)}
+                  icon={createClinicIcon(isSelected, i + 1, clinic.is_open)}
                   eventHandlers={{
                     click: () => calculateRoutesToClinic(clinic),
                   }}

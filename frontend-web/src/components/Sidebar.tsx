@@ -3,13 +3,14 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
 import {
   MessageCircle, Calendar, Video, Image, FileText,
-  MapPin, Settings
+  MapPin, Settings, Building2, CalendarClock, Users
 } from 'lucide-react'
 
 export default function Sidebar() {
   const { t } = useTranslation()
   const location = useLocation()
-  useAuth() // ensure auth context available
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'ADMIN'
 
   const clinicalLinks = [
     { to: '/chat', icon: <MessageCircle size={18} />, label: t('nav.chat_ai') },
@@ -20,11 +21,17 @@ export default function Sidebar() {
     { to: '/map', icon: <MapPin size={18} />, label: t('nav.clinic_map') },
   ]
 
-  const systemLinks = [
-    { to: '/settings', icon: <Settings size={18} />, label: t('nav.settings') },
-  ]
+  const systemLinks = isAdmin
+    ? [
+        { to: '/settings', icon: <Users size={18} />, label: 'Quản lý tài khoản' },
+        { to: '/admin/clinics', icon: <Building2 size={18} />, label: 'Quản lý bệnh viện' },
+        { to: '/admin/doctor-schedules', icon: <CalendarClock size={18} />, label: 'Quản lý bác sĩ & Ca trực' },
+      ]
+    : [
+        { to: '/settings', icon: <Settings size={18} />, label: t('nav.settings') },
+      ]
 
-  const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/')
+  const isActive = (path: string) => location.pathname === path || (path !== '/' && location.pathname.startsWith(path))
 
   return (
     <aside className="app-sidebar">

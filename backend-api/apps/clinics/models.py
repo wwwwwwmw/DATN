@@ -15,6 +15,7 @@ class Clinic(models.Model):
     specializations = models.JSONField(default=list)
     rating = models.DecimalField(max_digits=3, decimal_places=2, default=0.00)
     is_active = models.BooleanField(default=True)
+    is_open = models.BooleanField(default=True)  # Trạng thái mở cửa / đóng cửa
     image = models.ImageField(upload_to='clinics/', blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

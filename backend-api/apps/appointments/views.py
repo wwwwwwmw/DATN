@@ -1,7 +1,14 @@
 """
 Appointments Views — CRUD + Simulated Annealing optimal slots.
 """
-from datetime import datetime, time as dt_time
+import os
+import io
+import calendar
+from datetime import datetime, date as dt_date, time as dt_time, timedelta
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from django.http import HttpResponse
+
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -15,7 +22,9 @@ from .serializers import (
     TimeSlotSerializer, UpdateAppointmentStatusSerializer,
 )
 from .services.simulated_annealing import simulated_annealing, SAConfig
-from apps.accounts.permissions import IsDoctor, IsDoctorOrReadOnly
+from apps.accounts.permissions import IsDoctor, IsDoctorOrReadOnly, IsAdminUser
+from apps.accounts.models import DoctorProfile
+from apps.clinics.models import Clinic
 
 
 class OptimalSlotsView(APIView):
@@ -639,4 +648,514 @@ class TelehealthRoomView(APIView):
             'status': 'success',
             'data': self._serialize_room(room, appointment)
         })
+
+
+# =========================================================================
+# QUẢN LÝ CA LÀM VIỆC & LỊCH TRỰC BÁC SĨ (ADMIN TIMESLOT MANAGEMENT)
+# =========================================================================
+
+class AdminTimeSlotListView(APIView):
+    """
+    GET /api/appointments/time-slots/
+    Lấy danh sách ca trực bác sĩ với bộ lọc: bác sĩ, phòng khám, ngày, tháng, năm.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        qs = TimeSlot.objects.select_related('doctor__user', 'clinic').all()
+
+        doctor_id = request.query_params.get('doctor_id')
+        clinic_id = request.query_params.get('clinic_id')
+        date_str = request.query_params.get('date')
+        month = request.query_params.get('month')
+        year = request.query_params.get('year')
+        future_only = request.query_params.get('future_only', '').lower() in ['true', '1']
+
+        if doctor_id:
+            qs = qs.filter(doctor_id=doctor_id)
+        if clinic_id:
+            qs = qs.filter(clinic_id=clinic_id)
+        if date_str:
+            try:
+                d = datetime.strptime(date_str, '%Y-%m-%d').date()
+                qs = qs.filter(date=d)
+            except ValueError:
+                pass
+        if month:
+            try:
+                qs = qs.filter(date__month=int(month))
+            except ValueError:
+                pass
+        if year:
+            try:
+                qs = qs.filter(date__year=int(year))
+            except ValueError:
+                pass
+        if future_only:
+            from django.utils import timezone
+            qs = qs.filter(date__gte=timezone.now().date())
+
+        qs = qs.order_by('date', 'start_time')[:500]
+        serializer = TimeSlotSerializer(qs, many=True)
+        return Response({
+            'status': 'success',
+            'count': len(serializer.data),
+            'data': serializer.data
+        })
+
+
+class AdminTimeSlotCreateView(APIView):
+    """
+    POST /api/appointments/time-slots/create/
+    Tạo ca trực thủ công (Admin).
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        data = request.data
+        doctor_id = data.get('doctor_id')
+        clinic_id = data.get('clinic_id')
+        date_str = data.get('date')
+        start_time_str = data.get('start_time')
+        end_time_str = data.get('end_time')
+        max_patients = int(data.get('max_patients', 3))
+
+        if not doctor_id or not date_str or not start_time_str or not end_time_str:
+            return Response({
+                'status': 'error',
+                'message': 'Vui lòng cung cấp đầy đủ: doctor_id, date, start_time, end_time.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            doctor = DoctorProfile.objects.select_related('clinic').get(pk=doctor_id)
+        except DoctorProfile.DoesNotExist:
+            return Response({'status': 'error', 'message': 'Không tìm thấy bác sĩ.'}, status=status.HTTP_404_NOT_FOUND)
+
+        clinic = None
+        if clinic_id:
+            try:
+                clinic = Clinic.objects.get(pk=clinic_id)
+            except Clinic.DoesNotExist:
+                pass
+        if not clinic:
+            clinic = doctor.clinic
+        if not clinic:
+            clinic = Clinic.objects.first()
+
+        try:
+            slot_date = datetime.strptime(date_str, '%Y-%m-%d').date() if isinstance(date_str, str) else date_str
+            st = datetime.strptime(start_time_str, '%H:%M').time() if isinstance(start_time_str, str) else start_time_str
+            et = datetime.strptime(end_time_str, '%H:%M').time() if isinstance(end_time_str, str) else end_time_str
+        except Exception as e:
+            return Response({'status': 'error', 'message': f'Định dạng ngày/giờ không hợp lệ: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if st >= et:
+            return Response({'status': 'error', 'message': 'Giờ bắt đầu phải trước giờ kết thúc.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Kiểm tra trùng ca
+        existing = TimeSlot.objects.filter(doctor=doctor, date=slot_date, start_time=st).first()
+        if existing:
+            return Response({'status': 'error', 'message': f'Bác sĩ đã có ca trực vào {st.strftime("%H:%M")} ngày {slot_date}.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        slot = TimeSlot.objects.create(
+            doctor=doctor,
+            clinic=clinic,
+            date=slot_date,
+            start_time=st,
+            end_time=et,
+            max_patients=max_patients,
+            is_available=True
+        )
+
+        return Response({
+            'status': 'success',
+            'data': TimeSlotSerializer(slot).data,
+            'message': f'Đã thêm ca trực {st.strftime("%H:%M")} - {et.strftime("%H:%M")} ngày {slot_date} cho BS. {doctor.user.get_full_name()}.'
+        }, status=status.HTTP_201_CREATED)
+
+
+class AdminTimeSlotUpdateView(APIView):
+    """
+    PUT/PATCH /api/appointments/time-slots/<id>/update/
+    Chỉnh sửa ca trực (Admin).
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def put(self, request, pk):
+        return self.patch(request, pk)
+
+    def patch(self, request, pk):
+        try:
+            slot = TimeSlot.objects.get(pk=pk)
+        except TimeSlot.DoesNotExist:
+            return Response({'status': 'error', 'message': 'Không tìm thấy ca trực.'}, status=status.HTTP_404_NOT_FOUND)
+
+        data = request.data
+        if 'date' in data and data['date']:
+            try:
+                slot.date = datetime.strptime(data['date'], '%Y-%m-%d').date() if isinstance(data['date'], str) else data['date']
+            except Exception:
+                pass
+        if 'start_time' in data and data['start_time']:
+            try:
+                slot.start_time = datetime.strptime(data['start_time'][:5], '%H:%M').time() if isinstance(data['start_time'], str) else data['start_time']
+            except Exception:
+                pass
+        if 'end_time' in data and data['end_time']:
+            try:
+                slot.end_time = datetime.strptime(data['end_time'][:5], '%H:%M').time() if isinstance(data['end_time'], str) else data['end_time']
+            except Exception:
+                pass
+        if 'clinic_id' in data:
+            c = Clinic.objects.filter(id=data['clinic_id']).first()
+            if c:
+                slot.clinic = c
+        if 'max_patients' in data and data['max_patients']:
+            try:
+                slot.max_patients = int(data['max_patients'])
+            except Exception:
+                pass
+        if 'is_available' in data:
+            slot.is_available = bool(data['is_available'])
+
+        slot.save()
+        return Response({
+            'status': 'success',
+            'data': TimeSlotSerializer(slot).data,
+            'message': f'Đã cập nhật ca trực ngày {slot.date} ({slot.start_time.strftime("%H:%M")} - {slot.end_time.strftime("%H:%M")}) thành công!'
+        })
+
+
+class AdminTimeSlotDeleteView(APIView):
+    """
+    DELETE /api/appointments/time-slots/<id>/delete/
+    Xóa ca trực (Admin).
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def delete(self, request, pk):
+        try:
+            slot = TimeSlot.objects.get(pk=pk)
+        except TimeSlot.DoesNotExist:
+            return Response({'status': 'error', 'message': 'Không tìm thấy ca trực.'}, status=status.HTTP_404_NOT_FOUND)
+
+        active_apps = slot.appointments.filter(status__in=['PENDING', 'CONFIRMED']).count()
+        if active_apps > 0:
+            return Response({
+                'status': 'error',
+                'message': f'Ca trực này hiện đang có {active_apps} lịch hẹn đang chờ khám. Không thể xóa!'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        info = f"{slot.doctor} | {slot.date} {slot.start_time}-{slot.end_time}"
+        slot.delete()
+        return Response({
+            'status': 'success',
+            'message': f'Đã xóa ca trực ({info}) thành công.'
+        })
+
+
+class AdminTimeSlotBulkMonthView(APIView):
+    """
+    POST /api/appointments/time-slots/bulk-month/
+    Tạo tự động hàng loạt ca trực cho Bác sĩ theo tháng (Admin).
+    Body:
+    {
+        "doctor_id": 1,
+        "clinic_id": 2, (optional)
+        "year": 2026,
+        "month": 11,
+        "weekdays": [0, 1, 2, 3, 4], // Thứ 2 đến Thứ 6 (0=Mon, 6=Sun)
+        "shifts": [
+            {"start_time": "08:00", "end_time": "09:30", "max_patients": 3},
+            {"start_time": "10:00", "end_time": "11:30", "max_patients": 3},
+            {"start_time": "14:00", "end_time": "15:30", "max_patients": 3}
+        ]
+    }
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        data = request.data
+        doctor_id = data.get('doctor_id')
+        clinic_id = data.get('clinic_id')
+        year = int(data.get('year', datetime.now().year))
+        month = int(data.get('month', datetime.now().month))
+        weekdays = data.get('weekdays', [0, 1, 2, 3, 4])  # 0=Monday ... 6=Sunday
+        shifts = data.get('shifts', [])
+
+        if not doctor_id:
+            return Response({'status': 'error', 'message': 'Vui lòng chọn bác sĩ.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            doctor = DoctorProfile.objects.select_related('clinic', 'user').get(pk=doctor_id)
+        except DoctorProfile.DoesNotExist:
+            return Response({'status': 'error', 'message': 'Không tìm thấy bác sĩ.'}, status=status.HTTP_404_NOT_FOUND)
+
+        clinic = None
+        if clinic_id:
+            try:
+                clinic = Clinic.objects.get(pk=clinic_id)
+            except Clinic.DoesNotExist:
+                pass
+        if not clinic:
+            clinic = doctor.clinic
+        if not clinic:
+            clinic = Clinic.objects.first()
+
+        if not shifts:
+            shifts = [
+                {"start_time": "08:00", "end_time": "09:30", "max_patients": 3},
+                {"start_time": "09:30", "end_time": "11:00", "max_patients": 3},
+                {"start_time": "13:30", "end_time": "15:00", "max_patients": 3},
+                {"start_time": "15:00", "end_time": "16:30", "max_patients": 3},
+            ]
+
+        # Tính số ngày trong tháng
+        num_days = calendar.monthrange(year, month)[1]
+        created_count = 0
+        skipped_count = 0
+
+        parsed_shifts = []
+        for s in shifts:
+            try:
+                st = datetime.strptime(s['start_time'][:5], '%H:%M').time()
+                et = datetime.strptime(s['end_time'][:5], '%H:%M').time()
+                mp = int(s.get('max_patients', 3))
+                parsed_shifts.append((st, et, mp))
+            except Exception:
+                continue
+
+        if not parsed_shifts:
+            return Response({'status': 'error', 'message': 'Danh sách khung giờ ca trực không hợp lệ.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            for day in range(1, num_days + 1):
+                cur_date = dt_date(year, month, day)
+                if cur_date.weekday() in weekdays:
+                    for st, et, mp in parsed_shifts:
+                        _, created = TimeSlot.objects.get_or_create(
+                            doctor=doctor,
+                            date=cur_date,
+                            start_time=st,
+                            defaults={
+                                'clinic': clinic,
+                                'end_time': et,
+                                'max_patients': mp,
+                                'is_available': True,
+                            }
+                        )
+                        if created:
+                            created_count += 1
+                        else:
+                            skipped_count += 1
+
+        return Response({
+            'status': 'success',
+            'created_count': created_count,
+            'skipped_count': skipped_count,
+            'message': f'Đã sinh {created_count} ca trực trong tháng {month}/{year} cho BS. {doctor.user.get_full_name()} ({skipped_count} ca đã tồn tại).'
+        })
+
+
+class AdminTimeSlotImportExcelView(APIView):
+    """
+    POST /api/appointments/time-slots/import-excel/
+    Nhập hàng loạt ca làm việc từ file Excel (.xlsx) (Admin).
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        excel_file = request.FILES.get('file')
+        if not excel_file:
+            return Response({'status': 'error', 'message': 'Vui lòng chọn file Excel (.xlsx).'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            wb = openpyxl.load_workbook(excel_file, data_only=True)
+            ws = wb.active
+        except Exception as e:
+            return Response({'status': 'error', 'message': f'Không thể đọc file Excel: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+
+        default_clinic = Clinic.objects.first()
+        created_slots = []
+        errors = []
+
+        row_idx = 1
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            row_idx += 1
+            if not any(row):
+                continue
+
+            doc_identifier = str(row[0] or '').strip()
+            clinic_name = str(row[1] or '').strip()
+            date_raw = row[2]
+            start_raw = row[3]
+            end_raw = row[4]
+            max_patients_raw = row[5]
+
+            if not doc_identifier:
+                errors.append(f'Dòng {row_idx}: Thiếu thông tin Bác sĩ (Email hoặc Họ tên).')
+                continue
+
+            # Tìm bác sĩ
+            doctor = DoctorProfile.objects.filter(
+                models.Q(user__email__iexact=doc_identifier) |
+                models.Q(user__username__iexact=doc_identifier) |
+                models.Q(user__last_name__icontains=doc_identifier)
+            ).first()
+
+            if not doctor:
+                errors.append(f'Dòng {row_idx}: Không tìm thấy Bác sĩ "{doc_identifier}".')
+                continue
+
+            # Tìm bệnh viện
+            clinic = doctor.clinic or default_clinic
+            if clinic_name:
+                matched_clinic = Clinic.objects.filter(name__icontains=clinic_name).first()
+                if matched_clinic:
+                    clinic = matched_clinic
+
+            # Phân tích Ngày
+            slot_date = None
+            if isinstance(date_raw, (datetime, dt_date)):
+                slot_date = date_raw.date() if isinstance(date_raw, datetime) else date_raw
+            elif isinstance(date_raw, str):
+                date_str = date_raw.strip()
+                for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y'):
+                    try:
+                        slot_date = datetime.strptime(date_str, fmt).date()
+                        break
+                    except ValueError:
+                        pass
+
+            if not slot_date:
+                errors.append(f'Dòng {row_idx}: Ngày khám không hợp lệ ({date_raw}).')
+                continue
+
+            # Phân tích Giờ Bắt đầu & Kết thúc
+            def parse_time(val, default_val):
+                if isinstance(val, dt_time):
+                    return val
+                if isinstance(val, datetime):
+                    return val.time()
+                if isinstance(val, str) and val.strip():
+                    for fmt in ('%H:%M:%S', '%H:%M'):
+                        try:
+                            return datetime.strptime(val.strip(), fmt).time()
+                        except ValueError:
+                            pass
+                return default_val
+
+            st = parse_time(start_raw, dt_time(8, 0))
+            et = parse_time(end_raw, dt_time(9, 30))
+
+            try:
+                mp = int(max_patients_raw) if max_patients_raw else 3
+            except (ValueError, TypeError):
+                mp = 3
+
+            slot, is_created = TimeSlot.objects.get_or_create(
+                doctor=doctor,
+                date=slot_date,
+                start_time=st,
+                defaults={
+                    'clinic': clinic,
+                    'end_time': et,
+                    'max_patients': mp,
+                    'is_available': True
+                }
+            )
+
+            created_slots.append({
+                'doctor': doctor.user.get_full_name(),
+                'date': str(slot_date),
+                'start_time': st.strftime('%H:%M'),
+                'end_time': et.strftime('%H:%M'),
+                'clinic': clinic.name if clinic else '',
+                'action': 'Tạo mới' if is_created else 'Đã tồn tại'
+            })
+
+        return Response({
+            'status': 'success',
+            'imported_count': len([s for s in created_slots if s['action'] == 'Tạo mới']),
+            'total_rows': len(created_slots),
+            'errors': errors,
+            'data': created_slots,
+            'message': f'Nhập thành công {len(created_slots)} ca trực từ file Excel!'
+        })
+
+
+class AdminTimeSlotExportTemplateView(APIView):
+    """
+    GET /api/appointments/time-slots/export-template/
+    Tải file Excel mẫu chuẩn nhập Ca trực Bác sĩ.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        template_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'media', 'templates', 'Mau_Ca_Truc_Bac_Si.xlsx')
+        if os.path.exists(template_path):
+            with open(template_path, 'rb') as f:
+                content = f.read()
+            response = HttpResponse(
+                content,
+                content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+            response['Content-Disposition'] = 'attachment; filename="Mau_Ca_Truc_Bac_Si.xlsx"'
+            return response
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Mẫu Ca Trực Bác Sĩ"
+
+        headers = [
+            "Email / Mã Bác Sĩ (*)",
+            "Họ và Tên Bác Sĩ (Ghi chú)",
+            "Tên Bệnh Viện / Cơ Sở Y Tế",
+            "Ngày Trực (YYYY-MM-DD hoặc DD/MM/YYYY) (*)",
+            "Giờ Bắt Đầu (HH:MM) (*)",
+            "Giờ Kết Thúc (HH:MM) (*)",
+            "Số Lượng Bệnh Nhân Tối Đa"
+        ]
+        ws.append(headers)
+
+        # Style header
+        header_fill = PatternFill(start_color="0068FF", end_color="0068FF", fill_type="solid")
+        header_font = Font(name="Arial", size=11, bold=True, color="FFFFFF")
+        center_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+        for col_idx in range(1, len(headers) + 1):
+            cell = ws.cell(row=1, column=col_idx)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = center_align
+
+        # Sample rows with real doctors in DB
+        sample_rows = [
+            ["anhle081004@gmail.com", "BS. Sarah Jenkins", "Bệnh viện Đa khoa Quốc tế MedTech Sài Gòn", "2026-11-20", "08:00", "09:30", 3],
+            ["anhle081004@gmail.com", "BS. Sarah Jenkins", "Bệnh viện Đa khoa Quốc tế MedTech Sài Gòn", "2026-11-20", "10:00", "11:30", 3],
+            ["bs.ngoc.tieuhoa@medtech.vn", "BS. Trần Bảo Ngọc", "Bệnh viện Chợ Rẫy", "2026-11-21", "13:30", "15:00", 4],
+            ["bs.khai.mat@medtech.vn", "BS. Phạm Quang Khải", "Bệnh viện Đại học Y Dược TP.HCM (Cơ sở 1)", "2026-11-21", "08:30", "10:00", 3],
+        ]
+
+        for r in sample_rows:
+            ws.append(r)
+
+        ws.column_dimensions['A'].width = 28
+        ws.column_dimensions['B'].width = 24
+        ws.column_dimensions['C'].width = 38
+        ws.column_dimensions['D'].width = 22
+        ws.column_dimensions['E'].width = 16
+        ws.column_dimensions['F'].width = 16
+        ws.column_dimensions['G'].width = 18
+
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+
+        response = HttpResponse(
+            output.getvalue(),
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        response['Content-Disposition'] = 'attachment; filename="Mau_Ca_Truc_Bac_Si.xlsx"'
+        return response
+
 

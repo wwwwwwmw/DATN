@@ -254,7 +254,9 @@ export default function SmartBooking() {
   // Tính khoảng cách của từng bác sĩ đối với người dùng
   const doctorsWithDistance = doctors.map(doc => {
     const clinicName = doc.clinic_name || ''
-    const clinicCoord = CLINIC_COORDINATES[clinicName] || { lat: 10.7732, lng: 106.6983 }
+    const clinicCoord = (doc.clinic_latitude && doc.clinic_longitude)
+      ? { lat: Number(doc.clinic_latitude), lng: Number(doc.clinic_longitude) }
+      : (CLINIC_COORDINATES[clinicName] || { lat: 10.7732, lng: 106.6983 })
     const dist = calculateDistance(userLocation.lat, userLocation.lng, clinicCoord.lat, clinicCoord.lng)
     return {
       ...doc,
