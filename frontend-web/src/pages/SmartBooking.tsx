@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
 import { authAPI, appointmentAPI, chatAPI } from '../services/api'
@@ -6,8 +7,8 @@ import { useRealtimeSync } from '../utils/realtime'
 import InfoTooltip from '../components/InfoTooltip'
 import {
   MapPin, Clock,
-  Zap, Shield, CheckCircle, Calendar, RefreshCw,
-  X, User, Sparkles, Navigation, UserCheck
+  Shield, CheckCircle, Calendar, RefreshCw,
+  X, User, Sparkles, Navigation, UserCheck, Building2
 } from 'lucide-react'
 
 // Avatar chân dung y khoa chuyên nghiệp theo tên Bác sĩ
@@ -137,9 +138,19 @@ function getQuickDates(slots: any[] = []): { date: string; label: string; count:
 export default function SmartBooking() {
   const { t } = useTranslation()
   const { user } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const [symptoms, setSymptoms] = useState('')
   const [specialty, setSpecialty] = useState('')
+  const [clinicFilter, setClinicFilter] = useState<string>('')
+
+  // Tự động nhận tên/ID cơ sở y tế khi chuyển hướng từ Bản đồ GIS
+  useEffect(() => {
+    const cName = searchParams.get('clinicName') || searchParams.get('clinic') || ''
+    if (cName) {
+      setClinicFilter(cName)
+    }
+  }, [searchParams])
 
   // Tọa độ bệnh nhân (mặc định trung tâm Quận 1, TP.HCM: 10.7769, 106.7009)
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number }>({ lat: 10.7769, lng: 106.7009 })
@@ -339,7 +350,16 @@ export default function SmartBooking() {
     }
   })
 
-  // Lọc theo Chuyên khoa thông minh
+  // Danh sách các cơ sở y tế / Bệnh viện có bác sĩ phục vụ
+  const availableClinics = useMemo(() => {
+    const set = new Set<string>()
+    doctors.forEach(d => {
+      if (d.clinic_name) set.add(d.clinic_name)
+    })
+    return Array.from(set).sort()
+  }, [doctors])
+
+  // Lọc theo Chuyên khoa & Cơ sở y tế thông minh
   const filteredDoctors = doctorsWithDistance.filter(doc => {
     // 1. Lọc theo chuyên khoa (Fuzzy Match hỗ trợ mọi biến thể)
     if (specialty) {
@@ -364,6 +384,16 @@ export default function SmartBooking() {
         (searchSpec.includes('hình ảnh') && docSpec.includes('hình ảnh'))
 
       if (!isMatch) {
+        return false
+      }
+    }
+
+    // 2. Lọc theo Cơ sở y tế / Bệnh viện đã chọn
+    if (clinicFilter) {
+      const cTarget = clinicFilter.toLowerCase().trim()
+      const docClinic = (doc.clinic_name || '').toLowerCase().trim()
+      const isClinicMatch = docClinic.includes(cTarget) || cTarget.includes(docClinic)
+      if (!isClinicMatch) {
         return false
       }
     }
@@ -435,7 +465,7 @@ export default function SmartBooking() {
         <div className="card-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
             <div style={{ width: 44, height: 44, borderRadius: 'var(--radius-lg)', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-              <Zap size={22} />
+              <Calendar size={22} />
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -459,11 +489,11 @@ export default function SmartBooking() {
         </div>
       </div>
 
-      {/* Bộ lọc Thông minh: Triệu chứng AI & Khoảng cách */}
+      {/* Bộ lọc Thông minh: Triệu chứng AI, Chuyên khoa & Cơ sở y tế */}
       <div className="card">
-        <div className="card-body" style={{ display: 'flex', gap: 'var(--space-4)', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-          {/* Ô nhập triệu chứng tích hợp AI Chatbot (kéo dài chạm chuyên khoa khám) */}
-          <div className="form-group" style={{ flex: 1, minWidth: 0, margin: 0 }}>
+        <div className="card-body" style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          {/* Ô nhập triệu chứng tích hợp AI Chatbot */}
+          <div className="form-group" style={{ flex: 1, minWidth: 260, margin: 0 }}>
             <label className="form-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 {t('booking.symptom_label')}
@@ -507,8 +537,8 @@ export default function SmartBooking() {
             </div>
           </div>
 
-          {/* Chọn chuyên khoa (Đầy đủ 10 chuyên khoa lâm sàng) */}
-          <div className="form-group" style={{ width: 340, flexShrink: 0, margin: 0 }}>
+          {/* Chọn chuyên khoa */}
+          <div className="form-group" style={{ width: 240, flexShrink: 0, margin: 0 }}>
             <label className="form-label">{t('booking.specialty_label')}</label>
             <select
               className="form-input"
@@ -518,21 +548,96 @@ export default function SmartBooking() {
                 setAiSuggestedSpecialty(null)
               }}
             >
-              <option value="">Tất cả chuyên khoa ({doctors.length} bác sĩ)</option>
-              <option value="Nội Thần kinh">Nội Thần kinh (Đau đầu, nhức đầu, chóng mặt)</option>
-              <option value="Nội Tim mạch">Nội Tim mạch (Huyết áp, tức ngực, loạn nhịp)</option>
-              <option value="Tiêu hóa - Gan mật">Tiêu hóa - Gan mật (Ăn không ngon, dạ dày)</option>
-              <option value="Cơ xương khớp">Cơ xương khớp (Đau khớp, mỏi gáy, cột sống)</option>
-              <option value="Tai Mũi Họng & Hô hấp">Tai Mũi Họng & Hô hấp (Ho, viêm họng, xoang)</option>
-              <option value="Đa khoa & Nội Tổng quát">Đa khoa & Nội Tổng quát (Khám tổng quát, mệt mỏi)</option>
-              <option value="Da liễu">Da liễu (Ngứa, dị ứng, mề đay, mụn)</option>
-              <option value="Mắt">Mắt (Mắt mờ, tật khúc xạ, viêm kết mạc)</option>
-              <option value="Nhi khoa">Nhi khoa (Khám sức khỏe trẻ em, sơ sinh)</option>
+              <option value="">Tất cả chuyên khoa</option>
+              <option value="Nội Thần kinh">Nội Thần kinh (Đau đầu, chóng mặt)</option>
+              <option value="Nội Tim mạch">Nội Tim mạch (Huyết áp, tức ngực)</option>
+              <option value="Tiêu hóa - Gan mật">Tiêu hóa - Gan mật (Dạ dày, tiêu hóa)</option>
+              <option value="Cơ xương khớp">Cơ xương khớp (Đau khớp, cột sống)</option>
+              <option value="Tai Mũi Họng & Hô hấp">Tai Mũi Họng & Hô hấp (Ho, xoang)</option>
+              <option value="Đa khoa & Nội Tổng quát">Đa khoa & Nội Tổng quát</option>
+              <option value="Da liễu">Da liễu (Ngứa, dị ứng, mề đay)</option>
+              <option value="Mắt">Mắt (Mờ mắt, tật khúc xạ)</option>
+              <option value="Nhi khoa">Nhi khoa (Trẻ em, sơ sinh)</option>
               <option value="Chẩn đoán hình ảnh">Chẩn đoán hình ảnh (X-quang, CT, MRI)</option>
+            </select>
+          </div>
+
+          {/* Chọn cơ sở y tế / Bệnh viện (Được truyền tự động từ Bản đồ GIS) */}
+          <div className="form-group" style={{ width: 260, flexShrink: 0, margin: 0 }}>
+            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <Building2 size={13} color="var(--color-primary)" /> Cơ sở y tế / Bệnh viện
+            </label>
+            <select
+              className="form-input"
+              value={clinicFilter}
+              onChange={e => {
+                setClinicFilter(e.target.value)
+                if (!e.target.value) {
+                  searchParams.delete('clinicName')
+                  searchParams.delete('clinicId')
+                  setSearchParams(searchParams)
+                }
+              }}
+            >
+              <option value="">Tất cả cơ sở ({availableClinics.length} bệnh viện)</option>
+              {availableClinics.map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+              {clinicFilter && !availableClinics.includes(clinicFilter) && (
+                <option value={clinicFilter}>{clinicFilter}</option>
+              )}
             </select>
           </div>
         </div>
       </div>
+
+      {/* Tag nổi bật khi đang lọc theo Cơ sở y tế từ Bản đồ GIS */}
+      {clinicFilter && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: '#eff6ff',
+          border: '1.5px solid #3b82f6',
+          borderRadius: 8,
+          padding: '10px 16px',
+          fontSize: 13,
+          color: '#1e40af',
+          boxShadow: '0 2px 6px rgba(59, 130, 246, 0.12)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <Building2 size={18} color="#2563eb" />
+            <span>Đang lọc danh sách bác sĩ thuộc: <strong>{clinicFilter}</strong></span>
+            <span className="badge badge-primary" style={{ fontSize: 11 }}>
+              {filteredDoctors.length} bác sĩ sẵn sàng tiếp nhận
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setClinicFilter('')
+              searchParams.delete('clinicName')
+              searchParams.delete('clinicId')
+              setSearchParams(searchParams)
+            }}
+            style={{
+              background: '#fee2e2',
+              border: '1px solid #f87171',
+              borderRadius: 6,
+              color: '#dc2626',
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: 12,
+              padding: '4px 10px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+            }}
+          >
+            <X size={14} /> Bỏ lọc cơ sở
+          </button>
+        </div>
+      )}
 
       {bookingMessage && (
         <div className="card" style={{ borderLeft: '4px solid var(--color-success)', background: 'var(--color-success-light)' }}>
@@ -559,10 +664,31 @@ export default function SmartBooking() {
           <div className="card">
             <div className="card-body" style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--color-text-secondary)' }}>
               <Navigation size={36} style={{ color: 'var(--color-text-tertiary)', marginBottom: 12 }} />
-              <div style={{ fontWeight: 'bold', fontSize: '15px' }}>Không tìm thấy bác sĩ phù hợp</div>
-              <p style={{ fontSize: '13px', color: 'var(--color-text-tertiary)', marginTop: 4 }}>
-                Hãy thử chọn chuyên khoa khác hoặc xóa bớt triệu chứng mô tả.
+              <div style={{ fontWeight: 'bold', fontSize: '15px' }}>
+                {clinicFilter
+                  ? `Chưa có bác sĩ trực tuyến thuộc ${clinicFilter}`
+                  : 'Không tìm thấy bác sĩ phù hợp'}
+              </div>
+              <p style={{ fontSize: '13px', color: 'var(--color-text-tertiary)', marginTop: 4, maxWidth: 480, margin: '6px auto 0 auto' }}>
+                {clinicFilter
+                  ? 'Cơ sở này hiện chưa mở ca khám trực tuyến hoặc chưa có bác sĩ chuyên khoa phù hợp. Bạn có thể bỏ lọc để đặt lịch với các Bác sĩ ở cơ sở gần nhất.'
+                  : 'Hãy thử chọn chuyên khoa khác hoặc xóa bớt triệu chứng mô tả.'}
               </p>
+              {clinicFilter && (
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  style={{ marginTop: 14 }}
+                  onClick={() => {
+                    setClinicFilter('')
+                    searchParams.delete('clinicName')
+                    searchParams.delete('clinicId')
+                    setSearchParams(searchParams)
+                  }}
+                >
+                  Xem bác sĩ ở tất cả cơ sở y tế
+                </button>
+              )}
             </div>
           </div>
         ) : (

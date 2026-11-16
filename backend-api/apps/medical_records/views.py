@@ -59,7 +59,10 @@ class MedicalRecordListView(generics.ListCreateAPIView):
             if existing:
                 for field in ('diagnosis', 'symptoms', 'prescription', 'notes', 'follow_up_date'):
                     if field in data:
-                        setattr(existing, field, data[field])
+                        val = data[field]
+                        if field == 'follow_up_date' and not val:
+                            val = None
+                        setattr(existing, field, val)
                 if doctor_profile:
                     existing.doctor = doctor_profile
                 existing.save()
@@ -70,6 +73,8 @@ class MedicalRecordListView(generics.ListCreateAPIView):
                     'message': 'Đã cập nhật hồ sơ bệnh án thành công.'
                 })
 
+        if 'follow_up_date' in data and not data.get('follow_up_date'):
+            data['follow_up_date'] = None
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         record = serializer.save(doctor=doctor_profile)

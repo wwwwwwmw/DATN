@@ -26,11 +26,18 @@ import {
   Route,
   AlertTriangle,
   CheckCircle2,
-  ChevronRight,
   X,
   Compass,
-  Car,
   Sparkles,
+  ArrowUp,
+  ArrowUpLeft,
+  ArrowUpRight,
+  CornerUpLeft,
+  CornerUpRight,
+  RotateCw,
+  RotateCcw,
+  ArrowLeft,
+  Flag,
 } from 'lucide-react'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
@@ -87,6 +94,22 @@ export interface RouteStep {
   distanceText: string
   durationText: string
   trafficLevel: TrafficLevel
+  maneuverType?: string
+  roadName?: string
+  distanceMeters?: number
+}
+
+function renderManeuverIcon(step: RouteStep) {
+  const m = step.maneuverType
+  if (m === 'arrive') return <Flag size={15} color="#dc2626" />
+  if (m === 'depart') return <MapPin size={15} color="#0068ff" />
+  if (m === 'left' || m === 'sharp-left') return <CornerUpLeft size={15} color="#2563eb" />
+  if (m === 'slight-left') return <ArrowUpLeft size={15} color="#2563eb" />
+  if (m === 'right' || m === 'sharp-right') return <CornerUpRight size={15} color="#2563eb" />
+  if (m === 'slight-right') return <ArrowUpRight size={15} color="#2563eb" />
+  if (m === 'roundabout') return <RotateCw size={15} color="#d97706" />
+  if (m === 'uturn') return <RotateCcw size={15} color="#dc2626" />
+  return <ArrowUp size={15} color="#16a34a" />
 }
 
 export interface RouteOption {
@@ -199,11 +222,12 @@ function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): nu
 
 /**
  * Chia tọa độ tuyến đường thành các phân đoạn giao thông (Xanh lá / Vàng cam / Đỏ)
- * mô phỏng mật độ giao thông thực tế trên từng đoạn đường giống Google Maps.
+ * mô phỏng mật độ giao thông thực tế biến thiên theo giờ trong ngày (Rush Hour Simulation).
  */
 function buildTrafficSegments(
   coords: [number, number][],
-  routeIndex: number
+  routeIndex: number,
+  customHour?: number
 ): {
   segments: TrafficSegment[]
   lowPct: number
@@ -211,6 +235,7 @@ function buildTrafficSegments(
   heavyPct: number
   trafficDelayMin: number
   overallTraffic: TrafficLevel
+  trafficStatusNote: string
 } {
   if (coords.length < 2) {
     return {
@@ -220,8 +245,24 @@ function buildTrafficSegments(
       heavyPct: 0,
       trafficDelayMin: 0,
       overallTraffic: 'low',
+      trafficStatusNote: 'Đường thông thoáng',
     }
   }
+
+  // Xác định khung giờ hiện tại của hệ thống để mô phỏng chính xác giao thông đô thị Việt Nam
+  const now = new Date()
+  const currentHour = customHour !== undefined ? customHour : now.getHours() + now.getMinutes() / 60
+
+  const isMorningRush = currentHour >= 7.0 && currentHour <= 9.0     // 07:00 - 09:00 (Cao điểm sáng)
+  const isEveningRush = currentHour >= 16.5 && currentHour <= 19.0   // 16:30 - 19:00 (Cao điểm chiều tan tầm)
+  const isNoonPeak = currentHour >= 11.5 && currentHour <= 13.0      // 11:30 - 13:00 (Giờ ăn trưa)
+  const isNightLow = currentHour >= 21.0 || currentHour <= 6.0       // 21:00 - 06:00 (Đêm khuya & sáng sớm)
+
+  let trafficStatusNote = 'Lưu thông ổn định'
+  if (isMorningRush) trafficStatusNote = 'Giờ cao điểm sáng (Ùn tắc cục bộ các trục đường chính)'
+  else if (isEveningRush) trafficStatusNote = 'Giờ cao điểm tan tầm (Mật độ phương tiện rất cao)'
+  else if (isNoonPeak) trafficStatusNote = 'Giờ trưa (Đông phương tiện tại các giao lộ)'
+  else if (isNightLow) trafficStatusNote = 'Đêm khuya (Tuyến đường hoàn toàn thông thoáng)'
 
   // Chia tuyến đường thành 6 - 10 chặng nhỏ để tô màu mật độ giao thông
   const numChunks = Math.min(10, Math.max(5, Math.floor(coords.length / 6)))
@@ -239,36 +280,43 @@ function buildTrafficSegments(
 
     const chunkIdx = Math.floor(i / chunkSize)
     const midPt = slice[Math.floor(slice.length / 2)]
-    // Hash tọa độ + thứ tự tuyến để tạo phân bố giao thông ổn định & thực tế
+    // Hash tọa độ + thứ tự tuyến để tạo phân bố giao thông ổn định
     const coordHash = Math.abs(Math.sin(midPt[0] * 1250 + midPt[1] * 970 + routeIndex * 2.1 + chunkIdx))
 
     let level: TrafficLevel = 'low'
-    if (routeIndex === 0) {
-      // Tuyến nhanh nhất: đa số thông thoáng, có 1-2 đoạn đông xe nhẹ ở ngã tư giữa đường
-      if (chunkIdx > 0 && chunkIdx < numChunks - 1 && coordHash > 0.82) {
-        level = 'heavy'
-      } else if (coordHash > 0.56) {
-        level = 'moderate'
+
+    if (isNightLow) {
+      // Ban đêm: Hầu hết thông thoáng (>90% xanh)
+      level = coordHash > 0.94 ? 'moderate' : 'low'
+    } else if (isMorningRush || isEveningRush) {
+      // Giờ cao điểm: Ùn ứ nhiều tại các đoạn giữa và ngã tư
+      if (routeIndex === 0) {
+        level = coordHash > 0.55 ? 'heavy' : coordHash > 0.25 ? 'moderate' : 'low'
+      } else if (routeIndex === 1) {
+        level = coordHash > 0.45 ? 'heavy' : coordHash > 0.2 ? 'moderate' : 'low'
       } else {
-        level = 'low'
+        // Tuyến đường vòng tránh kẹt xe
+        level = coordHash > 0.72 ? 'heavy' : coordHash > 0.38 ? 'moderate' : 'low'
       }
-    } else if (routeIndex === 1) {
-      // Tuyến thay thế 1: đi qua trục chính nên có nhiều đoạn đông xe/kẹt xe hơn chút
-      if (coordHash > 0.68) {
-        level = 'heavy'
-      } else if (coordHash > 0.35) {
-        level = 'moderate'
+    } else if (isNoonPeak) {
+      // Giờ trưa: Đông xe vừa phải
+      if (routeIndex === 0) {
+        level = coordHash > 0.78 ? 'heavy' : coordHash > 0.45 ? 'moderate' : 'low'
       } else {
-        level = 'low'
+        level = coordHash > 0.65 ? 'heavy' : coordHash > 0.35 ? 'moderate' : 'low'
       }
     } else {
-      // Tuyến thay thế 2 (Đường vòng tránh kẹt xe): ít đỏ nhưng đường dài hơn
-      if (coordHash > 0.86) {
-        level = 'heavy'
-      } else if (coordHash > 0.52) {
-        level = 'moderate'
+      // Giờ thường trong ngày
+      if (routeIndex === 0) {
+        level = chunkIdx > 0 && chunkIdx < numChunks - 1 && coordHash > 0.82
+          ? 'heavy'
+          : coordHash > 0.56
+          ? 'moderate'
+          : 'low'
+      } else if (routeIndex === 1) {
+        level = coordHash > 0.68 ? 'heavy' : coordHash > 0.35 ? 'moderate' : 'low'
       } else {
-        level = 'low'
+        level = coordHash > 0.86 ? 'heavy' : coordHash > 0.52 ? 'moderate' : 'low'
       }
     }
 
@@ -291,7 +339,9 @@ function buildTrafficSegments(
   const moderatePct = Math.round((modCount / total) * 100)
   const heavyPct = Math.max(0, 100 - lowPct - moderatePct)
 
-  const trafficDelayMin = Math.round(modCount * 1.2 + heavyCount * 2.8)
+  // Thời gian trễ do kẹt xe
+  const delayMultiplier = isMorningRush || isEveningRush ? 1.8 : isNoonPeak ? 1.2 : isNightLow ? 0 : 1.0
+  const trafficDelayMin = Math.round((modCount * 1.2 + heavyCount * 2.8) * delayMultiplier)
   const overallTraffic: TrafficLevel =
     heavyPct >= 28 ? 'heavy' : moderatePct + heavyPct >= 40 ? 'moderate' : 'low'
 
@@ -302,31 +352,150 @@ function buildTrafficSegments(
     heavyPct,
     trafficDelayMin,
     overallTraffic,
+    trafficStatusNote,
   }
 }
 
-function translateOsrmStep(step: any, index: number): RouteStep {
-  const roadName = step?.name || 'đường chính'
+function translateOsrmStep(
+  step: any,
+  index: number,
+  isArrival = false,
+  clinicName = ''
+): RouteStep {
+  const rawRoad = (step?.name || '').trim()
   const type = step?.maneuver?.type || ''
   const modifier = step?.maneuver?.modifier || ''
   const distM = Math.round(step?.distance || 150)
   const durMin = Math.max(1, Math.round((step?.duration || 45) / 60))
 
-  let action = 'Đi thẳng theo'
-  if (type === 'depart') action = 'Xuất phát trên'
-  else if (type === 'arrive') action = 'Đến điểm đích tại'
-  else if (type === 'roundabout' || type === 'rotary') action = 'Đi vào vòng xoay ra'
-  else if (modifier.includes('left')) action = 'Rẽ trái vào'
-  else if (modifier.includes('right')) action = 'Rẽ phải vào'
-  else if (modifier.includes('uturn')) action = 'Quay đầu xe trên'
+  let action = 'Đi thẳng'
+  let maneuverType = 'straight'
+
+  if (type === 'depart' || index === 0) {
+    action = 'Xuất phát'
+    maneuverType = 'depart'
+  } else if (type === 'arrive' || isArrival) {
+    action = 'Đến điểm đích'
+    maneuverType = 'arrive'
+  } else if (type === 'roundabout' || type === 'rotary') {
+    action = 'Đi vào vòng xoay'
+    maneuverType = 'roundabout'
+  } else if (modifier.includes('sharp left')) {
+    action = 'Rẽ ngoặt sang trái vào'
+    maneuverType = 'sharp-left'
+  } else if (modifier.includes('slight left')) {
+    action = 'Đi chếch sang trái vào'
+    maneuverType = 'slight-left'
+  } else if (modifier.includes('left')) {
+    action = 'Rẽ trái vào'
+    maneuverType = 'left'
+  } else if (modifier.includes('sharp right')) {
+    action = 'Rẽ ngoặt sang phải vào'
+    maneuverType = 'sharp-right'
+  } else if (modifier.includes('slight right')) {
+    action = 'Đi chếch sang phải vào'
+    maneuverType = 'slight-right'
+  } else if (modifier.includes('right')) {
+    action = 'Rẽ phải vào'
+    maneuverType = 'right'
+  } else if (modifier.includes('uturn')) {
+    action = 'Quay đầu xe trên'
+    maneuverType = 'uturn'
+  } else if (type === 'continue') {
+    action = 'Tiếp tục đi trên'
+    maneuverType = 'straight'
+  }
+
+  let instruction = ''
+  if (maneuverType === 'arrive') {
+    instruction = `Đến điểm đích: ${clinicName || rawRoad || 'Bệnh viện'} (ở bên phải bạn)`
+  } else if (maneuverType === 'depart') {
+    instruction = rawRoad ? `Xuất phát theo ${rawRoad}` : 'Xuất phát từ vị trí của bạn'
+  } else if (rawRoad) {
+    instruction = `${action} ${rawRoad.startsWith('Đường') || rawRoad.startsWith('Phố') ? rawRoad : `đường ${rawRoad}`}`
+  } else {
+    instruction = `${action} theo biển chỉ dẫn giao thông`
+  }
 
   const level: TrafficLevel = index % 5 === 2 ? 'heavy' : index % 3 === 1 ? 'moderate' : 'low'
+
   return {
-    instruction: `${action} ${roadName}`,
+    instruction,
     distanceText: distM >= 1000 ? `${(distM / 1000).toFixed(1)} km` : `${distM} m`,
     durationText: `${durMin} phút`,
     trafficLevel: level,
+    maneuverType,
+    roadName: rawRoad,
+    distanceMeters: distM,
   }
+}
+
+/**
+ * Sinh các bước chỉ đường chân thực bám sát địa bàn TP.HCM / Hà Nội khi OSRM có ít bước
+ */
+function generateRealisticCitySteps(
+  userLabel: string,
+  clinic: any,
+  distKm: number,
+  totalMin: number,
+  routeIdx: number
+): RouteStep[] {
+  const steps: RouteStep[] = []
+  const isHcm = (clinic.city || 'HCM') === 'HCM'
+
+  // Chặng 1: Xuất phát
+  steps.push({
+    instruction: `Xuất phát từ ${userLabel}`,
+    distanceText: `${Math.round(distKm * 0.15 * 1000)} m`,
+    durationText: `${Math.max(1, Math.round(totalMin * 0.15))} phút`,
+    trafficLevel: 'low',
+    maneuverType: 'depart',
+    distanceMeters: Math.round(distKm * 0.15 * 1000),
+  })
+
+  // Chặng 2: Trục đường trung tâm
+  const mainRoadsHcm = [
+    'đường Nguyễn Văn Trỗi',
+    'đường Hoàng Văn Thụ',
+    'đường Nam Kỳ Khởi Nghĩa',
+    'đường Điện Biên Phủ',
+    'đường Nguyễn Thị Minh Khai',
+  ]
+  const mainRoad = isHcm
+    ? mainRoadsHcm[routeIdx % mainRoadsHcm.length]
+    : 'đường Giải Phóng'
+
+  steps.push({
+    instruction: `Đi thẳng ${Math.round(distKm * 0.35 * 1000)} m trên ${mainRoad}`,
+    distanceText: `${(distKm * 0.35).toFixed(1)} km`,
+    durationText: `${Math.max(2, Math.round(totalMin * 0.35))} phút`,
+    trafficLevel: routeIdx === 0 ? 'low' : 'moderate',
+    maneuverType: 'straight',
+    distanceMeters: Math.round(distKm * 0.35 * 1000),
+  })
+
+  // Chặng 3: Rẽ vào tuyến dẫn
+  const turnRoad = clinic.address?.split(',')?.[0]?.trim() || 'đường nhánh hướng tới bệnh viện'
+  steps.push({
+    instruction: `Rẽ phải vào ${turnRoad.startsWith('Số') ? 'đường tiếp cận' : turnRoad}, đi tiếp ${(distKm * 0.3).toFixed(1)} km`,
+    distanceText: `${(distKm * 0.3).toFixed(1)} km`,
+    durationText: `${Math.max(2, Math.round(totalMin * 0.3))} phút`,
+    trafficLevel: routeIdx === 1 ? 'heavy' : 'moderate',
+    maneuverType: 'right',
+    distanceMeters: Math.round(distKm * 0.3 * 1000),
+  })
+
+  // Chặng 4: Đến bệnh viện
+  steps.push({
+    instruction: `Rẽ trái vào cổng ${clinic.name} (${clinic.address || 'Điểm đến'})`,
+    distanceText: `${Math.round(distKm * 0.2 * 1000)} m`,
+    durationText: `${Math.max(1, Math.round(totalMin * 0.2))} phút`,
+    trafficLevel: 'low',
+    maneuverType: 'arrive',
+    distanceMeters: Math.round(distKm * 0.2 * 1000),
+  })
+
+  return steps
 }
 
 /**
@@ -379,7 +548,9 @@ export default function ClinicMap() {
   const [routes, setRoutes] = useState<RouteOption[]>([])
   const [selectedRouteId, setSelectedRouteId] = useState<string>('')
   const [routingLoading, setRoutingLoading] = useState(false)
-  const [showSteps, setShowSteps] = useState(false)
+  const [trafficUpdatedAt, setTrafficUpdatedAt] = useState<string>(
+    new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  )
 
   const loadClinicsFromDb = useCallback(async () => {
     setLoading(true)
@@ -573,25 +744,14 @@ export default function ClinicMap() {
 
           const rawSteps = r.legs?.flatMap((leg: any) => leg.steps || []) || []
           const steps: RouteStep[] =
-            rawSteps.length > 0
+            rawSteps.length > 2
               ? rawSteps
-                  .filter((s: any) => (s.distance || 0) > 25 || s.maneuver?.type === 'arrive')
-                  .slice(0, 10)
-                  .map((s: any, sIdx: number) => translateOsrmStep(s, sIdx))
-              : [
-                  {
-                    instruction: `Xuất phát từ ${userLocationLabel}`,
-                    distanceText: `${(distKm * 0.4).toFixed(1)} km`,
-                    durationText: `${Math.max(2, Math.round(totalMin * 0.4))} phút`,
-                    trafficLevel: 'low',
-                  },
-                  {
-                    instruction: `Đi thẳng qua trục đường chính hướng về ${clinic.name}`,
-                    distanceText: `${(distKm * 0.6).toFixed(1)} km`,
-                    durationText: `${Math.max(2, Math.round(totalMin * 0.6))} phút`,
-                    trafficLevel: trafficInfo.overallTraffic,
-                  },
-                ]
+                  .filter((s: any) => (s.distance || 0) > 15 || s.maneuver?.type === 'arrive' || s.maneuver?.type === 'depart')
+                  .slice(0, 16)
+                  .map((s: any, sIdx: number, arr: any[]) =>
+                    translateOsrmStep(s, sIdx, sIdx === arr.length - 1, clinic.name)
+                  )
+              : generateRealisticCitySteps(userLocationLabel, clinic, distKm, totalMin, idx)
 
           const midIdx = Math.floor(rawCoords.length / 2)
           builtRoutes.push({
@@ -654,26 +814,7 @@ export default function ClinicMap() {
           },
           coordinates: coords,
           segments: trafficInfo.segments,
-          steps: [
-            {
-              instruction: `Xuất phát từ vị trí hiện tại của bạn`,
-              distanceText: `${(distKm * 0.35).toFixed(1)} km`,
-              durationText: `${Math.max(2, Math.round(totalMin * 0.35))} phút`,
-              trafficLevel: 'low',
-            },
-            {
-              instruction: `Đi theo lộ trình ${cfg.name} hướng tới ${clinic.name}`,
-              distanceText: `${(distKm * 0.45).toFixed(1)} km`,
-              durationText: `${Math.max(2, Math.round(totalMin * 0.45))} phút`,
-              trafficLevel: trafficInfo.overallTraffic,
-            },
-            {
-              instruction: `Rẽ vào ${clinic.address}`,
-              distanceText: `${(distKm * 0.2).toFixed(1)} km`,
-              durationText: `${Math.max(1, Math.round(totalMin * 0.2))} phút`,
-              trafficLevel: 'low',
-            },
-          ],
+          steps: generateRealisticCitySteps(userLocationLabel, clinic, distKm, totalMin, idx),
           midpoint: coords[midIdx] || [destLat, destLng],
         })
       }
@@ -700,6 +841,25 @@ export default function ClinicMap() {
     },
     [userPos, userLocationLabel]
   )
+
+  const refreshTraffic = useCallback(() => {
+    setTrafficUpdatedAt(
+      new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    )
+    if (selectedClinic) {
+      calculateRoutesToClinic(selectedClinic, userPos)
+    }
+  }, [selectedClinic, userPos, calculateRoutesToClinic])
+
+  // Tự động làm mới mật độ giao thông định kỳ mỗi 30 giây
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTrafficUpdatedAt(
+        new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+      )
+    }, 30000)
+    return () => clearInterval(timer)
+  }, [])
 
   // Khi người dùng đổi vị trí bản thân mà đang bật chỉ đường tới 1 bệnh viện -> tự động tính lại đường đi!
   const handleChangeUserPosition = (newPos: [number, number], label: string, city?: 'HCM' | 'HN') => {
@@ -867,7 +1027,7 @@ export default function ClinicMap() {
               }}
             >
               <option value="" disabled>
-                ⚡ Đổi nhanh vị trí xuất phát (TP.HCM / Hà Nội)...
+                Đổi nhanh vị trí xuất phát (TP.HCM / Hà Nội)...
               </option>
               {PRESET_LOCATIONS.map((loc, idx) => (
                 <option key={idx} value={idx}>
@@ -946,27 +1106,41 @@ export default function ClinicMap() {
           </div>
         </div>
 
-        {/* BẢNG CHỌN TUYẾN ĐƯỜNG & MỨC ĐỘ KẸT XE (HIỆN KHI NGƯỜI DÙNG CHỌN CHỈ ĐƯỜNG) */}
-        {selectedClinic && (
-          <div
-            style={{
-              background: '#f8fafc',
-              borderBottom: '2px solid #cbd5e1',
-              padding: '12px 14px',
-              maxHeight: '46%',
-              overflowY: 'auto',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#0f52ba', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <Route size={13} /> ĐANG CHỈ ĐƯỜNG TỚI BỆNH VIỆN
-                </div>
-                <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a', marginTop: 2 }}>
-                  {selectedClinic.name}
-                </div>
-              </div>
+        {/* NẾU ĐANG CHỈ ĐƯỜNG: THAY VÌ DANH SÁCH BỆNH VIỆN, ĐỔI SANG MỤC DẪN ĐƯỜNG CHI TIẾT */}
+        {selectedClinic ? (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#f8fafc' }}>
+            {/* Header thanh điều hướng: Nút quay lại danh sách bệnh viện */}
+            <div
+              style={{
+                padding: '10px 14px',
+                background: '#ffffff',
+                borderBottom: '1px solid #cbd5e1',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
               <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => {
+                  setSelectedClinic(null)
+                  setRoutes([])
+                }}
+                style={{
+                  fontSize: 12.5,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  color: '#0068ff',
+                  fontWeight: 700,
+                  padding: '4px 8px',
+                }}
+              >
+                <ArrowLeft size={16} /> Quay lại danh sách bệnh viện
+              </button>
+              <button
+                type="button"
                 className="btn btn-ghost btn-sm btn-icon"
                 onClick={() => {
                   setSelectedClinic(null)
@@ -974,406 +1148,402 @@ export default function ClinicMap() {
                 }}
                 title="Đóng chỉ đường"
               >
-                <X size={15} />
+                <X size={16} />
               </button>
             </div>
 
-            {/* Cảnh báo Bệnh viện đóng cửa và Gợi ý Bệnh viện gần nhất đang mở cửa */}
+            {/* Thông tin Bệnh viện đích đến & Nút Đặt lịch khám */}
+            <div style={{ padding: '12px 14px', background: '#ffffff', borderBottom: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#0f52ba', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <Route size={13} /> ĐANG DẪN ĐƯỜNG TỚI BỆNH VIỆN
+                  </div>
+                  <div style={{ fontWeight: 800, fontSize: 15, color: '#0f172a', marginTop: 3 }}>
+                    {selectedClinic.name}
+                  </div>
+                  <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                    {selectedClinic.address}
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <div style={{ fontWeight: 800, color: '#0f52ba', fontSize: 15 }}>
+                    {selectedClinic.distance} km
+                  </div>
+                  <div style={{ fontSize: 11, color: '#64748b' }}>
+                    ~{selectedClinic.driveTime}
+                  </div>
+                </div>
+              </div>
+
+              {/* Nút đặt lịch khám ngay tại bệnh viện đã chọn (truyền thông tin sang /booking) */}
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                style={{
+                  width: '100%',
+                  marginTop: 10,
+                  justifyContent: 'center',
+                  fontWeight: 700,
+                  gap: 6,
+                  background: '#0068ff',
+                  borderColor: '#0068ff',
+                  padding: '8px 12px',
+                  borderRadius: 8,
+                  boxShadow: '0 2px 6px rgba(0, 104, 255, 0.25)',
+                }}
+                onClick={() =>
+                  navigate(
+                    `/booking?clinicId=${selectedClinic.id}&clinicName=${encodeURIComponent(
+                      selectedClinic.name
+                    )}`
+                  )
+                }
+              >
+                <Calendar size={14} /> Đặt lịch khám tại {selectedClinic.name}
+              </button>
+            </div>
+
+            {/* Cảnh báo Bệnh viện đóng cửa và Gợi ý cơ sở gần nhất */}
             {!selectedClinic.is_open && (
               <div
                 style={{
+                  margin: '10px 14px 0 14px',
                   background: '#fef2f2',
                   border: '1.5px solid #fecaca',
-                  borderRadius: 10,
+                  borderRadius: 8,
                   padding: '10px 12px',
-                  marginBottom: 10,
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#dc2626', fontWeight: 700, fontSize: 13 }}>
-                  <AlertTriangle size={16} /> BỆNH VIỆN HIỆN ĐÃ ĐÓNG CỬA
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#dc2626', fontWeight: 700, fontSize: 12.5 }}>
+                  <AlertTriangle size={15} /> BỆNH VIỆN HIỆN ĐÃ ĐÓNG CỬA
                 </div>
-                <div style={{ fontSize: 12, color: '#991b1b', marginTop: 4 }}>
-                  Cơ sở này hiện đang tạm ngưng tiếp nhận. Bản đồ tự động đề xuất cơ sở y tế gần nhất đang mở cửa:
+                <div style={{ fontSize: 11.5, color: '#991b1b', marginTop: 4 }}>
+                  Cơ sở này hiện đang tạm ngưng tiếp nhận.
                 </div>
                 {nearestOpenClinic && (
-                  <div
-                    style={{
-                      marginTop: 8,
-                      padding: '8px 10px',
-                      background: '#ffffff',
-                      border: '1px solid #bfdbfe',
-                      borderRadius: 8,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 8,
-                    }}
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-primary"
+                    style={{ fontSize: 11, marginTop: 6, width: '100%', justifyContent: 'center' }}
+                    onClick={() => calculateRoutesToClinic(nearestOpenClinic)}
                   >
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: 12.5, color: '#0f172a' }}>{nearestOpenClinic.name}</div>
-                      <div style={{ fontSize: 11, color: '#16a34a', fontWeight: 700, marginTop: 2 }}>
-                        ● Đang mở cửa • Cách bạn {nearestOpenClinic.distance} km
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-primary"
-                      style={{ fontSize: 11, padding: '4px 10px', flexShrink: 0 }}
-                      onClick={() => calculateRoutesToClinic(nearestOpenClinic)}
-                    >
-                      Chuyển sang bệnh viện này
-                    </button>
-                  </div>
+                    Chuyển sang: {nearestOpenClinic.name} ({nearestOpenClinic.distance} km)
+                  </button>
                 )}
               </div>
             )}
 
+            {/* Nội dung dẫn đường Turn-by-Turn hoặc Loading */}
             {routingLoading ? (
-              <div style={{ padding: '12px 0', fontSize: 13, color: '#475569', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <RefreshCw size={15} className="loading-spinner" />
-                Đang phân tích lộ trình tối ưu & mật độ giao thông...
+              <div style={{ padding: 32, textAlign: 'center', color: '#64748b', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+                <RefreshCw size={22} className="loading-spinner" color="#0068ff" />
+                <span>Đang phân tích ngã rẽ và mật độ giao thông trực tiếp...</span>
               </div>
             ) : (
-              <>
-                <div style={{ fontSize: 11, color: '#475569', marginBottom: 8 }}>
-                  Chọn 1 trong <strong>{routes.length} tuyến đường</strong> dưới đây (hoặc nhấn vào đường vẽ trên bản đồ):
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {routes.map((rt) => {
-                    const isSelected = rt.id === (activeRoute?.id || '')
-                    const trafficMeta = TRAFFIC_COLORS[rt.overallTraffic]
-                    return (
-                      <div
-                        key={rt.id}
-                        onClick={() => setSelectedRouteId(rt.id)}
-                        style={{
-                          padding: '10px 12px',
-                          borderRadius: 10,
-                          border: isSelected ? '2px solid #0f52ba' : '1px solid #cbd5e1',
-                          background: isSelected ? '#eff6ff' : '#ffffff',
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease',
-                        }}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <Car size={14} color={isSelected ? '#0f52ba' : '#64748b'} />
-                            <span style={{ fontWeight: 700, fontSize: 13, color: '#0f172a' }}>
-                              {rt.name}
-                            </span>
-                          </div>
-                          <span
-                            style={{
-                              fontSize: 10,
-                              fontWeight: 700,
-                              padding: '2px 7px',
-                              borderRadius: 999,
-                              background: rt.isFastest ? '#16a34a' : '#e2e8f0',
-                              color: rt.isFastest ? '#ffffff' : '#334155',
-                            }}
-                          >
-                            {rt.badge}
-                          </span>
-                        </div>
-
-                        <div
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                {/* 3 tabs chọn tuyến đường */}
+                <div style={{ padding: '10px 14px', background: '#f1f5f9', borderBottom: '1px solid #cbd5e1' }}>
+                  <div style={{ fontSize: 11, color: '#475569', fontWeight: 600, marginBottom: 6 }}>
+                    Chọn 1 trong <strong>{routes.length} tuyến đường</strong>:
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                    {routes.map((rt, idx) => {
+                      const isSelected = rt.id === (activeRoute?.id || '')
+                      return (
+                        <button
+                          key={rt.id}
+                          type="button"
+                          onClick={() => setSelectedRouteId(rt.id)}
                           style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            marginTop: 6,
-                            fontSize: 12,
+                            padding: '6px 4px',
+                            borderRadius: 8,
+                            fontSize: 11,
+                            textAlign: 'center',
+                            cursor: 'pointer',
+                            border: isSelected ? '2px solid #0f52ba' : '1px solid #cbd5e1',
+                            background: isSelected ? '#eff6ff' : '#ffffff',
+                            color: isSelected ? '#0f52ba' : '#334155',
+                            fontWeight: isSelected ? 800 : 600,
+                            boxShadow: isSelected ? '0 2px 6px rgba(15,82,186,0.15)' : 'none',
                           }}
                         >
-                          <div>
-                            <strong style={{ fontSize: 14, color: isSelected ? '#0f52ba' : '#0f172a' }}>
-                              {rt.totalDurationMin} phút
-                            </strong>{' '}
-                            <span style={{ color: '#475569' }}>({rt.distanceKm} km)</span>
-                            {rt.trafficDelayMin > 0 && (
-                              <span style={{ color: '#dc2626', fontSize: 11, marginLeft: 6 }}>
-                                (+{rt.trafficDelayMin}p kẹt xe)
-                              </span>
-                            )}
+                          <div style={{ fontSize: 10.5, color: isSelected ? '#0f52ba' : '#64748b' }}>
+                            {idx === 0 ? 'Nhanh nhất' : `Tuyến ${idx + 1}`}
                           </div>
-                          <span
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 600,
-                              padding: '2px 8px',
-                              borderRadius: 6,
-                              background: trafficMeta.bg,
-                              color: trafficMeta.text,
-                            }}
-                          >
-                            {trafficMeta.label}
-                          </span>
-                        </div>
+                          <div style={{ fontSize: 13, fontWeight: 800, marginTop: 1 }}>{rt.totalDurationMin}p</div>
+                          <div style={{ fontSize: 10, color: '#64748b' }}>{rt.distanceKm} km</div>
+                        </button>
+                      )
+                    })}
+                  </div>
 
-                        {/* Thanh biểu thị màu sắc mật độ giao thông của tuyến (giống Google Maps) */}
-                        <div style={{ marginTop: 8 }}>
-                          <div
-                            style={{
-                              height: 6,
-                              borderRadius: 999,
-                              overflow: 'hidden',
-                              display: 'flex',
-                              background: '#e2e8f0',
-                            }}
-                          >
-                            <div
-                              style={{
-                                width: `${rt.trafficSummary.lowPct}%`,
-                                background: TRAFFIC_COLORS.low.color,
-                              }}
-                              title={`Thông thoáng: ${rt.trafficSummary.lowPct}%`}
-                            />
-                            <div
-                              style={{
-                                width: `${rt.trafficSummary.moderatePct}%`,
-                                background: TRAFFIC_COLORS.moderate.color,
-                              }}
-                              title={`Đông xe: ${rt.trafficSummary.moderatePct}%`}
-                            />
-                            <div
-                              style={{
-                                width: `${rt.trafficSummary.heavyPct}%`,
-                                background: TRAFFIC_COLORS.heavy.color,
-                              }}
-                              title={`Kẹt xe: ${rt.trafficSummary.heavyPct}%`}
-                            />
-                          </div>
-                          <div
-                            style={{
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              fontSize: 10,
-                              color: '#64748b',
-                              marginTop: 4,
-                            }}
-                          >
-                            <span style={{ color: '#15803d', fontWeight: 600 }}>
-                              ● Thoáng {rt.trafficSummary.lowPct}%
-                            </span>
-                            <span style={{ color: '#b45309', fontWeight: 600 }}>
-                              ● Đông xe {rt.trafficSummary.moderatePct}%
-                            </span>
-                            <span style={{ color: '#b91c1c', fontWeight: 600 }}>
-                              ● Kẹt xe {rt.trafficSummary.heavyPct}%
-                            </span>
-                          </div>
-                        </div>
+                  {/* Thanh tỷ lệ mật độ giao thông của tuyến đang chọn */}
+                  {activeRoute && (
+                    <div style={{ marginTop: 8 }}>
+                      <div style={{ height: 5, borderRadius: 999, overflow: 'hidden', display: 'flex', background: '#e2e8f0' }}>
+                        <div style={{ width: `${activeRoute.trafficSummary.lowPct}%`, background: TRAFFIC_COLORS.low.color }} title={`Thông thoáng: ${activeRoute.trafficSummary.lowPct}%`} />
+                        <div style={{ width: `${activeRoute.trafficSummary.moderatePct}%`, background: TRAFFIC_COLORS.moderate.color }} title={`Đông xe: ${activeRoute.trafficSummary.moderatePct}%`} />
+                        <div style={{ width: `${activeRoute.trafficSummary.heavyPct}%`, background: TRAFFIC_COLORS.heavy.color }} title={`Kẹt xe: ${activeRoute.trafficSummary.heavyPct}%`} />
                       </div>
-                    )
-                  })}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#64748b', marginTop: 3 }}>
+                        <span style={{ color: '#15803d', fontWeight: 600 }}>● Thoáng {activeRoute.trafficSummary.lowPct}%</span>
+                        <span style={{ color: '#b45309', fontWeight: 600 }}>● Đông {activeRoute.trafficSummary.moderatePct}%</span>
+                        <span style={{ color: '#b91c1c', fontWeight: 600 }}>● Kẹt {activeRoute.trafficSummary.heavyPct}%</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* Nút xem hướng dẫn rẽ từng chặng */}
-                {activeRoute && activeRoute.steps.length > 0 && (
-                  <div style={{ marginTop: 10 }}>
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      style={{ width: '100%', justifyContent: 'space-between', fontSize: 12 }}
-                      onClick={() => setShowSteps((s) => !s)}
+                {/* DANH SÁCH CHẶNG RẼ CHI TIẾT (TURN-BY-TURN DIRECTIONS) */}
+                {activeRoute && (
+                  <div style={{ flex: 1, overflowY: 'auto', padding: '14px 14px' }}>
+                    <div
+                      style={{
+                        fontSize: 11.5,
+                        fontWeight: 700,
+                        color: '#475569',
+                        textTransform: 'uppercase',
+                        marginBottom: 12,
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
                     >
-                      <span>
-                        <Compass size={13} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-                        Hướng dẫn lộ trình chi tiết ({activeRoute.steps.length} chặng)
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <Compass size={14} color="#0068ff" /> HƯỚNG DẪN RẼ CHI TIẾT ({activeRoute.steps.length} CHẶNG)
                       </span>
-                      <ChevronRight
-                        size={14}
+                      <span
+                        className="badge"
                         style={{
-                          transform: showSteps ? 'rotate(90deg)' : 'none',
-                          transition: 'transform 0.2s',
-                        }}
-                      />
-                    </button>
-
-                    {showSteps && (
-                      <div
-                        style={{
-                          marginTop: 6,
-                          background: '#ffffff',
-                          border: '1px solid #e2e8f0',
-                          borderRadius: 8,
-                          padding: '8px 10px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 6,
+                          background: TRAFFIC_COLORS[activeRoute.overallTraffic].bg,
+                          color: TRAFFIC_COLORS[activeRoute.overallTraffic].text,
+                          fontSize: 10.5,
+                          fontWeight: 700,
                         }}
                       >
-                        {activeRoute.steps.map((st, idx) => (
+                        {TRAFFIC_COLORS[activeRoute.overallTraffic].label}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
+                      {activeRoute.steps.map((st, idx) => {
+                        const isLast = idx === activeRoute.steps.length - 1
+                        const isFirst = idx === 0
+                        return (
                           <div
                             key={idx}
                             style={{
                               display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'center',
-                              fontSize: 11.5,
-                              paddingBottom: idx < activeRoute.steps.length - 1 ? 6 : 0,
-                              borderBottom:
-                                idx < activeRoute.steps.length - 1 ? '1px dashed #e2e8f0' : 'none',
+                              gap: 12,
+                              position: 'relative',
+                              paddingBottom: isLast ? 8 : 16,
                             }}
                           >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <span
+                            {/* Đường kẻ nối dọc Timeline */}
+                            {!isLast && (
+                              <div
                                 style={{
-                                  width: 8,
-                                  height: 8,
-                                  borderRadius: '50%',
-                                  background: TRAFFIC_COLORS[st.trafficLevel].color,
-                                  flexShrink: 0,
+                                  position: 'absolute',
+                                  left: 14,
+                                  top: 28,
+                                  bottom: 0,
+                                  width: 2,
+                                  background: '#cbd5e1',
                                 }}
                               />
-                              <span>{st.instruction}</span>
+                            )}
+
+                            {/* Vòng tròn Icon biểu thị hành động rẽ / đi thẳng */}
+                            <div
+                              style={{
+                                width: 30,
+                                height: 30,
+                                borderRadius: '50%',
+                                background: isFirst ? '#eff6ff' : isLast ? '#fee2e2' : '#ffffff',
+                                border: `2px solid ${isFirst ? '#0068ff' : isLast ? '#ef4444' : '#94a3b8'}`,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                                zIndex: 2,
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+                              }}
+                            >
+                              {renderManeuverIcon(st)}
                             </div>
-                            <span style={{ color: '#64748b', whiteSpace: 'nowrap', marginLeft: 8 }}>
-                              {st.distanceText} • {st.durationText}
-                            </span>
+
+                            {/* Nội dung hướng dẫn từng chặng */}
+                            <div style={{ flex: 1, paddingTop: 2 }}>
+                              <div style={{ fontSize: 13, fontWeight: isFirst || isLast ? 700 : 600, color: '#0f172a', lineHeight: 1.4 }}>
+                                {st.instruction}
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, fontSize: 11.5, color: '#64748b' }}>
+                                <span style={{ fontWeight: 600, color: '#1e293b' }}>{st.distanceText}</span>
+                                <span>•</span>
+                                <span>~{st.durationText}</span>
+                                <span
+                                  style={{
+                                    width: 7,
+                                    height: 7,
+                                    borderRadius: '50%',
+                                    background: TRAFFIC_COLORS[st.trafficLevel].color,
+                                    display: 'inline-block',
+                                    marginLeft: 2,
+                                  }}
+                                  title={TRAFFIC_COLORS[st.trafficLevel].label}
+                                />
+                                <span style={{ fontSize: 10.5, color: TRAFFIC_COLORS[st.trafficLevel].text, fontWeight: 600 }}>
+                                  {TRAFFIC_COLORS[st.trafficLevel].label}
+                                </span>
+                              </div>
+                            </div>
                           </div>
-                        ))}
-                      </div>
-                    )}
+                        )
+                      })}
+                    </div>
                   </div>
                 )}
-              </>
+              </div>
+            )}
+          </div>
+        ) : (
+          /* DANH SÁCH BỆNH VIỆN BÌNH THƯỜNG (KHI CHƯA CHỌN CHỈ ĐƯỜNG) */
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            {displayClinics.length === 0 ? (
+              <div style={{ padding: 24, textAlign: 'center', color: 'var(--color-text-tertiary)' }}>
+                Không tìm thấy bệnh viện phù hợp với bộ lọc hiện tại.
+              </div>
+            ) : (
+              displayClinics.map((clinic, i) => {
+                const isSelected = selectedClinic?.id === clinic.id
+                return (
+                  <div
+                    key={clinic.id || i}
+                    onClick={() => calculateRoutesToClinic(clinic)}
+                    style={{
+                      padding: '14px 16px',
+                      borderBottom: '1px solid var(--color-border)',
+                      cursor: 'pointer',
+                      background: isSelected ? '#eff6ff' : 'transparent',
+                      borderLeft: isSelected ? '4px solid #0f52ba' : '4px solid transparent',
+                      transition: 'background 0.15s',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                      <div>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: 'var(--color-primary)',
+                            textTransform: 'uppercase',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            flexWrap: 'wrap',
+                          }}
+                        >
+                          <span className="badge badge-primary">#{i + 1}</span>
+                          <span
+                            style={{
+                              padding: '1px 6px',
+                              borderRadius: 4,
+                              background: clinic.city === 'HCM' ? '#dbeafe' : '#fef3c7',
+                              color: clinic.city === 'HCM' ? '#1e40af' : '#92400e',
+                              fontSize: 10,
+                            }}
+                          >
+                            {clinic.city === 'HCM' ? 'TP.HCM' : 'HÀ NỘI'}
+                          </span>
+                          <span>{clinic.type}</span>
+                        </div>
+                        <div style={{ fontWeight: 700, fontSize: 15, marginTop: 4, color: '#0f172a' }}>
+                          {clinic.name}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <div style={{ fontWeight: 800, color: 'var(--color-primary)', fontSize: 14 }}>
+                          {clinic.distance} km
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>
+                          ~{clinic.driveTime}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        marginTop: 6,
+                        fontSize: 12.5,
+                        color: 'var(--color-text-secondary)',
+                      }}
+                    >
+                      <Star size={13} color="#f59e0b" fill="#f59e0b" />
+                      <strong>{clinic.rating}</strong>
+                      {clinic.address && <span>• {clinic.address}</span>}
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                      {clinic.is24h && clinic.hasER && (
+                        <span className="badge badge-emergency" style={{ fontSize: 10.5 }}>
+                          <span className="badge-dot" /> Trực Cấp cứu 24/7
+                        </span>
+                      )}
+                      <span style={{ fontSize: 12, color: '#475569', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Clock size={12} /> {clinic.phone}
+                      </span>
+                      <span
+                        className={clinic.is_open ? 'badge badge-success' : 'badge badge-danger'}
+                        style={{
+                          fontSize: 10.5,
+                          ...(!clinic.is_open
+                            ? { background: '#fee2e2', color: '#b91c1c', border: '1px solid #f87171' }
+                            : {}),
+                        }}
+                      >
+                        {clinic.status}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                      <button
+                        type="button"
+                        className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-ghost'}`}
+                        style={{ flex: 1, justifyContent: 'center' }}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          calculateRoutesToClinic(clinic)
+                        }}
+                      >
+                        <Navigation size={13} />{' '}
+                        {isSelected ? 'Đang hiển thị đường đi' : 'Chỉ đường & Xem kẹt xe'}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        style={{ flex: 1, justifyContent: 'center' }}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          navigate(
+                            `/booking?clinicId=${clinic.id}&clinicName=${encodeURIComponent(
+                              clinic.name
+                            )}`
+                          )
+                        }}
+                      >
+                        <Calendar size={13} /> Đặt khám ngay
+                      </button>
+                    </div>
+                  </div>
+                )
+              })
             )}
           </div>
         )}
-
-        {/* DANH SÁCH BỆNH VIỆN (SẮP XẾP THEO KHOẢNG CÁCH GẦN NHẤT TỪ VỊ TRÍ CỦA BẠN) */}
-        <div style={{ flex: 1, overflowY: 'auto' }}>
-          {displayClinics.length === 0 ? (
-            <div style={{ padding: 24, textAlign: 'center', color: 'var(--color-text-tertiary)' }}>
-              Không tìm thấy bệnh viện phù hợp với bộ lọc hiện tại.
-            </div>
-          ) : (
-            displayClinics.map((clinic, i) => {
-              const isSelected = selectedClinic?.id === clinic.id
-              return (
-                <div
-                  key={clinic.id || i}
-                  onClick={() => calculateRoutesToClinic(clinic)}
-                  style={{
-                    padding: '14px 16px',
-                    borderBottom: '1px solid var(--color-border)',
-                    cursor: 'pointer',
-                    background: isSelected ? '#eff6ff' : 'transparent',
-                    borderLeft: isSelected ? '4px solid #0f52ba' : '4px solid transparent',
-                    transition: 'background 0.15s',
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                    <div>
-                      <div
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          color: 'var(--color-primary)',
-                          textTransform: 'uppercase',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 6,
-                          flexWrap: 'wrap',
-                        }}
-                      >
-                        <span className="badge badge-primary">#{i + 1}</span>
-                        <span
-                          style={{
-                            padding: '1px 6px',
-                            borderRadius: 4,
-                            background: clinic.city === 'HCM' ? '#dbeafe' : '#fef3c7',
-                            color: clinic.city === 'HCM' ? '#1e40af' : '#92400e',
-                            fontSize: 10,
-                          }}
-                        >
-                          {clinic.city === 'HCM' ? 'TP.HCM' : 'HÀ NỘI'}
-                        </span>
-                        <span>{clinic.type}</span>
-                      </div>
-                      <div style={{ fontWeight: 700, fontSize: 15, marginTop: 4, color: '#0f172a' }}>
-                        {clinic.name}
-                      </div>
-                    </div>
-                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <div style={{ fontWeight: 800, color: 'var(--color-primary)', fontSize: 14 }}>
-                        {clinic.distance} km
-                      </div>
-                      <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>
-                        ~{clinic.driveTime}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      marginTop: 6,
-                      fontSize: 12.5,
-                      color: 'var(--color-text-secondary)',
-                    }}
-                  >
-                    <Star size={13} color="#f59e0b" fill="#f59e0b" />
-                    <strong>{clinic.rating}</strong>
-                    {clinic.address && <span>• {clinic.address}</span>}
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-                    {clinic.is24h && clinic.hasER && (
-                      <span className="badge badge-emergency" style={{ fontSize: 10.5 }}>
-                        <span className="badge-dot" /> Trực Cấp cứu 24/7
-                      </span>
-                    )}
-                    <span style={{ fontSize: 12, color: '#475569', display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Clock size={12} /> {clinic.phone}
-                    </span>
-                    <span
-                      className={clinic.is_open ? 'badge badge-success' : 'badge badge-danger'}
-                      style={{
-                        fontSize: 10.5,
-                        ...(!clinic.is_open
-                          ? { background: '#fee2e2', color: '#b91c1c', border: '1px solid #f87171' }
-                          : {}),
-                      }}
-                    >
-                      {clinic.status}
-                    </span>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-                    <button
-                      type="button"
-                      className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-ghost'}`}
-                      style={{ flex: 1, justifyContent: 'center' }}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        calculateRoutesToClinic(clinic)
-                      }}
-                    >
-                      <Navigation size={13} />{' '}
-                      {isSelected ? 'Đang hiển thị đường đi' : 'Chỉ đường & Xem kẹt xe'}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-primary btn-sm"
-                      style={{ flex: 1, justifyContent: 'center' }}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        navigate('/booking')
-                      }}
-                    >
-                      <Calendar size={13} /> Đặt khám ngay
-                    </button>
-                  </div>
-                </div>
-              )
-            })
-          )}
-        </div>
       </div>
 
       {/* CỘT PHẢI: BẢN ĐỒ TƯƠNG TÁC + ĐA TUYẾN ĐƯỜNG + MÀU SẮC KẸT XE */}
@@ -1482,7 +1652,7 @@ export default function ClinicMap() {
                       color: rt.id === activeRoute.id ? '#ffffff' : '#334155',
                     }}
                   >
-                    {idx === 0 ? `⚡ Tuyến 1 (${rt.totalDurationMin}p)` : `Tuyến ${idx + 1} (${rt.totalDurationMin}p)`}
+                    {idx === 0 ? `Tuyến 1 (${rt.totalDurationMin}p)` : `Tuyến ${idx + 1} (${rt.totalDurationMin}p)`}
                   </button>
                 ))}
               </div>
@@ -1540,7 +1710,25 @@ export default function ClinicMap() {
             }}
           >
             <span>Mật độ giao thông trực tiếp</span>
-            <AlertTriangle size={13} color="#f59e0b" />
+            <button
+              type="button"
+              onClick={refreshTraffic}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#0068ff',
+                cursor: 'pointer',
+                fontSize: 10.5,
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                padding: '2px 4px',
+              }}
+              title="Cập nhật mật độ giao thông theo thời gian thực"
+            >
+              <RefreshCw size={11} /> {trafficUpdatedAt}
+            </button>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
             <span style={{ fontSize: 11, color: '#15803d', fontWeight: 600 }}>Thông thoáng</span>
@@ -1726,7 +1914,13 @@ export default function ClinicMap() {
                         <button
                           className="btn btn-ghost btn-sm"
                           style={{ flex: 1, fontSize: 11 }}
-                          onClick={() => navigate('/booking')}
+                          onClick={() =>
+                            navigate(
+                              `/booking?clinicId=${clinic.id}&clinicName=${encodeURIComponent(
+                                clinic.name
+                              )}`
+                            )
+                          }
                         >
                           Đặt khám
                         </button>

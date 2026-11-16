@@ -9,7 +9,8 @@ Thư mục này lưu trữ các biểu mẫu chuẩn y tế dùng để xuất b
 | STT | Tên file trong thư mục `templates/` | Mục đích & Chức năng của file mẫu |
 | :---: | :--- | :--- |
 | **1** | `Mau_18_BV_01_Phieu_Ket_Qua_Chup_XQuang_Chuan_Bo_Y_Te.html` | **File mẫu gốc (Template chuẩn Bộ Y tế — Mẫu số: 18/BV-01)** dùng để xuất **Phiếu Chiếu / Chụp X-quang** khổ chuẩn A4. Biểu mẫu tuân thủ quy định Hồ sơ bệnh án của Bộ Y tế (Quyết định số `4069/2001/QĐ-BYT` và Thông tư `32/2023/TT-BYT`). |
-| **2** | `Bang_Chung_Xuat_Phieu_Ket_Qua_XQuang_Benh_Nhan_Nguyen_Van_An.html` | **File bằng chứng kết quả xuất thực tế (Sample Output Evidence)** đã kết xuất đầy đủ dữ liệu từ PostgreSQL của bệnh nhân **Nguyễn Văn An** (Mã kết quả: `XQ-20261108-104510-A309`, Mã phim gốc: `IMG-20261108-104510-A309`, Lần chụp thứ `3/3`). Dùng để mở trực tiếp minh họa khi báo cáo hội đồng. |
+| **2** | `Mau_Don_Thuoc_Chuan_Bo_Y_Te.html` | **File mẫu gốc Đơn Thuốc Ngoại Trú Chuẩn Bộ Y Tế (Mẫu số: 01/ĐT)** theo Thông tư số `52/2017/TT-BYT` và Thông tư `04/2022/TT-BYT`. Dùng để in và tải file đơn thuốc cho từng đợt khám của bệnh nhân. |
+| **3** | `Bang_Chung_Xuat_Phieu_Ket_Qua_XQuang_Benh_Nhan_Nguyen_Van_An.html` | **File bằng chứng kết quả xuất thực tế (Sample Output Evidence)** đã kết xuất đầy đủ dữ liệu từ PostgreSQL của bệnh nhân **Nguyễn Văn An** (Mã kết quả: `XQ-20261108-104510-A309`, Mã phim gốc: `IMG-20261108-104510-A309`, Lần chụp thứ `3/3`). Dùng để mở trực tiếp minh họa khi báo cáo hội đồng. |
 
 ---
 

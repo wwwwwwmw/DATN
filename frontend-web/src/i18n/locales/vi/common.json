@@ -8,7 +8,7 @@
     "smart_booking": "Đặt lịch khám thông minh",
     "telehealth": "Khám bệnh từ xa WebRTC",
     "xray_analysis": "Phân tích X-quang AI",
-    "medical_records": "Hồ sơ Bệnh án và ICD-10",
+    "medical_records": "Hồ sơ Bệnh án & Đơn thuốc",
     "clinic_map": "Bản đồ Phòng khám GIS",
     "settings": "Cài đặt",
     "dashboard": "Bảng điều khiển"
@@ -242,9 +242,9 @@
     "history_hypertension": "TĂNG HUYẾT ÁP ĐỘ 2 (3 NĂM)",
     "history_lipid": "RỐI LOẠN MỠ MÁU",
     "history_nosmoking": "KHÔNG HÚT THUỐC LÁ",
-    "encounter_note": "Sổ khám bệnh (Đang trong cuộc gọi)",
-    "icd10_label": "Mã chẩn đoán ICD-10 (Tự động gợi ý lâm sàng AI)",
-    "icd10_placeholder": "I20.0 — Cơn đau thắt ngực không ổn định",
+    "encounter_note": "Sổ khám bệnh",
+    "icd10_label": "Chẩn đoán",
+    "icd10_placeholder": "Nhập mã ICD-10 hoặc tên chẩn đoán (VD: I10, I20...)",
     "symptoms_label": "Triệu chứng và Diễn biến lâm sàng",
     "symptoms_placeholder": "Bệnh nhân đỡ đau ngực sau khi nghỉ ngơi...",
     "quick_rx": "Kê đơn thuốc nhanh",
@@ -261,7 +261,7 @@
     }
   },
   "records": {
-    "title": "Hồ sơ bệnh án điện tử",
+    "title": "Hồ sơ bệnh án và đơn thuốc",
     "treatment_dot": "ĐỢT ĐIỀU TRỊ HIỆN TẠI",
     "timeline_title": "Lịch sử khám và Đợt điều trị",
     "timeline_count": "{{count}} hồ sơ ghi nhận",
@@ -286,8 +286,8 @@
     "identifier_label": "Mã định danh:",
     "audit_hash": "Mã xác thực hồ sơ:",
     "fips_compliant": "BẢO MẬT CHUẨN Y TẾ",
-    "print_summary": "In phiếu tóm tắt",
-    "export_hl7": "Tải file Bệnh án Điện tử"
+    "print_summary": "In đơn thuốc",
+    "export_hl7": "Tải đơn thuốc"
   },
   "settings": {
     "breadcrumb": "HỆ THỐNG > CÀI ĐẶT và BẢO MẬT",

@@ -25,22 +25,24 @@ Dưới đây là danh sách đầy đủ toàn bộ tài khoản trong hệ th�
 
 ---
 
-### 2. Bác sĩ chuyên khoa (DOCTOR) — Đầy đủ 10 Chuyên khoa lâm sàng
+### 2. Bác sĩ chuyên khoa (DOCTOR) — 14 Bác sĩ (Đầy đủ Chuyên khoa lâm sàng & Chẩn đoán hình ảnh)
 
 | STT | Bác sĩ chuyên khoa | Chuyên khoa lâm sàng | Bệnh viện / Cơ sở | Email đăng nhập | Mật khẩu |
 | :---: | :--- | :--- | :--- | :--- | :--- |
 | **1** | **BS. Sarah Jenkins** | **Nội Tim mạch** | Bệnh viện ĐKQT MedTech Sài Gòn | **`anhle081004@gmail.com`** | **`doctor123`** (Email thực tế) |
-| **2** | **BS. Marcus Vance** | **Nội Thần kinh** (Đau đầu, nhức đầu) | Bệnh viện Chợ Rẫy | `marcus.vance@medtech.ai` | **`MedTech2026!`** |
-| **3** | **BS. Quoc Toan Tran** | **Cơ xương khớp** (Cột sống, khớp) | BV Đại học Y Dược TP.HCM | `tran.quoc.toan@medtech.ai` | **`MedTech2026!`** |
-| **4** | **BS. Marc Lindqvist** | **Chẩn đoán hình ảnh** (X-quang, CT) | Bệnh viện ĐKQT MedTech Sài Gòn | `marc.lindqvist@medtech.ai` | **`MedTech2026!`** |
-| **5** | **BS. Trần Văn B** | **Tiêu hóa - Gan mật** (Ăn không ngon) | Bệnh viện ĐKQT MedTech Sài Gòn | `tranvanb@medtech.vn` | **`doctor123`** |
-| **6** | **BS. Trần Bảo Ngọc** | **Tiêu hóa - Gan mật** (Dạ dày, đại tràng) | Bệnh viện Chợ Rẫy | `bs.ngoc.tieuhoa@medtech.vn` | **`doctor123`** |
-| **7** | **BS. Phạm Thị Hoa** | **Đa khoa & Nội Tổng quát** | Bệnh viện ĐKQT MedTech Sài Gòn | `phamthie@medtech.vn` | **`doctor123`** |
-| **8** | **BS. Nguyễn Hoàng Nam** | **Đa khoa & Nội Tổng quát** | Bệnh viện ĐKQT MedTech Sài Gòn | `bs.nam.dakhoa@medtech.vn` | **`doctor123`** |
-| **9** | **BS. Lê Văn Dũng** | **Tai Mũi Họng & Hô hấp** | Bệnh viện ĐKQT MedTech Sài Gòn | `levand@medtech.vn` | **`doctor123`** |
-| **10** | **BS. Nguyễn Thị Cẩm** | **Da liễu** (Dị ứng, mụn) | Bệnh viện ĐKQT MedTech Sài Gòn | `nguyenthic@medtech.vn` | **`doctor123`** |
-| **11** | **BS. Phạm Quang Khải** | **Mắt** (Khúc xạ, đo thị lực) | BV Đại học Y Dược TP.HCM | `bs.khai.mat@medtech.vn` | **`doctor123`** |
-| **12** | **BS. Lê Thị Minh Tuyết** | **Nhi khoa** (Khám bệnh trẻ em) | Bệnh viện ĐKQT MedTech Sài Gòn | `bs.tuyet.nhi@medtech.vn` | **`doctor123`** |
+| **2** | **BS. Marc Lindqvist** | **Chẩn đoán hình ảnh** (Phụ trách X-quang) | Bệnh viện ĐKQT Vinmec Central Park | `marc.lindqvist@medtech.ai` | **`MedTech2026!`** |
+| **3** | **BS. Nguyễn Hoàng Phương** | **Chẩn đoán hình ảnh** (Phụ trách X-quang) | Bệnh viện Chợ Rẫy | `bs.phuong.cdha@medtech.vn` | **`doctor123`** |
+| **4** | **BS. Trần Thị Mai Khanh** | **Chẩn đoán hình ảnh** (Phụ trách X-quang) | BV Đại học Y Dược TP.HCM | `bs.khanh.cdha@medtech.vn` | **`doctor123`** |
+| **5** | **BS. Marcus Vance** | **Nội Thần kinh** (Đau đầu, nhức đầu) | Bệnh viện Chợ Rẫy | `marcus.vance@medtech.ai` | **`MedTech2026!`** |
+| **6** | **BS. Quoc Toan Tran** | **Cơ xương khớp** (Cột sống, khớp) | BV Đại học Y Dược TP.HCM | `tran.quoc.toan@medtech.ai` | **`MedTech2026!`** |
+| **7** | **BS. Trần Văn B** | **Tiêu hóa - Gan mật** (Ăn không ngon) | Bệnh viện ĐKQT MedTech Sài Gòn | `tranvanb@medtech.vn` | **`doctor123`** |
+| **8** | **BS. Trần Bảo Ngọc** | **Tiêu hóa - Gan mật** (Dạ dày, đại tràng) | Bệnh viện Chợ Rẫy | `bs.ngoc.tieuhoa@medtech.vn` | **`doctor123`** |
+| **9** | **BS. Phạm Thị Hoa** | **Đa khoa & Nội Tổng quát** | Bệnh viện ĐKQT MedTech Sài Gòn | `phamthie@medtech.vn` | **`doctor123`** |
+| **10** | **BS. Nguyễn Hoàng Nam** | **Đa khoa & Nội Tổng quát** | Bệnh viện ĐKQT MedTech Sài Gòn | `bs.nam.dakhoa@medtech.vn` | **`doctor123`** |
+| **11** | **BS. Lê Văn Dũng** | **Tai Mũi Họng & Hô hấp** | Bệnh viện ĐKQT MedTech Sài Gòn | `levand@medtech.vn` | **`doctor123`** |
+| **12** | **BS. Nguyễn Thị Cẩm** | **Da liễu** (Dị ứng, mụn) | Bệnh viện ĐKQT MedTech Sài Gòn | `nguyenthic@medtech.vn` | **`doctor123`** |
+| **13** | **BS. Phạm Quang Khải** | **Mắt** (Khúc xạ, đo thị lực) | BV Đại học Y Dược TP.HCM | `bs.khai.mat@medtech.vn` | **`doctor123`** |
+| **14** | **BS. Lê Thị Minh Tuyết** | **Nhi khoa** (Khám bệnh trẻ em) | Bệnh viện ĐKQT MedTech Sài Gòn | `bs.tuyet.nhi@medtech.vn` | **`doctor123`** |
 
 ---
 

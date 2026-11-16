@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mẫu Đơn Thuốc Chuẩn Bộ Y Tế — Thông Tư 52/2017/TT-BYT & 04/2022/TT-BYT</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 12mm 15mm 12mm 15mm;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: "Times New Roman", Times, serif;
+      font-size: 13pt;
+      line-height: 1.45;
+      color: #000000;
+      background: #e2e8f0;
+      padding: 20px;
+    }
+    .toolbar-no-print {
+      max-width: 210mm;
+      margin: 0 auto 14px auto;
+      background: #0f172a;
+      color: #ffffff;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .toolbar-no-print button {
+      background: #0068ff;
+      color: #ffffff;
+      border: none;
+      padding: 7px 16px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 13px;
+      margin-left: 8px;
+    }
+    .toolbar-no-print button.secondary {
+      background: #475569;
+    }
+    .a4-sheet {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 14mm 16mm;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+      border: 1px solid #cbd5e1;
+    }
+    /* Header hành chính theo chuẩn Bộ Y tế */
+    .moh-header {
+      display: grid;
+      grid-template-columns: 1.35fr 1fr;
+      gap: 10px;
+      border-bottom: 1.5px solid #000;
+      padding-bottom: 8px;
+      margin-bottom: 14px;
+      font-size: 11.5pt;
+    }
+    .moh-org {
+      text-align: left;
+    }
+    .moh-org .dept-upper {
+      text-transform: uppercase;
+      font-size: 11pt;
+    }
+    .moh-org .hospital-name {
+      text-transform: uppercase;
+      font-weight: bold;
+      font-size: 11.5pt;
+    }
+    .moh-org .address-line {
+      font-size: 10pt;
+      color: #333;
+      margin-top: 2px;
+    }
+    .moh-meta {
+      text-align: right;
+      font-size: 10.5pt;
+    }
+    .moh-meta .form-code {
+      font-weight: bold;
+      font-size: 11pt;
+    }
+    /* Tiêu đề đơn thuốc */
+    .prescription-title-block {
+      text-align: center;
+      margin: 12px 0 16px 0;
+    }
+    .prescription-title-block h1 {
+      font-size: 19pt;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .prescription-title-block .sub-type {
+      font-size: 11pt;
+      font-style: italic;
+      color: #333333;
+      margin-top: 2px;
+    }
+    /* Thông tin hành chính bệnh nhân */
+    .section-patient {
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 10px 14px;
+      margin-bottom: 16px;
+      background: #fafafa;
+      font-size: 12pt;
+    }
+    .patient-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 6px 14px;
+    }
+    .patient-row-full {
+      margin-top: 4px;
+    }
+    .label {
+      font-weight: normal;
+    }
+    .val {
+      font-weight: bold;
+    }
+    /* Danh sách thuốc kê đơn */
+    .drugs-block {
+      margin-top: 14px;
+      min-height: 380px;
+    }
+    .drugs-header {
+      font-size: 13pt;
+      font-weight: bold;
+      text-transform: uppercase;
+      border-bottom: 1px solid #000;
+      padding-bottom: 4px;
+      margin-bottom: 10px;
+    }
+    .drug-item {
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px dashed #e2e8f0;
+      page-break-inside: avoid;
+    }
+    .drug-line-1 {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 13pt;
+    }
+    .drug-name {
+      font-weight: bold;
+    }
+    .drug-qty {
+      font-weight: bold;
+      min-width: 140px;
+      text-align: right;
+    }
+    .drug-usage {
+      font-size: 12pt;
+      font-style: italic;
+      color: #1e293b;
+      margin-top: 2px;
+      padding-left: 18px;
+    }
+    /* Lời dặn của Bác sĩ */
+    .advice-block {
+      border: 1px dashed #94a3b8;
+      border-radius: 6px;
+      padding: 10px 14px;
+      margin-top: 14px;
+      background: #f8fafc;
+      font-size: 12pt;
+    }
+    .advice-block strong {
+      display: inline-block;
+      margin-bottom: 4px;
+    }
+    /* Chữ ký xác nhận */
+    .signatures-block {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      margin-top: 24px;
+      text-align: center;
+      page-break-inside: avoid;
+    }
+    .sign-date {
+      font-style: italic;
+      font-size: 12pt;
+      margin-bottom: 4px;
+    }
+    .sign-title {
+      font-weight: bold;
+      font-size: 12.5pt;
+      text-transform: uppercase;
+    }
+    .sign-note {
+      font-size: 10.5pt;
+      font-style: italic;
+      color: #64748b;
+    }
+    .sign-space {
+      height: 75px;
+    }
+    .sign-name {
+      font-weight: bold;
+      font-size: 13pt;
+    }
+    .sign-cchn {
+      font-size: 11pt;
+      color: #334155;
+    }
+    /* Footer lưu ý của Bộ Y Tế */
+    .moh-footer-note {
+      margin-top: 22px;
+      padding-top: 8px;
+      border-top: 1px solid #000;
+      font-size: 10.5pt;
+      font-style: italic;
+      color: #475569;
+      display: flex;
+      justify-content: space-between;
+    }
+    @media print {
+      body {
+        background: #ffffff;
+        padding: 0;
+      }
+      .toolbar-no-print {
+        display: none !important;
+      }
+      .a4-sheet {
+        box-shadow: none;
+        border: none;
+        padding: 0;
+        margin: 0;
+        width: 100%;
+        min-height: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar-no-print">
+    <div>
+      <strong>Hệ Thống Y Tế MedTech AI</strong> — Mẫu Đơn Thuốc Chuẩn Bộ Y Tế (Thông tư 52/2017/TT-BYT & 04/2022/TT-BYT)
+    </div>
+    <div>
+      <button class="secondary" onclick="window.close()">Đóng</button>
+      <button onclick="window.print()">In Đơn Thuốc (Ctrl + P)</button>
+    </div>
+  </div>
+
+  <div class="a4-sheet">
+    <!-- Header Bộ Y tế -->
+    <div class="moh-header">
+      <div class="moh-org">
+        <div class="dept-upper">SỞ Y TẾ TP. HỒ CHÍ MINH</div>
+        <div class="hospital-name">{{CLINIC_NAME}}</div>
+        <div class="address-line">Địa chỉ: Số 125 Lê Lợi, Phường Bến Thành, Quận 1, TP. Hồ Chí Minh</div>
+        <div class="address-line">Điện thoại hotline: 1900 6868 &bull; Cấp cứu 24/7</div>
+      </div>
+      <div class="moh-meta">
+        <div class="form-code">Mẫu số: 01/ĐT</div>
+        <div>(Ban hành kèm TT 52/2017/TT-BYT)</div>
+        <div style="margin-top: 4px;">Mã ĐT điện tử: <strong>{{PRESCRIPTION_CODE}}</strong></div>
+        <div>Ngày khám: <strong>{{APPOINTMENT_DATE}}</strong></div>
+      </div>
+    </div>
+
+    <!-- Tiêu đề đơn thuốc -->
+    <div class="prescription-title-block">
+      <h1>ĐƠN THUỐC</h1>
+      <div class="sub-type">(Khám chữa bệnh ngoại trú & Điều trị theo chỉ định Bác sĩ)</div>
+    </div>
+
+    <!-- Thông tin bệnh nhân -->
+    <div class="section-patient">
+      <div class="patient-grid">
+        <div><span class="label">Họ và tên người bệnh:</span> <span class="val" style="text-transform: uppercase;">{{PATIENT_NAME}}</span></div>
+        <div><span class="label">Giới tính:</span> <span class="val">{{PATIENT_GENDER}}</span></div>
+      </div>
+      <div class="patient-grid" style="margin-top: 4px;">
+        <div><span class="label">Ngày sinh / Tuổi:</span> <span class="val">{{PATIENT_AGE}}</span></div>
+        <div><span class="label">Điện thoại liên hệ:</span> <span class="val">{{PATIENT_PHONE}}</span></div>
+      </div>
+      <div class="patient-row-full">
+        <span class="label">Địa chỉ thường trú:</span> <span class="val">{{PATIENT_ADDRESS}}</span>
+      </div>
+      <div class="patient-row-full">
+        <span class="label">Chẩn đoán y khoa (ICD-10):</span> <span class="val" style="color: #b91c1c;">{{DIAGNOSIS_ICD10}}</span>
+      </div>
+    </div>
+
+    <!-- Danh sách thuốc kê đơn -->
+    <div class="drugs-block">
+      <div class="drugs-header">CHỈ ĐỊNH THUỐC ĐIỀU TRỊ</div>
+      {{DRUGS_LIST_HTML}}
+    </div>
+
+    <!-- Lời dặn Bác sĩ -->
+    <div class="advice-block">
+      <strong>Lời dặn của Bác sĩ điều trị:</strong>
+      <div>{{DOCTOR_ADVICE}}</div>
+      <div style="margin-top: 4px;">- Tái khám: <strong>{{FOLLOW_UP_DATE}}</strong> (hoặc tái khám ngay khi có dấu hiệu bất thường).</div>
+    </div>
+
+    <!-- Chữ ký xác nhận -->
+    <div class="signatures-block">
+      <div>
+        <div class="sign-title">Người nhận thuốc</div>
+        <div class="sign-note">(Ký và ghi rõ họ tên)</div>
+        <div class="sign-space"></div>
+        <div class="sign-name">{{PATIENT_NAME}}</div>
+      </div>
+      <div>
+        <div class="sign-date">Ngày {{DAY}} tháng {{MONTH}} năm {{YEAR}}</div>
+        <div class="sign-title">Bác sĩ kê đơn</div>
+        <div class="sign-note">(Ký, đóng dấu và ghi rõ họ tên)</div>
+        <div class="sign-space"></div>
+        <div class="sign-name">BS. {{DOCTOR_NAME}}</div>
+        <div class="sign-cchn">Chuyên khoa: {{DOCTOR_SPECIALIZATION}}</div>
+      </div>
+    </div>
+
+    <!-- Chân trang Bộ Y Tế -->
+    <div class="moh-footer-note">
+      <div>* Khám lại xin mang theo đơn thuốc này.</div>
+      <div>* Đơn thuốc có giá trị mua/lĩnh trong vòng 05 ngày kể từ ngày kê đơn.</div>
+    </div>
+  </div>
+</body>
+</html>

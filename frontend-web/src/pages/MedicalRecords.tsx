@@ -6,10 +6,11 @@ import { medicalRecordAPI } from '../services/api'
 import { useRealtimeSync } from '../utils/realtime'
 import InfoTooltip from '../components/InfoTooltip'
 import {
-  FileText, Shield, ExternalLink,
+  FileText, Shield, Download,
   Printer, Activity, RefreshCw, Users,
   AlertTriangle
 } from 'lucide-react'
+import { parseMedications, generatePrescriptionHtml } from '../utils/prescriptionTemplate'
 
 function extractList(res: any): any[] {
   const payload = res?.data?.data ?? res?.data
@@ -32,29 +33,6 @@ function parseDiagnoses(rawDiagnosis: string, rawSymptoms: string, t: any) {
       desc: idx === 0 ? (rawSymptoms || 'Chẩn đoán lâm sàng chính thức từ Bác sĩ điều trị') : 'Bệnh lý đi kèm ghi nhận trong quá trình thăm khám',
       role: idx === 0 ? t('records.primary_diagnosis') : t('records.secondary_diagnosis'),
       color: idx === 0 ? 'var(--color-emergency)' : 'var(--color-warning)',
-    }
-  })
-}
-
-function parseMedications(rawPrescription: string) {
-  if (!rawPrescription) return []
-  const lines = rawPrescription.split('\n').map(l => l.trim()).filter(Boolean)
-  return lines.map((line) => {
-    const cols = line.split('|').map(c => c.trim())
-    const drugRaw = cols[0] || line
-    const usageRaw = cols[1] || 'Theo chỉ định của Bác sĩ'
-    const daysRaw = cols[2] || '14 ngày'
-    const doseMatch = drugRaw.match(/(\d+(?:\/\d+)?\s*(?:mg|mcg|g|ml|UI))/i)
-    const dose = doseMatch ? doseMatch[1] : '1 viên'
-    const daysMatch = daysRaw.match(/(\d+)/)
-    const days = daysMatch ? Number(daysMatch[1]) : 14
-    return {
-      name: drugRaw,
-      generic: 'Dược điển Lâm sàng MedTech',
-      dose,
-      usage: usageRaw,
-      days,
-      note: daysRaw,
     }
   })
 }
@@ -127,11 +105,35 @@ export default function MedicalRecords() {
       .catch(() => setDrugInteractions([]))
   }, [activeRecord?.id, activeRecord?.prescription])
 
-  const roleScopeBanner = user?.role === 'PATIENT'
-    ? 'Phạm vi dữ liệu: Hồ sơ Bệnh án cá nhân của bạn'
-    : user?.role === 'DOCTOR'
-      ? `Phạm vi dữ liệu: Hồ sơ Bệnh án của các bệnh nhân do BS. ${user.last_name} ${user.first_name} phụ trách`
-      : 'Phạm vi dữ liệu: Toàn bộ Hồ sơ Bệnh án toàn viện (Quyền Quản trị viên ADMIN)'
+  const handlePrintPrescription = () => {
+    if (!activeRecord) return
+    const html = generatePrescriptionHtml(activeRecord)
+    const printWindow = window.open('', '_blank', 'width=950,height=850')
+    if (printWindow) {
+      printWindow.document.write(html)
+      printWindow.document.close()
+      printWindow.focus()
+      setTimeout(() => {
+        printWindow.print()
+      }, 400)
+    }
+  }
+
+  const handleDownloadPrescription = () => {
+    if (!activeRecord) return
+    const html = generatePrescriptionHtml(activeRecord)
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    const safeName = (activeRecord.patient_name || 'BenhNhan').replace(/\s+/g, '_')
+    const safeDate = (activeRecord.appointment_date || 'NgayKham').replace(/-/g, '')
+    a.download = `Don_Thuoc_${safeName}_DotKham_${safeDate}.html`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
@@ -142,18 +144,14 @@ export default function MedicalRecords() {
             <FileText size={24} color="var(--color-primary)" />
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
-                <h3>{t('records.title')}</h3>
+                <h3 style={{ margin: 0 }}>Hồ sơ bệnh án và đơn thuốc</h3>
                 {activeRecord && (
                   <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>
-                    {t('records.identifier_label')} <span className="font-mono">{activeRecord.patient_code}</span> &bull; <strong>{activeRecord.patient_name}</strong>
-                    {activeRecord.patient_age ? ` • ${activeRecord.patient_age} ${t('common.age_unit')}` : ''}
+                    &bull; <strong>{activeRecord.patient_name}</strong>
                     {activeRecord.patient_gender ? ` (${activeRecord.patient_gender})` : ''}
+                    {activeRecord.patient_age ? ` • ${activeRecord.patient_age} tuổi` : ''}
                   </span>
                 )}
-              </div>
-              <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                <span className="badge badge-primary">{roleScopeBanner}</span>
-                <span className="badge badge-success">{t('status.synced')} ({filteredRecords.length} bệnh án)</span>
               </div>
             </div>
           </div>
@@ -233,7 +231,7 @@ export default function MedicalRecords() {
                       </span>
                     </div>
                     <div style={{ fontWeight: 'var(--font-semibold)', fontSize: 'var(--text-sm)', marginTop: 4 }}>
-                      {entry.patient_name} ({entry.patient_code})
+                      {entry.patient_name}
                     </div>
                     <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', marginTop: 2 }}>
                       BS. {entry.doctor_name} • {entry.clinic_name}
@@ -260,7 +258,6 @@ export default function MedicalRecords() {
                       Bác sĩ phụ trách: BS. {activeRecord.doctor_name} — {activeRecord.doctor_specialization}
                     </h2>
                   </div>
-                  <span className="badge badge-success">Hồ sơ #{activeRecord.id}</span>
                 </div>
 
                 {/* Patient Clinical Background & Notes from DB */}
@@ -437,15 +434,26 @@ export default function MedicalRecords() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)' }}>
                   <Shield size={15} color="var(--color-primary)" />
                   <span className="badge badge-success">{t('records.fips_compliant')}</span>
-                  <span className="font-mono" style={{ color: 'var(--color-text-tertiary)' }}>#REC-{activeRecord.id}</span>
                   <InfoTooltip
                     title="Bảo mật hồ sơ y tế"
                     content="Hồ sơ bệnh án được bảo mật tuyệt đối theo quy định của Bộ Y tế. Chỉ bạn và bác sĩ điều trị mới có quyền truy cập."
                   />
                 </div>
                 <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                  <button className="btn btn-secondary btn-sm" onClick={() => window.print()}><Printer size={14} /> {t('records.print_summary')}</button>
-                  <button className="btn btn-primary btn-sm" onClick={() => window.print()}><ExternalLink size={14} /> {t('records.export_hl7')}</button>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={handlePrintPrescription}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 600 }}
+                  >
+                    <Printer size={14} /> In Đơn Thuốc
+                  </button>
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={handleDownloadPrescription}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 600, background: '#0068ff', borderColor: '#0068ff' }}
+                  >
+                    <Download size={14} /> Tải Đơn Thuốc
+                  </button>
                 </div>
               </div>
             </div>
